@@ -1,0 +1,25 @@
+{
+	"name": "pine",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@11.22.0",
+	"scripts": {
+		"dev:runtime": "pnpm --filter @pine/runtime dev",
+		"dev:ui": "pnpm --filter @pine/desktop dev",
+		"dev": "pnpm --filter @pine/desktop dev",
+		"dev:tauri": "pnpm --filter @pine/desktop dev:tauri",
+		"prepare:sidecar": "node scripts/prepare-sidecar.mjs",
+		"build": "pnpm -r --filter=./packages/* build",
+		"build:tauri": "pnpm prepare:sidecar && pnpm --filter @pine/desktop build:tauri",
+		"typecheck": "pnpm -r --filter=./packages/* exec tsc -p tsconfig.json --noEmit"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"devDependencies": {
+		"@types/node": "22.19.19",
+		"esbuild": "0.25.12",
+		"tsx": "4.22.1",
+		"typescript": "5.9.3"
+	}
+}
