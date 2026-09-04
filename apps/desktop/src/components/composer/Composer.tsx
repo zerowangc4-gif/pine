@@ -16,7 +16,14 @@ import styled from "styled-components";
 import type { ImageContent } from "@pine/protocol";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { basename } from "../../lib/format.ts";
-import { abortRun, continueAgent, followUpAgent, promptAgent, requestStop, steerAgent } from "../../store/actions/session.ts";
+import {
+	abortRun,
+	continueAgent,
+	followUpAgent,
+	promptAgent,
+	requestStop,
+	steerAgent,
+} from "../../store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import { selectDraft } from "../../store/slices/config.ts";
 import { selectIsRunning, selectSnapshot, selectWorkspace } from "../../store/slices/session.ts";
@@ -98,6 +105,10 @@ export function Composer() {
 	const [text, setText] = useState("");
 	const [images, setImages] = useState<Attached[]>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	// Used only by the idle→prompt transition (see `runGuarded`). Steer and
+	// follow-up never touch it, so nothing is silently swallowed once the run
+	// is visibly running.
+	const submittingRef = useRef(false);
 
 	const sessionOpen = snapshot !== undefined;
 	const canSend = sessionOpen && (text.trim().length > 0 || images.length > 0);
@@ -105,26 +116,63 @@ export function Composer() {
 	const queuedCount = snapshot?.queued.length ?? 0;
 	const hasHistory = transcriptItems.some((item) => item.kind === "message");
 	const canContinue = sessionOpen && !running && hasHistory;
+	// "Follow up" runs this once the current agent would otherwise stop. It is
+	// only offered while a run is in flight: enqueued while idle there is no run
+	// in progress to consume it, so it would just hang as a heading that is easy
+	// to misread as pending work. (Continue on a finished assistant turn is the
+	// separate path for carrying on when nothing is running.)
+	const canFollowUp = canSend && running;
 
 	const clear = useCallback(() => {
 		setText("");
 		setImages([]);
 	}, []);
 
+	const runGuarded = useCallback((action: () => unknown): boolean => {
+		// Idle→prompt only: dedupes two Enters that could both observe
+		// `running === false` before the optimistic flag flips the primary control
+		// into "steer". Steer / follow-up never route through here (each is an
+		// independent, legal enqueue that may repeat freely), so this lock cannot
+		// swallow a visible control. Cleared on the prompt's own settle; once the
+		// run is running no other code path reads it.
+		if (submittingRef.current) return false;
+		submittingRef.current = true;
+		Promise.resolve(action()).finally(() => {
+			submittingRef.current = false;
+		});
+		return true;
+	}, []);
+
 	/** Idle sends a prompt; a run in flight is steered instead. */
 	const submit = useCallback(() => {
 		if (!canSend) return;
 		const payload = images.map(({ name: _name, ...image }) => image);
-		if (running) dispatch(steerAgent(text, payload));
-		else dispatch(promptAgent(text, payload));
-		clear();
-	}, [canSend, clear, dispatch, images, running, text]);
+		if (running) {
+			// Already running: steering again is an independent, legal injection, so
+			// dispatch straight through (no lock) and clear the draft.
+			dispatch(steerAgent(text, payload));
+			clear();
+			return;
+		}
+		// Idle → prompt: guarded against a same-burst double send. Only clear the
+		// draft when the message actually left the box; if the guard swallowed a
+		// duplicate, keep the text.
+		const dispatched = runGuarded(() => dispatch(promptAgent(text, payload)));
+		if (dispatched) clear();
+	}, [canSend, clear, dispatch, images, runGuarded, running, text]);
 
 	const submitFollowUp = useCallback(() => {
-		if (!canSend) return;
-		dispatch(followUpAgent(text, images.map(({ name: _name, ...image }) => image)));
+		// Only offered while a run is in flight; repeating it just enqueues another
+		// follow-up, so (like steer) it never takes the idle-prompt lock.
+		if (!canSend || !running) return;
+		dispatch(
+			followUpAgent(
+				text,
+				images.map(({ name: _name, ...image }) => image),
+			),
+		);
 		clear();
-	}, [canSend, clear, dispatch, images, text]);
+	}, [canSend, clear, dispatch, images, running, text]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
 		// Enter sends, Shift+Enter inserts a newline. IME composition must be left
@@ -154,7 +202,6 @@ export function Composer() {
 				{images.length > 0 ? (
 					<Row $gap={2} $wrap>
 						{images.map((image, index) => (
-							// eslint-disable-next-line react/no-array-index-key
 							<Attachment key={index} $gap={2}>
 								<Text $size="xs" $truncate>
 									{basename(image.name)}
@@ -233,7 +280,7 @@ export function Composer() {
 							</Button>
 						) : null}
 
-						<Button type="button" $size="sm" disabled={!canSend} onClick={submitFollowUp}>
+						<Button type="button" $size="sm" disabled={!canFollowUp} onClick={submitFollowUp}>
 							{t("composer.followUp")}
 						</Button>
 

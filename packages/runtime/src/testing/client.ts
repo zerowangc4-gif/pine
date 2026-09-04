@@ -20,13 +20,13 @@ type PushName = keyof ServerToClientEvents;
  * is a callback, so it is contravariant in its payload and `Ack<unknown>`
  * would fail to match `Ack<AgentStateSnapshot>`.
  */
-// biome-ignore lint/suspicious/noExplicitAny: required for contravariant inference
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Ack is contravariant in its payload; Ack<any> is required to match every snapshot ack
 type RequestArgs<K extends RequestName> = Parameters<ClientToServerEvents[K]> extends [...infer Rest, Ack<any>]
 	? Rest
 	: never;
 
 /** The value a successful acknowledgement carries. */
-// biome-ignore lint/suspicious/noExplicitAny: required for contravariant inference
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Ack is contravariant in its payload; Ack<any> is required to match every snapshot ack
 type ResponseData<K extends RequestName> = Parameters<ClientToServerEvents[K]> extends [...any[], Ack<infer T>]
 	? T
 	: never;

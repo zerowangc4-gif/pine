@@ -18,7 +18,7 @@ import { selectDraft } from "../../store/slices/config.ts";
 import { selectIsRunning, selectSessionId, selectSnapshot } from "../../store/slices/session.ts";
 import { selectLocale, selectTheme, uiActions } from "../../store/slices/ui.ts";
 import { Button, IconButton } from "../primitives/Button.tsx";
-import { Badge, Row, Spacer, Text } from "../primitives/Surface.tsx";
+import { Badge, Spacer, Text } from "../primitives/Surface.tsx";
 import { socket } from "../../socket/client.ts";
 
 const Bar = styled.header`
@@ -157,7 +157,7 @@ export function Topbar(props: {
 					>
 						{t("session.reset")}
 					</Button>
-					<Button type="button" $size="sm" onClick={() => void dispatch(startNewSession())}>
+					<Button type="button" $size="sm" disabled={running} onClick={() => void dispatch(startNewSession())}>
 						{t("session.new")}
 					</Button>
 					<Button
