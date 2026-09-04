@@ -12,7 +12,7 @@ import { useTranslate } from "../../i18n/useTranslate.ts";
 import { reloadResources, runSkill, runTemplate } from "../../store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import { selectIsRunning, selectResources } from "../../store/slices/session.ts";
-import { Button, ButtonRow } from "../primitives/Button.tsx";
+import { Button } from "../primitives/Button.tsx";
 import { TextField } from "../primitives/Field.tsx";
 import { Badge, Divider, EmptyState, Panel, Row, Spacer, Stack, Text } from "../primitives/Surface.tsx";
 

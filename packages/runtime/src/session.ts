@@ -1017,6 +1017,15 @@ export class AgentSession {
 	snapshot(): AgentStateSnapshot {
 		const state = this.agent.state;
 		const view = foldedMessages(this.fold, state.messages);
+		// `queued` mirrors agent-owned queues plus anything the run already drained
+		// while it streams. A preview whose agent entry was consumed is removed at
+		// `message_start`, so a non-empty preview list here always means work is
+		// still owed *or* about to stream during an active run. Only when the agent
+		// is idle with nothing pending could a leftover preview be stale; hide it
+		// without mutating (read-only snapshot), so the badge never invents a queue.
+		const hasQueued = this.agent.hasQueuedMessages();
+		const previews = [...this.queuePreviews.values()];
+		const queued = hasQueued || state.isStreaming ? previews : [];
 		return {
 			sessionId: this.id,
 			config: this.config,
@@ -1030,8 +1039,8 @@ export class AgentSession {
 			errorMessage: state.errorMessage,
 			workspace: this.env.cwd,
 			supportedThinkingLevels: this.modelRuntime.supportedThinkingLevels(),
-			hasQueuedMessages: this.agent.hasQueuedMessages(),
-			queued: [...this.queuePreviews.values()],
+			hasQueuedMessages: hasQueued,
+			queued,
 			turnCount: this.turnCount,
 			usage: this.usage,
 			contextTokens: estimateContextTokens(view).tokens,
@@ -1188,15 +1197,6 @@ function errorText(error: unknown): string {
 
 function asRecord(value: unknown): Record<string, unknown> {
 	return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
-}
-
-/** Drop `undefined` values so a patch never clears a configured field. */
-function stripUndefined<T extends object>(value: T): Partial<T> {
-	const result: Record<string, unknown> = {};
-	for (const [key, item] of Object.entries(value)) {
-		if (item !== undefined) result[key] = item;
-	}
-	return result as Partial<T>;
 }
 
 /** Make provider payloads safe to put on the wire. */
