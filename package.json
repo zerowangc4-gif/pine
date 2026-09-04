@@ -11,7 +11,15 @@
 		"prepare:sidecar": "node scripts/prepare-sidecar.mjs",
 		"build": "pnpm -r --filter=./packages/* build",
 		"build:tauri": "pnpm prepare:sidecar && pnpm --filter @pine/desktop build:tauri",
-		"typecheck": "pnpm -r --filter=./packages/* exec tsc -p tsconfig.json --noEmit"
+		"typecheck": "pnpm -r --filter=./packages/* exec tsc -p tsconfig.json --noEmit",
+		"smoke": "pnpm --filter @pine/runtime smoke",
+		"check:sidecar": "tsx scripts/check-sidecar.mjs",
+		"try:ollama": "tsx scripts/try-ollama.mjs",
+		"try:deepseek": "tsx scripts/try-deepseek.mjs",
+		"demo:deepseek": "tsx scripts/demo-deepseek-live.mjs",
+		"demo:ui": "tsx scripts/ui-demo/run.mjs",
+		"demo:ui:tour": "tsx scripts/ui-demo/deepseek-tour.mjs",
+		"playwright:install": "playwright install chromium"
 	},
 	"engines": {
 		"node": ">=22.19.0"
@@ -19,6 +27,7 @@
 	"devDependencies": {
 		"@types/node": "22.19.19",
 		"esbuild": "0.25.12",
+		"playwright": "1.62.1",
 		"tsx": "4.22.1",
 		"typescript": "5.9.3"
 	}
