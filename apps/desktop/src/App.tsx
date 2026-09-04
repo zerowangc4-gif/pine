@@ -1,286 +1,164 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ClientMessage, ModelConfig, ServerMessage } from "@pine/protocol";
+/**
+ * Application root.
+ *
+ * Lifecycle (in order):
+ *  1. ThemeProvider + GlobalStyle paint the chrome.
+ *  2. `attachSocket` opens the Socket.IO connection and wires broadcasts into
+ *     Redux. Torn down on hot reload so listeners do not stack.
+ *  3. Every time the sidecar greets us (`readyEpoch` bumps), we open or
+ *     reattach a session. Socket.IO connection-state recovery already restores
+ *     rooms when possible; this is the fallback for a full sidecar restart.
+ *  4. Layout is three columns: configuration, conversation, inspector. Either
+ *     side panel collapses to a 32px rail rather than disappearing.
+ */
 
-type ChatRole = "user" | "assistant" | "error" | "tool";
+import { useEffect, useRef } from "react";
+import { ThemeProvider } from "styled-components";
+import styled from "styled-components";
+import { ApprovalBar } from "./components/approvals/ApprovalBar.tsx";
+import { Composer } from "./components/composer/Composer.tsx";
+import { ConfigPanel } from "./components/config/ConfigPanel.tsx";
+import { InspectorPanel, InspectorRail } from "./components/inspector/InspectorPanel.tsx";
+import { ConfigRail, Topbar } from "./components/shell/Topbar.tsx";
+import { Transcript } from "./components/transcript/Transcript.tsx";
+import { WorkspacePicker } from "./components/workspace/WorkspacePicker.tsx";
+import { useTranslate } from "./i18n/useTranslate.ts";
+import { attachSocket } from "./socket/bridge.ts";
+import { openSession } from "./store/actions/session.ts";
+import { useAppDispatch, useAppSelector } from "./store/hooks.ts";
+import { store } from "./store/index.ts";
+import {
+	selectConfigPanelOpen,
+	selectInspectorOpen,
+	selectTheme,
+	uiActions,
+} from "./store/slices/ui.ts";
+import { GlobalStyle } from "./theme/GlobalStyle.ts";
+import { themes } from "./theme/themes.ts";
+import { EmptyState, Stack, Text } from "./components/primitives/Surface.tsx";
+import { Button } from "./components/primitives/Button.tsx";
 
-interface ChatMessage {
-	id: string;
-	role: ChatRole;
-	text: string;
-}
+const Shell = styled.div`
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	background: ${({ theme }) => theme.colors.background};
+	color: ${({ theme }) => theme.colors.text};
+`;
 
-const STORAGE_KEY = "pine.model-config";
+const Body = styled.div`
+	display: flex;
+	flex: 1 1 auto;
+	min-height: 0;
+	min-width: 0;
+`;
 
-const DEFAULT_CONFIG: ModelConfig = {
-	modelId: "deepseek-chat",
-	baseUrl: "https://api.deepseek.com/v1",
-	apiKey: "",
-	cwd: "E:\\agents\\pine",
-};
-
-function loadConfig(): ModelConfig {
-	try {
-		const raw = localStorage.getItem(STORAGE_KEY);
-		if (!raw) return DEFAULT_CONFIG;
-		return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
-	} catch {
-		return DEFAULT_CONFIG;
-	}
-}
-
-function nextId(): string {
-	return crypto.randomUUID();
-}
+const Center = styled.main`
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 0;
+	background: ${({ theme }) => theme.colors.background};
+`;
 
 export function App() {
-	const [config, setConfig] = useState<ModelConfig>(() => loadConfig());
-	const [connected, setConnected] = useState(false);
-	const [busy, setBusy] = useState(false);
-	const [input, setInput] = useState("");
-	const [messages, setMessages] = useState<ChatMessage[]>([]);
-	const wsRef = useRef<WebSocket | null>(null);
-	const assistantIdRef = useRef<string | null>(null);
-	const bottomRef = useRef<HTMLDivElement | null>(null);
+	const dispatch = useAppDispatch();
+	const themeName = useAppSelector(selectTheme);
+	const configOpen = useAppSelector(selectConfigPanelOpen);
+	const inspectorOpen = useAppSelector(selectInspectorOpen);
+	const readyEpoch = useAppSelector((state) => state.connection.readyEpoch);
+	const sessionId = useAppSelector((state) => state.session.sessionId);
+	const status = useAppSelector((state) => state.connection.status);
+	const t = useTranslate();
 
-	const statusLabel = useMemo(() => (connected ? "已连接 runtime" : "未连接 runtime"), [connected]);
+	// Remember which ready epoch we already reacted to, so a re-render that
+	// happens for unrelated reasons does not open a second session.
+	const attachedEpochRef = useRef(0);
 
+	// --- 1. Socket bridge --------------------------------------------------
+	useEffect(() => attachSocket(store), []);
+
+	// --- 2. Session attach / reattach --------------------------------------
 	useEffect(() => {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-	}, [config]);
-
-	useEffect(() => {
-		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages]);
-
-	useEffect(() => {
-		let disposed = false;
-		let retryTimer: number | undefined;
-		let active: WebSocket | undefined;
-
-		const connect = () => {
-			if (disposed) return;
-
-			const socket = new WebSocket("ws://127.0.0.1:7821");
-			active = socket;
-			wsRef.current = socket;
-
-			socket.onopen = () => {
-				if (disposed || wsRef.current !== socket) return;
-				setConnected(true);
-			};
-
-			socket.onclose = () => {
-				if (wsRef.current === socket) {
-					wsRef.current = null;
-					setConnected(false);
-				}
-				if (!disposed) {
-					retryTimer = window.setTimeout(connect, 1000);
-				}
-			};
-
-			socket.onerror = () => {
-				if (wsRef.current === socket) socket.close();
-			};
-
-			socket.onmessage = (event) => {
-				if (wsRef.current !== socket) return;
-
-				let message: ServerMessage;
-				try {
-					message = JSON.parse(String(event.data)) as ServerMessage;
-				} catch {
-					return;
-				}
-
-				if (message.type === "chat.started") {
-					const id = nextId();
-					assistantIdRef.current = id;
-					setMessages((prev) => [...prev, { id, role: "assistant", text: "" }]);
-					return;
-				}
-
-				if (message.type === "chat.delta") {
-					const id = assistantIdRef.current;
-					if (!id) return;
-					setMessages((prev) =>
-						prev.map((item) => (item.id === id ? { ...item, text: item.text + message.text } : item)),
-					);
-					return;
-				}
-
-				if (message.type === "tool.start") {
-					const argsText =
-						typeof message.args === "string" ? message.args : JSON.stringify(message.args, null, 2);
-					setMessages((prev) => [
-						...prev,
-						{
-							id: nextId(),
-							role: "tool",
-							text: `▶ ${message.toolName}\n${argsText}`,
-						},
-					]);
-					return;
-				}
-
-				if (message.type === "tool.end") {
-					setMessages((prev) => [
-						...prev,
-						{
-							id: nextId(),
-							role: "tool",
-							text: `${message.isError ? "✗" : "✓"} ${message.toolName}\n${message.summary}`,
-						},
-					]);
-					return;
-				}
-
-				if (message.type === "chat.done") {
-					setBusy(false);
-					assistantIdRef.current = null;
-					return;
-				}
-
-				if (message.type === "chat.error") {
-					setBusy(false);
-					assistantIdRef.current = null;
-					setMessages((prev) => [...prev, { id: nextId(), role: "error", text: message.message }]);
-				}
-			};
-		};
-
-		connect();
-
-		return () => {
-			disposed = true;
-			window.clearTimeout(retryTimer);
-			const socket = active;
-			active = undefined;
-			if (socket) {
-				socket.onclose = null;
-				socket.onerror = null;
-				socket.onmessage = null;
-				socket.onopen = null;
-				if (wsRef.current === socket) {
-					wsRef.current = null;
-					setConnected(false);
-				}
-				socket.close();
-			}
-		};
-	}, []);
-
-	const sendChat = () => {
-		const text = input.trim();
-		if (!text || busy) return;
-
-		const ws = wsRef.current;
-		if (!ws || ws.readyState !== WebSocket.OPEN) {
-			setConnected(false);
-			setMessages((prev) => [
-				...prev,
-				{
-					id: nextId(),
-					role: "error",
-					text: "未连接 runtime。请先在终端运行：pnpm dev:runtime",
-				},
-			]);
-			return;
-		}
-
-		const id = nextId();
-		const payload: ClientMessage = {
-			type: "chat.send",
-			id,
-			text,
-			config,
-		};
-
-		setMessages((prev) => [...prev, { id: nextId(), role: "user", text }]);
-		setInput("");
-		setBusy(true);
-		ws.send(JSON.stringify(payload));
-	};
+		if (readyEpoch === 0 || attachedEpochRef.current === readyEpoch) return;
+		attachedEpochRef.current = readyEpoch;
+		// Passing the current id asks the hub to reattach if the session is
+		// still live, otherwise to resume from its JSONL on disk.
+		void dispatch(openSession(sessionId));
+		// Intentionally omit `sessionId` from deps: we only want this to fire
+		// on a new ready epoch, not every time the session id changes.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [readyEpoch, dispatch]);
 
 	return (
-		<div className="app">
-			<header className="brand">
-				<div>
-					<h1>Pine</h1>
-					<p>聊天 + 工具（read / write / edit / bash）</p>
-				</div>
-				<p className={`status ${connected ? "ok" : "bad"}`}>{statusLabel}</p>
-			</header>
-
-			<section className="config">
-				<label>
-					模型 ID
-					<input
-						value={config.modelId}
-						onChange={(event) => setConfig((prev) => ({ ...prev, modelId: event.target.value }))}
-						placeholder="deepseek-chat / gpt-4o-mini"
-					/>
-				</label>
-				<label>
-					Base URL
-					<input
-						value={config.baseUrl}
-						onChange={(event) => setConfig((prev) => ({ ...prev, baseUrl: event.target.value }))}
-						placeholder="https://api.deepseek.com/v1"
-					/>
-				</label>
-				<label>
-					API Key（Ollama 可留空）
-					<input
-						type="password"
-						value={config.apiKey}
-						onChange={(event) => setConfig((prev) => ({ ...prev, apiKey: event.target.value }))}
-						placeholder="sk-... 或留空"
-					/>
-				</label>
-				<label className="cwd">
-					工作目录（工具作用范围）
-					<input
-						value={config.cwd ?? ""}
-						onChange={(event) => setConfig((prev) => ({ ...prev, cwd: event.target.value }))}
-						placeholder="E:\agents\pine"
-					/>
-				</label>
-			</section>
-
-			<section className="messages">
-				{messages.length === 0 ? (
-					<div className="empty">
-						试着说：列出当前目录的文件，或读取 README.md
-						<br />
-						工具：read / write / edit / bash
-					</div>
-				) : (
-					messages.map((message) => (
-						<div key={message.id} className={`bubble ${message.role}`}>
-							{message.text || (message.role === "assistant" ? "..." : "")}
-						</div>
-					))
-				)}
-				<div ref={bottomRef} />
-			</section>
-
-			<section className="composer">
-				<textarea
-					value={input}
-					onChange={(event) => setInput(event.target.value)}
-					placeholder="例如：读取 README.md 并总结"
-					onKeyDown={(event) => {
-						if (event.key === "Enter" && !event.shiftKey) {
-							event.preventDefault();
-							sendChat();
-						}
-					}}
+		<ThemeProvider theme={themes[themeName]}>
+			<GlobalStyle />
+			<Shell>
+				<Topbar
+					onToggleConfig={() => dispatch(uiActions.toggleConfigPanel())}
+					onToggleInspector={() => dispatch(uiActions.toggleInspector())}
 				/>
-				<button type="button" disabled={busy || !input.trim()} onClick={sendChat}>
-					发送
-				</button>
-			</section>
-		</div>
+
+				<Body>
+					{configOpen ? <ConfigPanel /> : <ConfigRail />}
+
+					<Center>
+						{sessionId ? (
+							<>
+								<Transcript />
+								<ApprovalBar />
+								<Composer />
+							</>
+						) : (
+							<EmptySession
+								connected={status === "connected"}
+								onStart={() => dispatch(openSession())}
+								hint={t("session.noneBody")}
+								title={t("session.none")}
+								action={t("session.open")}
+								waiting={t("connection.hint")}
+							/>
+						)}
+					</Center>
+
+					{inspectorOpen ? <InspectorPanel /> : <InspectorRail />}
+				</Body>
+
+				<WorkspacePicker />
+			</Shell>
+		</ThemeProvider>
+	);
+}
+
+function EmptySession(props: {
+	connected: boolean;
+	onStart: () => void;
+	title: string;
+	hint: string;
+	action: string;
+	waiting: string;
+}) {
+	return (
+		<EmptyState>
+			<Stack $gap={3} $align="center">
+				<Text $size="lg" $weight="semibold">
+					{props.title}
+				</Text>
+				<Text $size="sm" $tone="muted">
+					{props.hint}
+				</Text>
+				{props.connected ? (
+					<Button type="button" $variant="primary" onClick={props.onStart}>
+						{props.action}
+					</Button>
+				) : (
+					<Text $size="xs" $tone="faint">
+						{props.waiting}
+					</Text>
+				)}
+			</Stack>
+		</EmptyState>
 	);
 }

@@ -1,40 +1,20 @@
-/** Thin IPC contract between the desktop UI and the Node sidecar. */
+/**
+ * IPC contract between the Pine desktop UI and the Node agent sidecar.
+ *
+ * The package is intentionally dependency free: it describes JSON that crosses
+ * a Socket.IO connection, nothing more. `packages/runtime/src/conformance.ts`
+ * proves these shapes still match `@pine/agent` / `@pine/ai` at compile time.
+ *
+ * Modules:
+ *  - `messages` — the transcript model (content blocks, message roles, usage)
+ *  - `events`   — the `AgentEvent` stream
+ *  - `config`   — everything the user can configure, plus defaults and merging
+ *  - `state`    — snapshots, resources, approvals, workspace descriptors
+ *  - `wire`     — the typed Socket.IO event maps
+ */
 
-export interface ModelConfig {
-	/** Display / request model id, e.g. gpt-4o-mini or llama3.2 */
-	modelId: string;
-	/** OpenAI-compatible base URL, e.g. https://api.openai.com/v1 or http://127.0.0.1:11434/v1 */
-	baseUrl: string;
-	/** API key; empty string is fine for local Ollama */
-	apiKey: string;
-	/** Workspace root for read/write/edit/bash. Empty = runtime process.cwd() */
-	cwd?: string;
-}
-
-export type ClientMessage =
-	| { type: "ping"; id: string }
-	| { type: "chat.send"; id: string; text: string; config: ModelConfig }
-	| { type: "chat.abort"; id: string; requestId: string };
-
-export type ServerMessage =
-	| { type: "pong"; id: string }
-	| { type: "ready" }
-	| { type: "chat.started"; id: string; requestId: string }
-	| { type: "chat.delta"; id: string; requestId: string; text: string }
-	| { type: "chat.done"; id: string; requestId: string; text: string }
-	| { type: "chat.error"; id: string; requestId: string; message: string }
-	| {
-			type: "tool.start";
-			id: string;
-			requestId: string;
-			toolName: string;
-			args: unknown;
-	  }
-	| {
-			type: "tool.end";
-			id: string;
-			requestId: string;
-			toolName: string;
-			isError: boolean;
-			summary: string;
-	  };
+export * from "./messages.ts";
+export * from "./events.ts";
+export * from "./config.ts";
+export * from "./state.ts";
+export * from "./wire.ts";

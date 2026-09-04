@@ -13,12 +13,17 @@
 	},
 	"dependencies": {
 		"@pine/protocol": "workspace:*",
+		"@reduxjs/toolkit": "^2.12.0",
 		"@tauri-apps/api": "^2.11.1",
 		"react": "19.1.1",
-		"react-dom": "19.1.1"
+		"react-dom": "19.1.1",
+		"react-redux": "^9.3.0",
+		"socket.io-client": "^4.8.3",
+		"styled-components": "^6.5.3"
 	},
 	"devDependencies": {
 		"@tauri-apps/cli": "^2.11.4",
+		"@types/node": "22.19.19",
 		"@types/react": "19.1.12",
 		"@types/react-dom": "19.1.9",
 		"@vitejs/plugin-react": "5.0.2",

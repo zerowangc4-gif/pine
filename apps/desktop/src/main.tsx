@@ -1,10 +1,20 @@
+/**
+ * Desktop entry point.
+ *
+ * Provider order matters: the Redux store must wrap `App` so every hook and
+ * the ThemeProvider (which itself reads the theme from the store) can see it.
+ */
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
-import "./styles.css";
+import { Provider } from "react-redux";
+import { App } from "./App.tsx";
+import { store } from "./store/index.ts";
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<App />
+		<Provider store={store}>
+			<App />
+		</Provider>
 	</StrictMode>,
 );
