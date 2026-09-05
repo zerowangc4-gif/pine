@@ -6,8 +6,8 @@
  * transcript slice, but anything durable comes from here.
  */
 
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { AgentStateSnapshot, SessionResources } from "@pine/protocol";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface SessionState {
 	sessionId?: string;
@@ -31,10 +31,7 @@ export const sessionSlice = createSlice({
 			delete state.error;
 		},
 
-		opened(
-			state,
-			action: PayloadAction<{ snapshot: AgentStateSnapshot; resources: SessionResources }>,
-		) {
+		opened(state, action: PayloadAction<{ snapshot: AgentStateSnapshot; resources: SessionResources }>) {
 			state.opening = false;
 			state.sessionId = action.payload.snapshot.sessionId;
 			state.snapshot = action.payload.snapshot;
@@ -48,7 +45,7 @@ export const sessionSlice = createSlice({
 			state.error = action.payload;
 		},
 
-		/** Applied from both acknowledgements and `session:state` broadcasts. */
+		/** Applied from request acks and `session:state` pushes. */
 		snapshotReceived(state, action: PayloadAction<AgentStateSnapshot>) {
 			// Ignore snapshots from a session this window has already left.
 			if (state.sessionId && action.payload.sessionId !== state.sessionId) return;

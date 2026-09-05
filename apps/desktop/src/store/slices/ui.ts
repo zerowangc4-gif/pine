@@ -25,8 +25,7 @@ const STORAGE_KEY = "pine.ui.v1";
 function loadPreferences(): UiState {
 	const defaults: UiState = {
 		// Follow the OS on first run; the toggle overrides it from then on.
-		theme:
-			typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+		theme: typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
 		locale: detectLocale(),
 		configPanelOpen: true,
 		inspectorOpen: false,

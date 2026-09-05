@@ -6,12 +6,12 @@
  * a run behaved the way it did sits next to the behaviour itself.
  */
 
-import styled from "styled-components";
 import type { CompactionState, StopReason } from "@pine/protocol";
+import styled from "styled-components";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { formatTokens } from "../../lib/format.ts";
-import { Badge, Row, Text } from "../primitives/Surface.tsx";
 import type { NoticeLevel } from "../../store/slices/transcript.ts";
+import { Badge, Row, Text } from "../primitives/Surface.tsx";
 
 const Strip = styled(Row)<{ $level: NoticeLevel }>`
 	padding: ${({ theme }) => `${theme.space[2]} ${theme.space[3]}`};
@@ -75,13 +75,7 @@ export function StopItem({ reason }: { reason: StopReason }) {
 	);
 }
 
-export function CompactionItem({
-	compaction,
-	automatic,
-}: {
-	compaction: CompactionState;
-	automatic: boolean;
-}) {
+export function CompactionItem({ compaction, automatic }: { compaction: CompactionState; automatic: boolean }) {
 	const t = useTranslate();
 
 	return (

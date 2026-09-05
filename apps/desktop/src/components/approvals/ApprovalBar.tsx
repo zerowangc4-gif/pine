@@ -9,7 +9,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { formatArgsInline } from "../../lib/format.ts";
-import { decideApproval } from "../../store/actions/session.ts";
+import { approveTool } from "../../store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import { selectDecidingApprovals, selectPendingApprovals } from "../../store/slices/approvals.ts";
 import { Button, ButtonRow } from "../primitives/Button.tsx";
@@ -64,7 +64,7 @@ export function ApprovalBar() {
 					const reason = reasons[approval.approvalId] ?? "";
 					const decide = (kind: "allow" | "allow-always" | "block" | "block-and-stop"): void => {
 						dispatch(
-							decideApproval(
+							approveTool(
 								approval.approvalId,
 								kind === "allow" || kind === "allow-always"
 									? { kind }

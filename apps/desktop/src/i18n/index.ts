@@ -9,7 +9,7 @@
  * The active locale lives in the Redux `ui` slice; `useTranslate` reads it.
  */
 
-import { enUS, type Dictionary, type TranslationKey } from "./en-US.ts";
+import { type Dictionary, enUS, type TranslationKey } from "./en-US.ts";
 import { zhCN } from "./zh-CN.ts";
 
 export type Locale = "en-US" | "zh-CN";
@@ -34,9 +34,7 @@ export type Translate = (key: TranslationKey, values?: TranslateValues) => strin
 /** Replace `{name}` placeholders. An unknown placeholder is left in place, which makes it obvious in the UI. */
 function interpolate(template: string, values?: TranslateValues): string {
 	if (!values) return template;
-	return template.replace(/\{(\w+)\}/g, (match, name: string) =>
-		name in values ? String(values[name]) : match,
-	);
+	return template.replace(/\{(\w+)\}/g, (match, name: string) => (name in values ? String(values[name]) : match));
 }
 
 export function createTranslate(locale: Locale): Translate {

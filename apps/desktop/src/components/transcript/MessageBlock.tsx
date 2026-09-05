@@ -7,17 +7,17 @@
  * hiding them would make the conversation look like it skipped a step.
  */
 
-import { useState } from "react";
-import styled from "styled-components";
 import type { AgentMessage, AssistantContent, ToolCallContent, UserContent } from "@pine/protocol";
 import { messageText } from "@pine/protocol";
+import { useState } from "react";
+import styled from "styled-components";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { formatArgsInline, formatTokens } from "../../lib/format.ts";
-import { truncateTranscript } from "../../store/actions/session.ts";
+import { truncate } from "../../store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import { selectIsRunning } from "../../store/slices/session.ts";
-import { Badge, Code, Row, Spacer, Stack, Text } from "../primitives/Surface.tsx";
 import { Button, IconButton } from "../primitives/Button.tsx";
+import { Badge, Code, Row, Spacer, Stack, Text } from "../primitives/Surface.tsx";
 
 const Frame = styled.article<{ $role: string }>`
 	display: flex;
@@ -28,9 +28,7 @@ const Frame = styled.article<{ $role: string }>`
 	/* A user message is the one thing that gets a left rule, so the eye can
 	   find where each exchange begins when scrolling a long transcript. */
 	${({ theme, $role }) =>
-		$role === "user"
-			? `border-left: 2px solid ${theme.colors.borderStrong}; padding-left: ${theme.space[3]};`
-			: ""}
+		$role === "user" ? `border-left: 2px solid ${theme.colors.borderStrong}; padding-left: ${theme.space[3]};` : ""}
 `;
 
 const Body = styled.div`
@@ -166,7 +164,7 @@ export function MessageBlock({ message, messageIndex, streaming }: MessageBlockP
 	const rewind = (): void => {
 		if (messageIndex === undefined || running) return;
 		// Protocol truncates from `index` onward; +1 keeps this message.
-		void dispatch(truncateTranscript(messageIndex + 1));
+		void dispatch(truncate(messageIndex + 1));
 	};
 
 	const actions =
@@ -262,8 +260,16 @@ export function MessageBlock({ message, messageIndex, streaming }: MessageBlockP
 							{message.command}
 						</Text>
 						<Spacer />
-						{message.cancelled ? <Text $size="xs" $tone="warning">{t("transcript.cancelled")}</Text> : null}
-						{message.truncated ? <Text $size="xs" $tone="faint">{t("transcript.truncated")}</Text> : null}
+						{message.cancelled ? (
+							<Text $size="xs" $tone="warning">
+								{t("transcript.cancelled")}
+							</Text>
+						) : null}
+						{message.truncated ? (
+							<Text $size="xs" $tone="faint">
+								{t("transcript.truncated")}
+							</Text>
+						) : null}
 						<Text $size="xs" $tone={message.exitCode ? "danger" : "faint"}>
 							{t("transcript.exitCode", { code: message.exitCode ?? "?" })}
 						</Text>

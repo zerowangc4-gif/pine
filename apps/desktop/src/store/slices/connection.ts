@@ -6,8 +6,8 @@
  * reconnect or a sidecar restart.
  */
 
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { PROTOCOL_VERSION, type RuntimeInfo } from "@pine/protocol";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 

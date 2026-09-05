@@ -3,8 +3,8 @@
  *
  * Lifecycle (in order):
  *  1. ThemeProvider + GlobalStyle paint the chrome.
- *  2. `attachSocket` opens the Socket.IO connection and wires broadcasts into
- *     Redux. Torn down on hot reload so listeners do not stack.
+ *  2. `attachSubscribe` registers subscriptions and opens the Socket.IO connection.
+ *     Torn down on hot reload so handlers do not stack.
  *  3. Every time the sidecar greets us (`readyEpoch` bumps), we open or
  *     reattach a session. Socket.IO connection-state recovery already restores
  *     rooms when possible; this is the fallback for a full sidecar restart.
@@ -13,30 +13,24 @@
  */
 
 import { useEffect, useRef } from "react";
-import { ThemeProvider } from "styled-components";
-import styled from "styled-components";
+import styled, { ThemeProvider } from "styled-components";
 import { ApprovalBar } from "./components/approvals/ApprovalBar.tsx";
 import { Composer } from "./components/composer/Composer.tsx";
 import { ConfigPanel } from "./components/config/ConfigPanel.tsx";
 import { InspectorPanel, InspectorRail } from "./components/inspector/InspectorPanel.tsx";
+import { Button } from "./components/primitives/Button.tsx";
+import { EmptyState, Stack, Text } from "./components/primitives/Surface.tsx";
 import { ConfigRail, Topbar } from "./components/shell/Topbar.tsx";
 import { Transcript } from "./components/transcript/Transcript.tsx";
 import { WorkspacePicker } from "./components/workspace/WorkspacePicker.tsx";
 import { useTranslate } from "./i18n/useTranslate.ts";
-import { attachSocket } from "./socket/bridge.ts";
+import { attachSubscribe } from "./socket/subscribe.ts";
 import { openSession } from "./store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "./store/hooks.ts";
 import { store } from "./store/index.ts";
-import {
-	selectConfigPanelOpen,
-	selectInspectorOpen,
-	selectTheme,
-	uiActions,
-} from "./store/slices/ui.ts";
+import { selectConfigPanelOpen, selectInspectorOpen, selectTheme, uiActions } from "./store/slices/ui.ts";
 import { GlobalStyle } from "./theme/GlobalStyle.ts";
 import { themes } from "./theme/themes.ts";
-import { EmptyState, Stack, Text } from "./components/primitives/Surface.tsx";
-import { Button } from "./components/primitives/Button.tsx";
 
 const Shell = styled.div`
 	display: flex;
@@ -77,8 +71,8 @@ export function App() {
 	// happens for unrelated reasons does not open a second session.
 	const attachedEpochRef = useRef(0);
 
-	// --- 1. Socket bridge --------------------------------------------------
-	useEffect(() => attachSocket(store), []);
+	// --- 1. Socket subscribe -----------------------------------------------
+	useEffect(() => attachSubscribe(store), []);
 
 	// --- 2. Session attach / reattach --------------------------------------
 	useEffect(() => {

@@ -219,7 +219,8 @@ export const enUS = {
 
 	"config.resources.skillDirs": "Skill directories",
 	"config.resources.promptTemplateDirs": "Prompt template directories",
-	"config.resources.defaultHint": "Empty uses .pine/skills and .pine/commands in the workspace and your home directory.",
+	"config.resources.defaultHint":
+		"Empty uses .pine/skills and .pine/commands in the workspace and your home directory.",
 	"config.resources.reload": "Reload",
 
 	"config.advanced.transport": "Transport",

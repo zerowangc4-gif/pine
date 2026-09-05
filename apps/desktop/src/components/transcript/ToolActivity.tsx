@@ -9,8 +9,8 @@
 import styled, { keyframes } from "styled-components";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { formatArgsInline } from "../../lib/format.ts";
-import { Badge, Row, Stack, Text } from "../primitives/Surface.tsx";
 import type { ToolProgress } from "../../store/slices/transcript.ts";
+import { Badge, Row, Stack, Text } from "../primitives/Surface.tsx";
 
 const pulse = keyframes`
 	0%, 100% { opacity: 0.35; }

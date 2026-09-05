@@ -6,40 +6,21 @@
 	"scripts": {
 		"dev:runtime": "pnpm --filter @pine/runtime dev",
 		"dev:ui": "pnpm --filter @pine/desktop dev",
-		"dev": "pnpm --filter @pine/desktop dev",
 		"dev:tauri": "pnpm --filter @pine/desktop dev:tauri",
 		"prepare:sidecar": "node scripts/prepare-sidecar.mjs",
-		"build": "pnpm -r --filter=./packages/* build",
-		"lint": "eslint .",
 		"build:tauri": "pnpm prepare:sidecar && pnpm --filter @pine/desktop build:tauri",
-		"typecheck": "pnpm -r --filter=./packages/* exec tsc -p tsconfig.json --noEmit",
-		"smoke": "pnpm --filter @pine/runtime smoke",
-		"generate:models": "tsx packages/ai/scripts/generate-models.ts --strict",
-		"generate:image-models": "tsx packages/ai/scripts/generate-image-models.ts --strict",
-		"hydrate:model-data": "tsx packages/ai/scripts/generate-models.ts --strict --data-only",
-		"check:model-data": "tsx packages/ai/scripts/check-model-data.ts",
-		"check:sidecar": "tsx scripts/check-sidecar.mjs",
-		"try:ollama": "tsx scripts/try-ollama.mjs",
-		"try:deepseek": "tsx scripts/try-deepseek.mjs",
-		"demo:deepseek": "tsx scripts/demo-deepseek-live.mjs",
-		"demo:ui": "tsx scripts/ui-demo/run.mjs",
-		"demo:ui:tour": "tsx scripts/ui-demo/deepseek-tour.mjs",
-		"playwright:install": "playwright install chromium"
+		"test:ui": "tsx e2e/run.mjs",
+		"check": "biome check --write --error-on-warnings ."
 	},
 	"engines": {
 		"node": ">=22.19.0"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.39.5",
+		"@biomejs/biome": "2.3.5",
 		"@types/node": "22.19.19",
 		"esbuild": "0.25.12",
-		"eslint": "^9.39.5",
-		"eslint-plugin-react": "^7.37.5",
-		"eslint-plugin-react-hooks": "^7.1.1",
 		"playwright": "1.62.1",
-		"prettier": "^3.9.6",
 		"tsx": "4.22.1",
-		"typescript": "5.9.3",
-		"typescript-eslint": "^8.69.0"
+		"typescript": "5.9.3"
 	}
 }

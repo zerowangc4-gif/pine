@@ -1,10 +1,9 @@
 /**
  * The Redux store.
  *
- * Slices are pure reducers with no knowledge of the transport; thunks in
- * `store/actions` own every socket call. That split is what keeps the socket
- * bridge (`socket/bridge.ts`) a thin translation layer: a broadcast arrives, a
- * slice action is dispatched, and nothing else needs to know.
+ * Slices are pure reducers with no knowledge of the transport.
+ * Outbound inventory: `socket/send.ts` (1:1 with package). Actions call it, then update slices.
+ * Inbound: `socket/subscribe.ts`.
  */
 
 import { configureStore } from "@reduxjs/toolkit";

@@ -10,8 +10,8 @@
  * breaking.
  */
 
+import { type AgentConfig, type AgentConfigPatch, createDefaultConfig, mergeConfig } from "@pine/protocol";
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { createDefaultConfig, mergeConfig, type AgentConfig, type AgentConfigPatch } from "@pine/protocol";
 
 const STORAGE_KEY = "pine.config.v3";
 
@@ -74,7 +74,6 @@ export const configSlice = createSlice({
 	},
 	selectors: {
 		selectDraft: (state) => state.draft,
-		selectApplied: (state) => state.applied,
 		/** Which top-level fields differ from what the server confirmed. */
 		selectDirtyFields: (state): string[] => {
 			if (!state.applied) return [];
@@ -86,4 +85,4 @@ export const configSlice = createSlice({
 });
 
 export const configActions = configSlice.actions;
-export const { selectDraft, selectApplied, selectDirtyFields } = configSlice.selectors;
+export const { selectDraft, selectDirtyFields } = configSlice.selectors;

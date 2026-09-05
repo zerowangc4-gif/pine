@@ -118,9 +118,7 @@ export function Transcript() {
 									case "message": {
 										const index = messageIndex;
 										messageIndex += 1;
-										return (
-											<MessageBlock key={item.key} message={item.message} messageIndex={index} />
-										);
+										return <MessageBlock key={item.key} message={item.message} messageIndex={index} />;
 									}
 									case "notice":
 										return <NoticeItem key={item.key} level={item.level} text={item.text} />;
@@ -128,7 +126,11 @@ export function Transcript() {
 										return <StopItem key={item.key} reason={item.reason} />;
 									case "compaction":
 										return (
-											<CompactionItem key={item.key} compaction={item.compaction} automatic={item.automatic} />
+											<CompactionItem
+												key={item.key}
+												compaction={item.compaction}
+												automatic={item.automatic}
+											/>
 										);
 									case "turnPrepared":
 										return <TurnPreparedItem key={item.key} changes={item.changes} />;

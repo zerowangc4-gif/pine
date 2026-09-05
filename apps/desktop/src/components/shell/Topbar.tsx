@@ -6,20 +6,20 @@
  * panel; everything that inspects a run lives on the right.
  */
 
-import styled from "styled-components";
 import { RUNTIME_PORT } from "@pine/protocol";
+import styled from "styled-components";
 import { LOCALE_LABELS, LOCALES, type Locale } from "../../i18n/index.ts";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { formatCost, formatTokens } from "../../lib/format.ts";
-import { openSession, startNewSession, closeSession, resetTranscript } from "../../store/actions/session.ts";
+import { pine } from "../../socket/instance.ts";
+import { closeSession, openSession, reset, startNewSession } from "../../store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
-import { selectProtocolMismatch } from "../../store/slices/connection.ts";
 import { selectDraft } from "../../store/slices/config.ts";
+import { selectProtocolMismatch } from "../../store/slices/connection.ts";
 import { selectIsRunning, selectSessionId, selectSnapshot } from "../../store/slices/session.ts";
 import { selectLocale, selectTheme, uiActions } from "../../store/slices/ui.ts";
 import { Button, IconButton } from "../primitives/Button.tsx";
 import { Badge, Spacer, Text } from "../primitives/Surface.tsx";
-import { socket } from "../../socket/client.ts";
 
 const Bar = styled.header`
 	display: flex;
@@ -49,10 +49,7 @@ const Select = styled.select`
 	font-size: ${({ theme }) => theme.fontSize.sm};
 `;
 
-export function Topbar(props: {
-	onToggleConfig: () => void;
-	onToggleInspector: () => void;
-}) {
+export function Topbar(props: { onToggleConfig: () => void; onToggleInspector: () => void }) {
 	const t = useTranslate();
 	const dispatch = useAppDispatch();
 
@@ -102,7 +99,7 @@ export function Topbar(props: {
 						type="button"
 						$size="sm"
 						onClick={() => {
-							if (!socket.connected) socket.connect();
+							if (!pine.connected) pine.connect();
 						}}
 					>
 						{t("connection.retry")}
@@ -149,23 +146,13 @@ export function Topbar(props: {
 
 			{sessionId ? (
 				<>
-					<Button
-						type="button"
-						$size="sm"
-						disabled={running}
-						onClick={() => void dispatch(resetTranscript())}
-					>
+					<Button type="button" $size="sm" disabled={running} onClick={() => void dispatch(reset())}>
 						{t("session.reset")}
 					</Button>
 					<Button type="button" $size="sm" disabled={running} onClick={() => void dispatch(startNewSession())}>
 						{t("session.new")}
 					</Button>
-					<Button
-						type="button"
-						$size="sm"
-						disabled={running}
-						onClick={() => void dispatch(closeSession())}
-					>
+					<Button type="button" $size="sm" disabled={running} onClick={() => void dispatch(closeSession())}>
 						{t("session.close")}
 					</Button>
 				</>

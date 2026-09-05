@@ -7,8 +7,8 @@
  * answered.
  */
 
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { ToolApprovalRequest } from "@pine/protocol";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface ApprovalsState {
 	pending: ToolApprovalRequest[];
@@ -30,9 +30,7 @@ export const approvalsSlice = createSlice({
 		/** Authoritative list from a snapshot; wins over locally tracked state. */
 		replaceAll(state, action: PayloadAction<ToolApprovalRequest[]>) {
 			state.pending = action.payload;
-			state.deciding = state.deciding.filter((id) =>
-				action.payload.some((request) => request.approvalId === id),
-			);
+			state.deciding = state.deciding.filter((id) => action.payload.some((request) => request.approvalId === id));
 		},
 
 		deciding(state, action: PayloadAction<string>) {

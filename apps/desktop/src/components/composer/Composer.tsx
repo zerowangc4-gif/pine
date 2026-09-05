@@ -11,19 +11,12 @@
  * this once the agent would otherwise have stopped.
  */
 
-import { useCallback, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import styled from "styled-components";
 import type { ImageContent } from "@pine/protocol";
+import { type ChangeEvent, type KeyboardEvent, useCallback, useRef, useState } from "react";
+import styled from "styled-components";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { basename } from "../../lib/format.ts";
-import {
-	abortRun,
-	continueAgent,
-	followUpAgent,
-	promptAgent,
-	requestStop,
-	steerAgent,
-} from "../../store/actions/session.ts";
+import { abort, continueRun, followUp, prompt, requestStop, steer } from "../../store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import { selectDraft } from "../../store/slices/config.ts";
 import { selectIsRunning, selectSnapshot, selectWorkspace } from "../../store/slices/session.ts";
@@ -150,14 +143,14 @@ export function Composer() {
 		if (running) {
 			// Already running: steering again is an independent, legal injection, so
 			// dispatch straight through (no lock) and clear the draft.
-			dispatch(steerAgent(text, payload));
+			dispatch(steer(text, payload));
 			clear();
 			return;
 		}
 		// Idle → prompt: guarded against a same-burst double send. Only clear the
 		// draft when the message actually left the box; if the guard swallowed a
 		// duplicate, keep the text.
-		const dispatched = runGuarded(() => dispatch(promptAgent(text, payload)));
+		const dispatched = runGuarded(() => dispatch(prompt(text, payload)));
 		if (dispatched) clear();
 	}, [canSend, clear, dispatch, images, runGuarded, running, text]);
 
@@ -166,7 +159,7 @@ export function Composer() {
 		// follow-up, so (like steer) it never takes the idle-prompt lock.
 		if (!canSend || !running) return;
 		dispatch(
-			followUpAgent(
+			followUp(
 				text,
 				images.map(({ name: _name, ...image }) => image),
 			),
@@ -268,14 +261,14 @@ export function Composer() {
 										{t("composer.stop")}
 									</Button>
 								)}
-								<Button type="button" $size="sm" $variant="danger" onClick={() => dispatch(abortRun())}>
+								<Button type="button" $size="sm" $variant="danger" onClick={() => dispatch(abort())}>
 									{t("composer.abort")}
 								</Button>
 							</>
 						) : null}
 
 						{canContinue ? (
-							<Button type="button" $size="sm" onClick={() => void dispatch(continueAgent())}>
+							<Button type="button" $size="sm" onClick={() => void dispatch(continueRun())}>
 								{t("composer.continue")}
 							</Button>
 						) : null}

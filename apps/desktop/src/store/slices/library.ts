@@ -6,8 +6,8 @@
  * before anything is opened.
  */
 
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { ModelInspection, StoredSessionInfo } from "@pine/protocol";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export type LibraryScope = "all" | "workspace";
 
@@ -74,10 +74,5 @@ export const librarySlice = createSlice({
 });
 
 export const libraryActions = librarySlice.actions;
-export const {
-	selectStoredSessions,
-	selectLibraryScope,
-	selectLibraryLoading,
-	selectInspection,
-	selectInspecting,
-} = librarySlice.selectors;
+export const { selectStoredSessions, selectLibraryScope, selectLibraryLoading, selectInspection, selectInspecting } =
+	librarySlice.selectors;
