@@ -590,16 +590,8 @@ try {
 		await waitIdle(page, 30_000);
 
 		await openInspectorTab(page, /状态|State/);
-		check(
-			"session:getState / session:state",
-			(await page.getByText(/会话|Session/i).count()) > 0 &&
-				(await page.locator("text=/[0-9a-f-]{8,}/i").count()) +
-					(await page.getByLabel(/会话|Session/).count()) >=
-					0,
-		);
-		// 状态页应展示当前 sessionId
 		const stateText = await page.locator("body").innerText();
-		check("状态快照可见", /[0-9a-f]{8}-[0-9a-f]{4}/i.test(stateText) || stateText.length > 100);
+		check("session:state 快照", /[0-9a-f]{8}-[0-9a-f]{4}/i.test(stateText) || /会话标识|Session id/i.test(stateText));
 	});
 
 	await section("G. 检查器", async () => {
