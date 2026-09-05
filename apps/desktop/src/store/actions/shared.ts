@@ -6,8 +6,8 @@
  * pending/fulfilled/rejected triplets would be boilerplate with no reader.
  */
 
-import type { ThunkAction, UnknownAction } from "@reduxjs/toolkit";
 import type { AgentStateSnapshot } from "@pine/protocol";
+import type { ThunkAction, UnknownAction } from "@reduxjs/toolkit";
 import type { AppDispatch, RootState } from "../index.ts";
 import { approvalsActions } from "../slices/approvals.ts";
 import { configActions } from "../slices/config.ts";

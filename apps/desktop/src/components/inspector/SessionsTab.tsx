@@ -7,7 +7,8 @@
 
 import { useEffect } from "react";
 import { useTranslate } from "../../i18n/useTranslate.ts";
-import { deleteStoredSession, loadStoredSessions, resumeStoredSession } from "../../store/actions/library.ts";
+import { formatCost, formatDateTime, formatTokens, shortenPath } from "../../lib/format.ts";
+import { deleteSession, listSessions, resumeStoredSession } from "../../store/actions/library.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import {
 	libraryActions,
@@ -15,11 +16,10 @@ import {
 	selectLibraryScope,
 	selectStoredSessions,
 } from "../../store/slices/library.ts";
-import { selectLocale } from "../../store/slices/ui.ts";
 import { selectSessionId } from "../../store/slices/session.ts";
+import { selectLocale } from "../../store/slices/ui.ts";
 import { Button, ButtonRow } from "../primitives/Button.tsx";
 import { Badge, EmptyState, Panel, Row, Spacer, Stack, Text } from "../primitives/Surface.tsx";
-import { formatCost, formatDateTime, formatTokens, shortenPath } from "../../lib/format.ts";
 
 export function SessionsTab() {
 	const t = useTranslate();
@@ -33,7 +33,7 @@ export function SessionsTab() {
 	// Reload whenever the tab is shown or the scope changes; the list is cheap
 	// and stale entries are more confusing than a refetch is expensive.
 	useEffect(() => {
-		void dispatch(loadStoredSessions());
+		void dispatch(listSessions());
 	}, [dispatch, scope]);
 
 	return (
@@ -58,7 +58,7 @@ export function SessionsTab() {
 					</Button>
 				</ButtonRow>
 				<Spacer />
-				<Button type="button" $size="sm" disabled={loading} onClick={() => dispatch(loadStoredSessions())}>
+				<Button type="button" $size="sm" disabled={loading} onClick={() => dispatch(listSessions())}>
 					{t("inspector.sessions.refresh")}
 				</Button>
 			</Row>
@@ -103,7 +103,7 @@ export function SessionsTab() {
 									type="button"
 									$size="sm"
 									$variant="danger"
-									onClick={() => dispatch(deleteStoredSession(session.sessionId))}
+									onClick={() => dispatch(deleteSession(session.sessionId))}
 								>
 									{t("inspector.sessions.delete")}
 								</Button>

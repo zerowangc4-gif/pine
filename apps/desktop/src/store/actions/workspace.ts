@@ -1,31 +1,19 @@
 /**
- * Working-directory actions.
- *
- * Two entry points that look similar but differ in an important way:
- *
- *  - `switchWorkspace` repoints a *live* session, keeping its transcript.
- *  - `setInitialWorkspace` only edits the draft, for when no session exists yet.
- *
- * The picker calls whichever applies, so choosing a directory behaves sensibly
- * both before and during a conversation.
+ * Workspace thunks: call `socket/send` (1:1 contract), then update Redux.
  */
 
-import { request } from "../../socket/client.ts";
+import * as send from "../../socket/send.ts";
 import { configActions } from "../slices/config.ts";
 import { sessionActions } from "../slices/session.ts";
 import { transcriptActions } from "../slices/transcript.ts";
 import { workspaceActions } from "../slices/workspace.ts";
-import { adoptSnapshot, reportError, type AppThunk } from "./shared.ts";
+import { type AppThunk, adoptSnapshot, reportError } from "./shared.ts";
 
-/** List one level of the tree. Empty path lists the sidecar's own directory. */
-export function browseDirectory(path?: string): AppThunk<Promise<void>> {
+export function browseWorkspace(path?: string): AppThunk<Promise<void>> {
 	return async (dispatch, getState) => {
 		dispatch(workspaceActions.browsing());
 		try {
-			const listing = await request("workspace:browse", {
-				...(path ? { path } : {}),
-				includeHidden: getState().workspace.showHidden,
-			});
+			const listing = await send.browseWorkspace(path, getState().workspace.showHidden);
 			dispatch(workspaceActions.listingReceived(listing));
 		} catch (error) {
 			dispatch(workspaceActions.browseFailed(String(error)));
@@ -33,24 +21,22 @@ export function browseDirectory(path?: string): AppThunk<Promise<void>> {
 	};
 }
 
-/** Check a typed path without committing to it, to drive inline feedback. */
-export function validateWorkspacePath(path: string): AppThunk<Promise<void>> {
+export function validateWorkspace(path: string): AppThunk<Promise<void>> {
 	return async (dispatch) => {
 		try {
-			dispatch(workspaceActions.validationReceived(await request("workspace:validate", path)));
+			dispatch(workspaceActions.validationReceived(await send.validateWorkspace(path)));
 		} catch (error) {
 			dispatch(workspaceActions.browseFailed(String(error)));
 		}
 	};
 }
 
-export function loadRecentWorkspaces(): AppThunk<Promise<void>> {
+export function recentWorkspaces(): AppThunk<Promise<void>> {
 	return async (dispatch) => {
 		try {
-			dispatch(workspaceActions.recentReceived(await request("workspace:recent")));
+			dispatch(workspaceActions.recentReceived(await send.recentWorkspaces()));
 		} catch {
-			// A missing session history is not worth reporting; the picker just
-			// shows no shortcuts.
+			// Missing history is fine; picker just shows no shortcuts.
 		}
 	};
 }
@@ -66,14 +52,14 @@ export function switchWorkspace(path: string): AppThunk<Promise<void>> {
 		const sessionId = getState().session.sessionId;
 
 		if (!sessionId) {
-			dispatch(setInitialWorkspace(path));
+			dispatch(configActions.patchDraft({ cwd: path }));
 			dispatch(workspaceActions.switched());
 			return;
 		}
 
 		dispatch(workspaceActions.switching());
 		try {
-			const result = await request("workspace:switch", { sessionId, path });
+			const result = await send.switchWorkspace(sessionId, path);
 
 			if (!result.validation.exists || !result.validation.isDirectory) {
 				dispatch(workspaceActions.switchFailed(result.validation.problem ?? "invalid"));
@@ -91,12 +77,5 @@ export function switchWorkspace(path: string): AppThunk<Promise<void>> {
 			dispatch(workspaceActions.switchFailed(String(error)));
 			reportError(dispatch, error);
 		}
-	};
-}
-
-/** Record the directory a future session should start in. */
-export function setInitialWorkspace(path: string): AppThunk {
-	return (dispatch) => {
-		dispatch(configActions.patchDraft({ cwd: path }));
 	};
 }

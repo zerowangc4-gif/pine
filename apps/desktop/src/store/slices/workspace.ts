@@ -5,8 +5,8 @@
  * Vite dev server and inside Tauri, with no native dialog dependency.
  */
 
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { DirectoryListing, WorkspaceValidation } from "@pine/protocol";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface WorkspaceState {
 	pickerOpen: boolean;
@@ -97,10 +97,5 @@ export const workspaceSlice = createSlice({
 });
 
 export const workspaceActions = workspaceSlice.actions;
-export const {
-	selectPickerOpen,
-	selectListing,
-	selectRecentWorkspaces,
-	selectWorkspaceValidation,
-	selectShowHidden,
-} = workspaceSlice.selectors;
+export const { selectPickerOpen, selectListing, selectRecentWorkspaces, selectWorkspaceValidation, selectShowHidden } =
+	workspaceSlice.selectors;

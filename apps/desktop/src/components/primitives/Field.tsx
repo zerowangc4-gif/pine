@@ -328,15 +328,7 @@ export interface ListFieldProps {
  * no stable identity. Empty rows are kept while editing — removing a row the
  * moment it is cleared would fight the user's cursor.
  */
-export function ListField({
-	label,
-	values,
-	onChange,
-	placeholder,
-	hint,
-	addLabel,
-	removeLabel,
-}: ListFieldProps) {
+export function ListField({ label, values, onChange, placeholder, hint, addLabel, removeLabel }: ListFieldProps) {
 	return (
 		<Stack $gap={2}>
 			<LabelText>{label}</LabelText>

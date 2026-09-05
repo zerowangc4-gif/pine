@@ -6,8 +6,8 @@
  * summarizing.
  */
 
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { AgentEventType } from "@pine/protocol";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface EventLogEntry {
 	key: string;
@@ -45,7 +45,10 @@ export const debugSlice = createSlice({
 			if (state.events.length > MAX_EVENTS) state.events.splice(0, state.events.length - MAX_EVENTS);
 		},
 
-		payloadObserved(state, action: PayloadAction<{ seq: number; direction: PayloadEntry["direction"]; body: unknown }>) {
+		payloadObserved(
+			state,
+			action: PayloadAction<{ seq: number; direction: PayloadEntry["direction"]; body: unknown }>,
+		) {
 			state.payloads.push({ key: `p-${state.nextKey}`, at: Date.now(), ...action.payload });
 			state.nextKey += 1;
 			if (state.payloads.length > MAX_PAYLOADS) state.payloads.splice(0, state.payloads.length - MAX_PAYLOADS);

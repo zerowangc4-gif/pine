@@ -13,10 +13,10 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import {
-	browseDirectory,
-	loadRecentWorkspaces,
+	browseWorkspace,
+	recentWorkspaces,
 	switchWorkspace,
-	validateWorkspacePath,
+	validateWorkspace,
 } from "../../store/actions/workspace.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import { selectWorkspace } from "../../store/slices/session.ts";
@@ -139,14 +139,14 @@ export function WorkspacePicker() {
 	useEffect(() => {
 		if (!open) return;
 		setTyped(current);
-		void dispatch(browseDirectory(current || undefined));
-		void dispatch(loadRecentWorkspaces());
+		void dispatch(browseWorkspace(current || undefined));
+		void dispatch(recentWorkspaces());
 	}, [open, current, dispatch]);
 
 	// Re-browse when the hidden-directory toggle changes.
 	useEffect(() => {
 		if (!open || !listing) return;
-		void dispatch(browseDirectory(listing.path));
+		void dispatch(browseWorkspace(listing.path));
 		// `listing.path` is intentionally omitted: including it would loop, since
 		// browsing sets a new listing.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,14 +188,14 @@ export function WorkspacePicker() {
 								spellCheck={false}
 								placeholder={t("workspace.path")}
 								onChange={(event) => setTyped(event.target.value)}
-								onBlur={() => typed.trim() && dispatch(validateWorkspacePath(typed.trim()))}
+								onBlur={() => typed.trim() && dispatch(validateWorkspace(typed.trim()))}
 							/>
 							{/* Jump the browser to the typed path without choosing it yet. */}
 							<Button
 								type="button"
 								$size="sm"
 								disabled={!typed.trim()}
-								onClick={() => dispatch(browseDirectory(typed.trim()))}
+								onClick={() => dispatch(browseWorkspace(typed.trim()))}
 							>
 								→
 							</Button>
@@ -221,7 +221,7 @@ export function WorkspacePicker() {
 										$size="sm"
 										onClick={() => {
 											setTyped(path);
-											void dispatch(browseDirectory(path));
+											void dispatch(browseWorkspace(path));
 										}}
 									>
 										{path}
@@ -245,7 +245,7 @@ export function WorkspacePicker() {
 
 						<List>
 							{listing?.parent ? (
-								<EntryButton type="button" onClick={() => dispatch(browseDirectory(listing.parent))}>
+								<EntryButton type="button" onClick={() => dispatch(browseWorkspace(listing.parent))}>
 									<Text $size="sm" $tone="muted">
 										../
 									</Text>
@@ -267,7 +267,7 @@ export function WorkspacePicker() {
 									type="button"
 									onClick={() => {
 										setTyped(entry.path);
-										void dispatch(browseDirectory(entry.path));
+										void dispatch(browseWorkspace(entry.path));
 									}}
 								>
 									<span aria-hidden>▸</span>

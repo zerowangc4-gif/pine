@@ -8,8 +8,8 @@
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { formatJson, formatTime } from "../../lib/format.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
-import { debugActions, selectEventLog, selectPayloads } from "../../store/slices/debug.ts";
 import { selectDraft } from "../../store/slices/config.ts";
+import { debugActions, selectEventLog, selectPayloads } from "../../store/slices/debug.ts";
 import { selectLocale } from "../../store/slices/ui.ts";
 import { Button, ButtonRow } from "../primitives/Button.tsx";
 import { Badge, Code, EmptyState, Row, Spacer, Stack, Text } from "../primitives/Surface.tsx";
@@ -75,7 +75,9 @@ export function PayloadsTab() {
 				<Stack key={entry.key} $gap={1}>
 					<Row $gap={2}>
 						<Badge $tone={entry.direction === "request" ? "neutral" : "success"}>
-							{entry.direction === "request" ? t("inspector.payloads.request") : t("inspector.payloads.response")}
+							{entry.direction === "request"
+								? t("inspector.payloads.request")
+								: t("inspector.payloads.response")}
 						</Badge>
 						<Text $size="xs" $tone="faint" $mono>
 							#{entry.seq}

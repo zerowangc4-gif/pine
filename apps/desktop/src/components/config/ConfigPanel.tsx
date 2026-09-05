@@ -10,7 +10,6 @@
  * the thinking level and the working directory.
  */
 
-import styled from "styled-components";
 import {
 	ALL_TOOL_NAMES,
 	THINKING_LEVELS,
@@ -18,10 +17,11 @@ import {
 	type ToolName,
 	type ToolSetting,
 } from "@pine/protocol";
+import styled from "styled-components";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { formatBytes, formatTokens } from "../../lib/format.ts";
 import { inspectModel } from "../../store/actions/library.ts";
-import { applyConfig, compactNow, configureNow, reloadResources } from "../../store/actions/session.ts";
+import { applyConfig, compact, configureNow, reloadResources } from "../../store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import { configActions, selectDirtyFields, selectDraft } from "../../store/slices/config.ts";
 import { selectInspecting, selectInspection } from "../../store/slices/library.ts";
@@ -29,14 +29,7 @@ import { selectIsRunning, selectSnapshot, selectWorkspace } from "../../store/sl
 import { uiActions } from "../../store/slices/ui.ts";
 import { workspaceActions } from "../../store/slices/workspace.ts";
 import { Button, ButtonRow } from "../primitives/Button.tsx";
-import {
-	ListField,
-	NumberField,
-	SelectField,
-	TextAreaField,
-	TextField,
-	ToggleField,
-} from "../primitives/Field.tsx";
+import { ListField, NumberField, SelectField, TextAreaField, TextField, ToggleField } from "../primitives/Field.tsx";
 import { Badge, Row, ScrollArea, Section, SectionTitle, Spacer, Stack, Text } from "../primitives/Surface.tsx";
 import {
 	apiOptions,
@@ -152,9 +145,7 @@ export function ConfigPanel() {
 						<TextField
 							label={t("config.model.displayName")}
 							value={draft.model.displayName ?? ""}
-							onChange={(displayName) =>
-								dispatch(patch({ model: { displayName: displayName || undefined } }))
-							}
+							onChange={(displayName) => dispatch(patch({ model: { displayName: displayName || undefined } }))}
 						/>
 						<TextField
 							label={t("config.model.baseUrl")}
@@ -223,9 +214,7 @@ export function ConfigPanel() {
 							value={draft.model.cost.cacheRead}
 							min={0}
 							step={0.1}
-							onChange={(cacheRead) =>
-								dispatch(patch({ model: { cost: { ...draft.model.cost, cacheRead } } }))
-							}
+							onChange={(cacheRead) => dispatch(patch({ model: { cost: { ...draft.model.cost, cacheRead } } }))}
 						/>
 						<NumberField
 							label={t("config.model.costCacheWrite")}
@@ -360,7 +349,9 @@ export function ConfigPanel() {
 											options={toolExecutionOverrideOptions(t)}
 											onChange={(mode) =>
 												setTool(name, {
-													...(mode ? { executionMode: mode as ToolExecutionMode } : { executionMode: undefined }),
+													...(mode
+														? { executionMode: mode as ToolExecutionMode }
+														: { executionMode: undefined }),
 												})
 											}
 										/>
@@ -506,7 +497,7 @@ export function ConfigPanel() {
 							type="button"
 							$size="sm"
 							disabled={!sessionOpen || running}
-							onClick={() => dispatch(compactNow(draft.compaction.customInstructions))}
+							onClick={() => dispatch(compact(draft.compaction.customInstructions))}
 						>
 							{t("config.context.compactNow")}
 						</Button>

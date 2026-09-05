@@ -193,15 +193,3 @@ export function messageText(message: AgentMessage): string {
 			return `${message.command}\n${message.output}`;
 	}
 }
-
-/** Tool calls requested by an assistant message. */
-export function toolCallsOf(message: AgentMessage): ToolCallContent[] {
-	if (message.role !== "assistant") return [];
-	return message.content.filter((part): part is ToolCallContent => part.type === "toolCall");
-}
-
-/** True when a message contributes nothing the user would want to see. */
-export function isDisplayable(message: AgentMessage): boolean {
-	if (message.role === "custom") return message.display;
-	return true;
-}

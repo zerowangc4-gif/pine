@@ -8,7 +8,7 @@
 import styled from "styled-components";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
-import { selectInspectorTab, uiActions, type InspectorTab } from "../../store/slices/ui.ts";
+import { type InspectorTab, selectInspectorTab, uiActions } from "../../store/slices/ui.ts";
 import { IconButton } from "../primitives/Button.tsx";
 import { Row, ScrollArea, Spacer, Text } from "../primitives/Surface.tsx";
 import { EventsTab, PayloadsTab } from "./DiagnosticsTabs.tsx";

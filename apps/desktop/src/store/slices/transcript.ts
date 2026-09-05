@@ -13,8 +13,8 @@
  * notice mid-stream never remounts the messages around it.
  */
 
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { AgentEvent, AgentMessage, CompactionState, StopReason } from "@pine/protocol";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export type NoticeLevel = "info" | "warn" | "error";
 

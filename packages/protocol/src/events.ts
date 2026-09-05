@@ -29,17 +29,3 @@ export type AgentEvent =
 	| { type: "tool_execution_end"; toolCallId: string; toolName: string; result: unknown; isError: boolean };
 
 export type AgentEventType = AgentEvent["type"];
-
-/** Every event type, in the order a healthy run emits them for the first time. */
-export const AGENT_EVENT_TYPES: AgentEventType[] = [
-	"agent_start",
-	"turn_start",
-	"message_start",
-	"message_update",
-	"message_end",
-	"tool_execution_start",
-	"tool_execution_update",
-	"tool_execution_end",
-	"turn_end",
-	"agent_end",
-];

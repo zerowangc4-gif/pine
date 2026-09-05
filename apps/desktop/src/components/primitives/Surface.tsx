@@ -41,9 +41,7 @@ export const Spacer = styled.div`
 
 /** Bordered container for grouped content. */
 export const Panel = styled.div<{ $padding?: SpaceStep; $tone?: "surface" | "sunken" }>`
-	background: ${({ theme, $tone = "surface" }) => (
-		$tone === "sunken" ? theme.colors.sunken : theme.colors.surface
-	)};
+	background: ${({ theme, $tone = "surface" }) => ($tone === "sunken" ? theme.colors.sunken : theme.colors.surface)};
 	border: 1px solid ${({ theme }) => theme.colors.border};
 	border-radius: ${({ theme }) => theme.radius.lg};
 	padding: ${({ theme, $padding = 4 }) => theme.space[$padding]};

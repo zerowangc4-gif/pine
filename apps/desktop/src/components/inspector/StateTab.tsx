@@ -5,11 +5,11 @@
  * which is the first thing worth checking when a run behaves oddly.
  */
 
-import { useEffect, useState } from "react";
 import type { AgentMessage } from "@pine/protocol";
+import { useEffect, useState } from "react";
 import { useTranslate } from "../../i18n/useTranslate.ts";
 import { formatCost, formatPercent, formatTokens } from "../../lib/format.ts";
-import { clearQueue, setTranscriptMessages } from "../../store/actions/session.ts";
+import { clearQueue, setMessages } from "../../store/actions/session.ts";
 import { useAppDispatch, useAppSelector } from "../../store/hooks.ts";
 import { selectIsRunning, selectSnapshot } from "../../store/slices/session.ts";
 import { Button, ButtonRow } from "../primitives/Button.tsx";
@@ -44,7 +44,7 @@ export function StateTab() {
 			const parsed = JSON.parse(messagesJson) as unknown;
 			if (!Array.isArray(parsed)) throw new Error("Messages must be a JSON array.");
 			setMessagesError(undefined);
-			void dispatch(setTranscriptMessages(parsed as AgentMessage[]));
+			void dispatch(setMessages(parsed as AgentMessage[]));
 		} catch (error) {
 			setMessagesError(error instanceof Error ? error.message : String(error));
 		}

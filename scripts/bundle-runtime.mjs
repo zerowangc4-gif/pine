@@ -1,7 +1,7 @@
-import * as esbuild from "esbuild";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as esbuild from "esbuild";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outfile = join(root, "apps/desktop/src-tauri/resources/runtime/pine-runtime.cjs");
