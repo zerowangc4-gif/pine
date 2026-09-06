@@ -19,6 +19,7 @@ pnpm dev:runtime    # sidecar
 pnpm dev:ui         # 浏览器里开网页（Vite）
 pnpm dev:tauri      # 桌面窗口开发
 pnpm build:tauri    # 打包 exe（含 sidecar）
+pnpm test           # 协议线套件（test/；fake model，无需 API key）
 pnpm test:ui        # Playwright UI 冒烟（需 DEEPSEEK_API_KEY；自动装 Chromium）
 pnpm check          # Biome lint + format
 ```

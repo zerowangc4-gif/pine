@@ -353,8 +353,8 @@ try {
 		await field(page, "后续注入方式")
 			.selectOption({ index: 0 })
 			.catch(() => undefined);
-		await addListItem(page, "技能目录", join(workspace, ".pine", "skills")).catch(() => undefined);
-		await addListItem(page, "提示词模板目录", join(workspace, ".pine", "commands")).catch(() => undefined);
+		// Leave skillDirs / promptTemplateDirs empty so runtime defaults to
+		// <cwd>/.pine/skills|commands (fixtures already written into workspace).
 		await field(page, "传输方式")
 			.selectOption("auto")
 			.catch(() => undefined);
@@ -611,19 +611,28 @@ try {
 			.catch(() => undefined);
 		await openInspectorTab(page, /资源|Resources/);
 		await clickBtn(page, /重新加载|Reload/);
-		const runs = page.getByRole("button", { name: /^(运行|Run)$/ });
-		if ((await runs.count()) > 0) {
-			await runs.first().click();
+		await page.waitForTimeout(800);
+		check("资源发现 greet", (await page.getByText("greet", { exact: true }).count()) > 0);
+		check("资源发现 summarize", (await page.getByText("summarize", { exact: true }).count()) > 0);
+		const greetRun = page
+			.locator("div")
+			.filter({ has: page.getByText("greet", { exact: true }) })
+			.getByRole("button", { name: /^(运行|Run)$/ })
+			.first();
+		if (await greetRun.count()) {
+			await greetRun.click();
 			await waitIdle(page);
 			check("运行 skill", true);
-		} else check("运行 skill", false, "无 Run 按钮");
-		if ((await runs.count()) > 1) {
-			const args = page.getByLabel(/参数|Args/);
-			if (await args.count()) await args.first().fill("Pine agent");
-			await runs.nth(1).click();
+		} else check("运行 skill", false, "无 greet Run");
+		const summarizeCard = page.locator("div").filter({ has: page.getByText("summarize", { exact: true }) });
+		const args = summarizeCard.getByLabel(/参数|Args/);
+		if (await args.count()) await args.first().fill("Pine agent");
+		const templateRun = summarizeCard.getByRole("button", { name: /^(运行|Run)$/ }).first();
+		if (await templateRun.count()) {
+			await templateRun.click();
 			await waitIdle(page);
 			check("运行 template", true);
-		} else check("运行 template", false, "无第二个 Run");
+		} else check("运行 template", false, "无 summarize Run");
 		await openInspectorTab(page, /会话|Sessions/);
 		await page
 			.getByRole("button", { name: "全部工作目录", exact: true })
@@ -659,26 +668,44 @@ try {
 		if (resumed) check("恢复会话可点", true);
 		else note("恢复会话：仅当前会话时按钮会禁用，跳过");
 
-		// sessions:delete — 关掉当前会话后删库里的另一条（或删刚关掉的）
-		const beforeDelete = await page.getByRole("button", { name: /删除|Delete/ }).count();
-		await clickBtn(page, /关闭会话|Close session/).catch(() => undefined);
+		// sessions:delete — 关掉当前会话后，在「全部」范围删一条，并等 Redux 落账
+		await page
+			.getByRole("button", { name: "全部工作目录", exact: true })
+			.or(page.getByRole("button", { name: "All workspaces", exact: true }))
+			.first()
+			.click();
+		await page.waitForTimeout(400);
+		await clickBtn(page, /刷新|Refresh/);
 		await page.waitForTimeout(600);
+
+		const beforeClose = await page.evaluate(() => globalThis.__pineStore?.getState?.()?.library?.sessions?.length ?? 0);
+		await clickBtn(page, /关闭会话|Close session/).catch(() => undefined);
+		await page.waitForTimeout(800);
 		await openInspectorTab(page, /会话|Sessions/);
 		await clickBtn(page, /刷新|Refresh/);
-		await page.waitForTimeout(500);
-		const delBtns = page.getByRole("button", { name: /删除|Delete/ });
-		const afterClose = await delBtns.count();
-		check("关闭后会话库有条目", afterClose > 0 || beforeDelete > 0);
-		if (afterClose > 0) {
-			await delBtns.first().click();
-			await page.waitForTimeout(600);
-			await clickBtn(page, /刷新|Refresh/);
-			await page.waitForTimeout(400);
-			const afterDelete = await page.getByRole("button", { name: /删除|Delete/ }).count();
-			check("sessions:delete", afterDelete < afterClose || afterDelete === 0);
-		} else {
-			check("sessions:delete", false, "无可删会话");
-		}
+		await page.waitForTimeout(600);
+
+		const afterClose = await page.evaluate(() => globalThis.__pineStore?.getState?.()?.library?.sessions?.length ?? 0);
+		check("关闭后会话库有条目", afterClose > 0, `beforeClose=${beforeClose} afterClose=${afterClose}`);
+
+		const targetId = await page.evaluate(() => globalThis.__pineStore?.getState?.()?.library?.sessions?.[0]?.sessionId ?? "");
+		check("待删会话 id", Boolean(targetId), targetId || "空");
+
+		const delBtn = page.getByRole("button", { name: /^(删除|Delete)$/ }).first();
+		await delBtn.click();
+		const deleted = await page
+			.waitForFunction(
+				(id) => {
+					const sessions = globalThis.__pineStore?.getState?.()?.library?.sessions ?? [];
+					return id !== "" && !sessions.some((session) => session.sessionId === id);
+				},
+				targetId,
+				{ timeout: 15_000 },
+			)
+			.then(() => true)
+			.catch(() => false);
+		check("sessions:delete", deleted, deleted ? targetId : `仍在库中: ${targetId}`);
+
 		await clickBtn(page, /开始会话|新建会话|Start|New/).catch(() => undefined);
 		await page.waitForTimeout(600);
 	});
@@ -814,28 +841,32 @@ try {
 		}
 	});
 
-	await section("J. skill / template / debug / ready 复核", async () => {
+	await section("J. skill / template / debug / ready / 协议版本 复核", async () => {
 		await openInspectorTab(page, /资源|Resources/);
 		await clickBtn(page, /重新加载|Reload/);
 		await page.waitForTimeout(800);
-		const runs = page.getByRole("button", { name: /^(运行|Run)$/ });
-		await runs
-			.first()
-			.waitFor({ timeout: 15_000 })
-			.catch(() => undefined);
-		check("session:reloadResources", (await runs.count()) > 0);
-		if ((await runs.count()) > 0) {
-			await runs.first().click();
+		check("session:reloadResources", (await page.getByText("greet", { exact: true }).count()) > 0);
+		const greetRun = page
+			.locator("div")
+			.filter({ has: page.getByText("greet", { exact: true }) })
+			.getByRole("button", { name: /^(运行|Run)$/ })
+			.first();
+		check("session:runSkill 按钮", (await greetRun.count()) > 0);
+		if (await greetRun.count()) {
+			await greetRun.click();
 			await waitIdle(page);
 			check("session:runSkill", true);
-		} else check("session:runSkill", false, "无 skill Run");
-		if ((await runs.count()) > 1) {
-			const args = page.getByLabel(/参数|Args/);
-			if (await args.count()) await args.first().fill("Pine agent");
-			await runs.nth(1).click();
+		}
+		const summarizeCard = page.locator("div").filter({ has: page.getByText("summarize", { exact: true }) });
+		const args = summarizeCard.getByLabel(/参数|Args/);
+		if (await args.count()) await args.first().fill("Pine agent");
+		const templateRun = summarizeCard.getByRole("button", { name: /^(运行|Run)$/ }).first();
+		check("session:runTemplate 按钮", (await templateRun.count()) > 0);
+		if (await templateRun.count()) {
+			await templateRun.click();
 			await waitIdle(page);
 			check("session:runTemplate", true);
-		} else check("session:runTemplate", false, "无 template Run");
+		}
 
 		await openInspectorTab(page, /事件|Events/);
 		check("agent:event", (await page.getByText(/tool_execution|agent_|message_/i).count()) > 0);
@@ -843,7 +874,34 @@ try {
 		check("debug:payload/response 页", true);
 		check("ready/已连接", (await page.getByText(/已连接|Connected|已恢复|Recovered/).count()) > 0);
 
-		note("协议版本不匹配：需改 PROTOCOL_VERSION 人为制造，e2e 不破坏契约");
+		const mismatchShown = await page.evaluate(() => {
+			const store = globalThis.__pineStore;
+			const runtime = store?.getState?.()?.connection?.runtime;
+			if (!store || !runtime) return false;
+			store.dispatch({
+				type: "connection/ready",
+				payload: { ...runtime, protocolVersion: runtime.protocolVersion + 1 },
+			});
+			return true;
+		});
+		check("协议版本不匹配·注入", mismatchShown, mismatchShown ? "" : "无 window.__pineStore（需 DEV）");
+		if (mismatchShown) {
+			await page.waitForTimeout(400);
+			check(
+				"协议版本不匹配·UI",
+				(await page.getByText(/协议 v|protocol v/i).count()) > 0,
+			);
+			await page.evaluate(() => {
+				const store = globalThis.__pineStore;
+				const runtime = store?.getState?.()?.connection?.runtime;
+				if (!store || !runtime) return;
+				store.dispatch({
+					type: "connection/ready",
+					payload: { ...runtime, protocolVersion: runtime.protocolVersion - 1 },
+				});
+			});
+		}
+
 		note("Tauri 壳：当前 Vite；build:tauri 另测");
 	});
 

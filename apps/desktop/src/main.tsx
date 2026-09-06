@@ -11,6 +11,11 @@ import { Provider } from "react-redux";
 import { App } from "./App.tsx";
 import { store } from "./store/index.ts";
 
+/** E2E hook: dispatch protocol mismatch / inspect Redux without Tauri. */
+if (import.meta.env.DEV) {
+	(globalThis as unknown as { __pineStore?: typeof store }).__pineStore = store;
+}
+
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
 		<Provider store={store}>

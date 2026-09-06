@@ -11,6 +11,18 @@ importers:
       '@biomejs/biome':
         specifier: 2.3.5
         version: 2.3.5
+      '@pine/protocol':
+        specifier: workspace:*
+        version: link:packages/protocol
+      '@pine/runtime':
+        specifier: workspace:*
+        version: link:packages/runtime
+      '@pine/socket-client':
+        specifier: workspace:*
+        version: link:packages/socket-client
+      '@pine/socket-server':
+        specifier: workspace:*
+        version: link:packages/socket-server
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
@@ -20,6 +32,9 @@ importers:
       playwright:
         specifier: 1.62.1
         version: 1.62.1
+      socket.io-client:
+        specifier: ^4.8.3
+        version: 4.8.3(supports-color@7.2.0)
       tsx:
         specifier: 4.22.1
         version: 4.22.1

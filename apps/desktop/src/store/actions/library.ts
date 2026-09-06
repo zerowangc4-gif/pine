@@ -9,13 +9,15 @@ import { type AppThunk, reportError } from "./shared.ts";
 
 export function listSessions(): AppThunk<Promise<void>> {
 	return async (dispatch, getState) => {
-		const state = getState();
 		dispatch(libraryActions.loading());
+		const epoch = getState().library.listEpoch;
 		try {
+			const state = getState();
 			const cwd = state.library.scope === "workspace" ? state.session.snapshot?.workspace : undefined;
-			dispatch(libraryActions.received(await send.listSessions(cwd)));
+			const sessions = await send.listSessions(cwd);
+			dispatch(libraryActions.received({ sessions, epoch }));
 		} catch (error) {
-			dispatch(libraryActions.failed(String(error)));
+			dispatch(libraryActions.failed({ error: String(error), epoch }));
 		}
 	};
 }

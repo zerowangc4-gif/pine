@@ -9,6 +9,7 @@
 		"dev:tauri": "pnpm --filter @pine/desktop dev:tauri",
 		"prepare:sidecar": "node scripts/prepare-sidecar.mjs",
 		"build:tauri": "pnpm prepare:sidecar && pnpm --filter @pine/desktop build:tauri",
+		"test": "tsx test/run.ts",
 		"test:ui": "tsx e2e/run.mjs",
 		"check": "biome check --write --error-on-warnings ."
 	},
@@ -17,9 +18,14 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.5",
+		"@pine/protocol": "workspace:*",
+		"@pine/runtime": "workspace:*",
+		"@pine/socket-client": "workspace:*",
+		"@pine/socket-server": "workspace:*",
 		"@types/node": "22.19.19",
 		"esbuild": "0.25.12",
 		"playwright": "1.62.1",
+		"socket.io-client": "^4.8.3",
 		"tsx": "4.22.1",
 		"typescript": "5.9.3"
 	}

@@ -15,12 +15,18 @@ export interface LibraryState {
 	sessions: StoredSessionInfo[];
 	loading: boolean;
 	scope: LibraryScope;
+	/**
+	 * Monotonic token for in-flight `listSessions` calls. A slow response whose
+	 * epoch no longer matches is ignored so it cannot resurrect a session that
+	 * was deleted (or otherwise changed) while the request was outstanding.
+	 */
+	listEpoch: number;
 	inspection?: ModelInspection;
 	inspecting: boolean;
 	error?: string;
 }
 
-const initialState: LibraryState = { sessions: [], loading: false, scope: "all", inspecting: false };
+const initialState: LibraryState = { sessions: [], loading: false, scope: "all", listEpoch: 0, inspecting: false };
 
 export const librarySlice = createSlice({
 	name: "library",
@@ -28,17 +34,20 @@ export const librarySlice = createSlice({
 	reducers: {
 		loading(state) {
 			state.loading = true;
+			state.listEpoch += 1;
 			delete state.error;
 		},
 
-		received(state, action: PayloadAction<StoredSessionInfo[]>) {
+		received(state, action: PayloadAction<{ sessions: StoredSessionInfo[]; epoch: number }>) {
+			if (action.payload.epoch !== state.listEpoch) return;
 			state.loading = false;
-			state.sessions = action.payload;
+			state.sessions = action.payload.sessions;
 		},
 
-		failed(state, action: PayloadAction<string>) {
+		failed(state, action: PayloadAction<{ error: string; epoch: number }>) {
+			if (action.payload.epoch !== state.listEpoch) return;
 			state.loading = false;
-			state.error = action.payload;
+			state.error = action.payload.error;
 		},
 
 		setScope(state, action: PayloadAction<LibraryScope>) {
@@ -47,6 +56,10 @@ export const librarySlice = createSlice({
 
 		removed(state, action: PayloadAction<string>) {
 			state.sessions = state.sessions.filter((session) => session.sessionId !== action.payload);
+			// Invalidate in-flight listSessions so a stale response cannot resurrect
+			// the row we just deleted.
+			state.listEpoch += 1;
+			state.loading = false;
 		},
 
 		inspecting(state) {
