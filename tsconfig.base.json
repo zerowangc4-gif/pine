@@ -1,20 +1,15 @@
 {
-	"compilerOptions": {
-		"target": "ES2022",
-		"module": "Node16",
-		"lib": ["ES2022"],
-		"strict": true,
-		"erasableSyntaxOnly": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
-		"declaration": true,
-		"declarationMap": true,
-		"sourceMap": true,
-		"moduleResolution": "Node16",
-		"resolveJsonModule": true,
-		"allowImportingTsExtensions": true,
-		"rewriteRelativeImportExtensions": true,
-		"types": ["node"]
-	}
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": "."
+  }
 }
