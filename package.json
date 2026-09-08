@@ -1,32 +1,23 @@
 {
-	"name": "pine",
-	"private": true,
-	"type": "module",
-	"packageManager": "pnpm@11.22.0",
-	"scripts": {
-		"dev:runtime": "pnpm --filter @pine/runtime dev",
-		"dev:ui": "pnpm --filter @pine/desktop dev",
-		"dev:tauri": "pnpm --filter @pine/desktop dev:tauri",
-		"prepare:sidecar": "node scripts/prepare-sidecar.mjs",
-		"build:tauri": "pnpm prepare:sidecar && pnpm --filter @pine/desktop build:tauri",
-		"test": "tsx test/run.ts",
-		"test:ui": "tsx e2e/run.mjs",
-		"check": "biome check --write --error-on-warnings ."
-	},
-	"engines": {
-		"node": ">=22.19.0"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.3.5",
-		"@pine/protocol": "workspace:*",
-		"@pine/runtime": "workspace:*",
-		"@pine/socket-client": "workspace:*",
-		"@pine/socket-server": "workspace:*",
-		"@types/node": "22.19.19",
-		"esbuild": "0.25.12",
-		"playwright": "1.62.1",
-		"socket.io-client": "^4.8.3",
-		"tsx": "4.22.1",
-		"typescript": "5.9.3"
-	}
+  "name": "pine",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "dev": "pnpm --filter @pine/desktop dev",
+    "build": "pnpm --filter @pine/desktop build",
+    "lint": "eslint .",
+    "typecheck": "pnpm --filter @pine/desktop typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.42.0"
+  }
 }
