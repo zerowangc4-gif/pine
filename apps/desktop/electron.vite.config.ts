@@ -2,22 +2,26 @@ import path from "node:path";
 import { defineConfig } from "electron-vite";
 import react from "@vitejs/plugin-react";
 
-const src = path.resolve(import.meta.dirname, "src");
+const renderer = path.resolve(import.meta.dirname, "src/renderer");
+const shared = path.resolve(import.meta.dirname, "src/shared");
 
 export default defineConfig({
   main: {
     resolve: {
-      alias: { "@": src },
+      alias: { "@shared": shared },
     },
   },
   preload: {
     resolve: {
-      alias: { "@": src },
+      alias: { "@shared": shared },
     },
   },
   renderer: {
     resolve: {
-      alias: { "@": src },
+      alias: {
+        "@renderer": renderer,
+        "@shared": shared,
+      },
     },
     plugins: [react()],
     server: {

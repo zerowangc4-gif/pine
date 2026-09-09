@@ -1,8 +1,7 @@
-import type { ElectronApi } from "@/shared/ipc";
-
+import type { Pi } from "@shared";
 declare global {
   interface Window {
-    electronApi: ElectronApi;
+    pi: Pi;
   }
 }
 

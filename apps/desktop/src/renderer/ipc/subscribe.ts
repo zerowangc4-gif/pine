@@ -1,8 +1,7 @@
-import { readyChanged } from "@/renderer/features/home/store/slice";
-import type { AppDispatch } from "@/renderer/store";
-
-export function subscribe(dispatch: AppDispatch): void {
-  window.electronApi.onReady(ready => {
-    dispatch(readyChanged(ready));
+import { AppDispatch } from "../store";
+import { setModels } from "@renderer/features";
+export function subscribe(dispatch: AppDispatch) {
+  window.pi.loadConfig((value: string) => {
+    dispatch(setModels(value));
   });
 }

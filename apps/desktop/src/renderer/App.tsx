@@ -1,5 +1,5 @@
-import { HomeScreen } from "@/renderer/features/home/screens/HomeScreen";
+import { Login } from "@renderer/features";
 
 export function App() {
-  return <HomeScreen />;
+  return <Login />;
 }
