@@ -47,6 +47,9 @@ function* connectSaga(): SagaIterator {
 
     if (result.ok) {
       yield put(connectSuccess());
+      // Refresh so `configured` flags (and therefore the model list in the
+      // chat composer) reflect the key that was just activated.
+      yield put(loadProviders());
     } else {
       yield put(connectFailure(result.error ?? "error.connectFailed"));
     }

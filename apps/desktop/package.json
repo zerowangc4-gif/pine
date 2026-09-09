@@ -14,6 +14,7 @@
     "@earendil-works/pi-ai": "0.85.1",
     "@earendil-works/pi-coding-agent": "0.85.1",
     "@reduxjs/toolkit": "^2.8.2",
+    "diff": "8.0.4",
     "i18next": "^26.4.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

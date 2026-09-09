@@ -112,29 +112,13 @@ export function FileExplorer() {
 
   return (
     <Root>
-      <Header>
-        <HeaderTitle>{t("files.explorer")}</HeaderTitle>
-        <Actions>
-          <ActionButton title={t("files.openFolder")} onClick={() => dispatch(openFolderRequest(t("files.openFolder")))}>
-            <FolderOpenIcon />
-          </ActionButton>
-          {rootPath && (
-            <>
-              <ActionButton title={t("files.collapseAll")} onClick={() => dispatch(collapseAll())}>
-                <CollapseAllIcon />
-              </ActionButton>
-              <ActionButton title={t("files.newFile")} onClick={() => openModal({ kind: "createFile", dirPath: rootPath })}>
-                <FilePlusIcon />
-              </ActionButton>
-              <ActionButton title={t("files.newFolder")} onClick={() => openModal({ kind: "createFolder", dirPath: rootPath })}>
-                <FolderPlusIcon />
-              </ActionButton>
-            </>
-          )}
-        </Actions>
-      </Header>
-
-      <Body>
+      <Body
+        onContextMenu={(event) => {
+          if (!rootPath) return;
+          event.preventDefault();
+          setMenu({ x: event.clientX, y: event.clientY, path: rootPath, isDir: true, isRoot: true });
+        }}
+      >
         {!rootPath ? (
           <EmptyState>
             <EmptyText>{t("files.noFolder")}</EmptyText>
@@ -360,6 +344,7 @@ function TreeNode({
         onClick={handleClick}
         onContextMenu={(event) => {
           event.preventDefault();
+          event.stopPropagation();
           onMenu({ x: event.clientX, y: event.clientY, path: node.path, isDir, isRoot });
         }}
       >
@@ -397,60 +382,19 @@ const Root = styled.div`
   border-right: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-`;
-
-const HeaderTitle = styled.div`
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.colors.textDim};
-`;
-
-const Actions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 2px;
-`;
-
-const ActionButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.sm};
-  background: transparent;
-  color: ${({ theme }) => theme.colors.textDim};
-  cursor: pointer;
-  transition: background ${({ theme }) => theme.transition.fast}, color ${({ theme }) => theme.transition.fast};
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.surfaceHover};
-    color: ${({ theme }) => theme.colors.text};
-  }
-`;
-
 const Body = styled.div`
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 6px 0;
+  padding: ${({ theme }) => theme.spaces["1.5"]} 0;
 `;
 
 const EmptyState = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 40px 20px;
+  gap: ${({ theme }) => theme.spaces["2"]};
+  padding: ${({ theme }) => theme.spaces["10"]} ${({ theme }) => theme.spaces["5"]};
   text-align: center;
 `;
 
@@ -462,11 +406,11 @@ const EmptyText = styled.div`
 const EmptyHint = styled.div`
   color: ${({ theme }) => theme.colors.textDim};
   font-size: 12px;
-  margin-bottom: 8px;
+  margin-bottom: ${({ theme }) => theme.spaces["2"]};
 `;
 
 const OpenFolderButton = styled.button`
-  padding: 8px 16px;
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
   border: 1px solid ${({ theme }) => theme.colors.borderStrong};
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.colors.surface2};
@@ -486,7 +430,7 @@ const Tree = styled.div`
 `;
 
 const TreeHint = styled.div`
-  padding: 16px;
+  padding: ${({ theme }) => theme.spaces["4"]};
   color: ${({ theme }) => theme.colors.textDim};
   font-size: 13px;
   text-align: center;
@@ -500,8 +444,8 @@ const Children = styled.div`
 const Row = styled.div<{ $depth: number; $active?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: ${({ theme }) => theme.spaces["1.5"]};
+  padding: ${({ theme }) => theme.spaces["1"]} ${({ theme }) => theme.spaces["2"]};
   padding-left: ${({ $depth }) => 8 + $depth * 14}px;
   cursor: pointer;
   user-select: none;
@@ -539,8 +483,8 @@ const Name = styled.span`
 const ErrorBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: ${({ theme }) => theme.spaces["2"]};
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3"]};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.dangerSoft};
 `;
@@ -569,7 +513,7 @@ const ContextMenu = styled.div`
   position: fixed;
   z-index: ${({ theme }) => theme.z.dropdown};
   min-width: 184px;
-  padding: 6px;
+  padding: ${({ theme }) => theme.spaces["1.5"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.bg};
@@ -579,9 +523,9 @@ const ContextMenu = styled.div`
 const ContextItem = styled.button`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: ${({ theme }) => theme.spaces["2"]};
   width: 100%;
-  padding: 8px 12px;
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["3"]};
   border: none;
   border-radius: ${({ theme }) => theme.radius.sm};
   background: transparent;
@@ -606,13 +550,13 @@ const DangerItem = styled(ContextItem)`
 
 const ContextDivider = styled.div`
   height: 1px;
-  margin: 5px 0;
+  margin: ${({ theme }) => theme.spaces["1"]} 0;
   background: ${({ theme }) => theme.colors.border};
 `;
 
 const NameInput = styled.input`
   width: 100%;
-  padding: 10px 14px;
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3.5"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
   outline: none;
@@ -631,7 +575,7 @@ const NameInput = styled.input`
 `;
 
 const ModalButton = styled.button<{ $primary?: boolean; $danger?: boolean }>`
-  padding: 8px 16px;
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid
     ${({ theme, $primary, $danger }) => ($primary || $danger ? "transparent" : theme.colors.border)};

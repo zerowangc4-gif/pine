@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { editFile, saveFileRequest } from "../store";
+import { DiffView } from "./DiffView";
 
 interface CursorPosition {
   line: number;
@@ -26,6 +27,11 @@ export function EditorView() {
   const gutterRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const [cursor, setCursor] = useState<CursorPosition>({ line: 1, column: 1 });
+  const [showDiff, setShowDiff] = useState(false);
+
+  useEffect(() => {
+    setShowDiff(false);
+  }, [activePath]);
 
   const lines = useMemo(() => (file ? file.content.split("\n").length : 0), [file]);
 
@@ -35,6 +41,8 @@ export function EditorView() {
 
   const openFile = file;
   const dirty = openFile.content !== openFile.savedContent;
+  const hasDiff =
+    openFile.previousContent !== undefined && openFile.previousContent !== openFile.content;
 
   function syncCursor(value: string, selectionStart: number) {
     setCursor(computeCursor(value, selectionStart));
@@ -81,36 +89,45 @@ export function EditorView() {
       <Header>
         <FileName>{file.name}</FileName>
         <Status $dirty={dirty}>{dirty ? t("chat.unsaved") : t("chat.saved")}</Status>
+        {hasDiff && (
+          <DiffButton $active={showDiff} onClick={() => setShowDiff((value) => !value)}>
+            {showDiff ? t("editor.exitDiff") : t("editor.diff")}
+          </DiffButton>
+        )}
         <SaveButton disabled={!dirty} onClick={() => dispatch(saveFileRequest(file.path))}>
           {t("common.save")}
         </SaveButton>
       </Header>
 
-      <EditorArea>
-        <LineGutter ref={gutterRef} aria-hidden="true">
-          {Array.from({ length: lines }, (_, index) => (
-            <LineNumber key={index}>{index + 1}</LineNumber>
-          ))}
-        </LineGutter>
-        <Editor
-          ref={editorRef}
-          value={file.content}
-          onChange={handleChange}
-          onScroll={handleScroll}
-          onKeyDown={handleKeyDown}
-          onKeyUp={(event) => syncCursor(event.currentTarget.value, event.currentTarget.selectionStart)}
-          onClick={(event) => syncCursor(event.currentTarget.value, event.currentTarget.selectionStart)}
-          onSelect={(event) => syncCursor(event.currentTarget.value, event.currentTarget.selectionStart)}
-          spellCheck={false}
-          wrap="off"
-        />
-      </EditorArea>
+      {showDiff ? (
+        <DiffView oldText={openFile.previousContent ?? ""} newText={openFile.content} />
+      ) : (
+        <EditorArea>
+          <LineGutter ref={gutterRef} aria-hidden="true">
+            {Array.from({ length: lines }, (_, index) => (
+              <LineNumber key={index}>{index + 1}</LineNumber>
+            ))}
+          </LineGutter>
+          <Editor
+            ref={editorRef}
+            value={file.content}
+            onChange={handleChange}
+            onScroll={handleScroll}
+            onKeyDown={handleKeyDown}
+            onKeyUp={(event) => syncCursor(event.currentTarget.value, event.currentTarget.selectionStart)}
+            onClick={(event) => syncCursor(event.currentTarget.value, event.currentTarget.selectionStart)}
+            onSelect={(event) => syncCursor(event.currentTarget.value, event.currentTarget.selectionStart)}
+            spellCheck={false}
+            wrap="off"
+          />
+        </EditorArea>
+      )}
 
       <StatusBar>
         <StatusItem>{t("editor.lineCol", { line: cursor.line, column: cursor.column })}</StatusItem>
         <StatusSpacer />
         <StatusItem>{t("editor.lines", { count: lines })}</StatusItem>
-        <StatusItem>UTF-8</StatusItem>
+        <StatusItem>{t("editor.encoding")}</StatusItem>
       </StatusBar>
     </Root>
   );
@@ -125,8 +142,8 @@ const Root = styled.div`
 const Header = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: ${({ theme }) => theme.spaces["2.5"]};
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.surface};
 `;
@@ -150,7 +167,7 @@ const Status = styled.span<{ $dirty: boolean }>`
 
 const SaveButton = styled.button`
   flex: none;
-  padding: 6px 14px;
+  padding: ${({ theme }) => theme.spaces["1.5"]} ${({ theme }) => theme.spaces["3.5"]};
   border-radius: ${({ theme }) => theme.radius.sm};
   border: 1px solid ${({ theme }) => theme.colors.borderStrong};
   background: ${({ theme }) => theme.colors.surface2};
@@ -170,6 +187,24 @@ const SaveButton = styled.button`
   }
 `;
 
+const DiffButton = styled.button<{ $active: boolean }>`
+  flex: none;
+  padding: ${({ theme }) => theme.spaces["1.5"]} ${({ theme }) => theme.spaces["3.5"]};
+  border-radius: ${({ theme }) => theme.radius.sm};
+  border: 1px solid ${({ theme, $active }) => ($active ? theme.colors.accent : theme.colors.borderStrong)};
+  background: ${({ theme, $active }) => ($active ? theme.colors.accentSoft : theme.colors.surface2)};
+  color: ${({ theme, $active }) => ($active ? theme.colors.text : theme.colors.textMuted)};
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.transition.fast}, color ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    background: ${({ theme, $active }) => ($active ? theme.colors.accentSoft : theme.colors.surfaceHover)};
+    color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
 const EditorArea = styled.div`
   flex: 1;
   min-height: 0;
@@ -181,7 +216,7 @@ const LineGutter = styled.div`
   flex: none;
   width: 56px;
   overflow: hidden;
-  padding: 16px 10px 16px 0;
+  padding: ${({ theme }) => theme.spaces["4"]} ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["4"]} 0;
   border-right: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.codeBg};
   color: ${({ theme }) => theme.colors.textDim};
@@ -199,7 +234,7 @@ const LineNumber = styled.div`
 const Editor = styled.textarea`
   flex: 1;
   min-width: 0;
-  padding: 16px 20px;
+  padding: ${({ theme }) => theme.spaces["4"]} ${({ theme }) => theme.spaces["5"]};
   border: none;
   outline: none;
   resize: none;
@@ -216,8 +251,8 @@ const Editor = styled.textarea`
 const StatusBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 4px 14px;
+  gap: ${({ theme }) => theme.spaces["4"]};
+  padding: ${({ theme }) => theme.spaces["1"]} ${({ theme }) => theme.spaces["3.5"]};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.surface};
   color: ${({ theme }) => theme.colors.textDim};

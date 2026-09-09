@@ -3,6 +3,8 @@ import { IPC_CHANNELS } from "@shared/ipc";
 import type {
   ActiveModelInfo,
   ChatEvent,
+  ChatImage,
+  ChatSendInput,
   ConnectInput,
   ConnectResult,
   DirEntry,
@@ -11,7 +13,9 @@ import type {
   ProviderInfo,
   SessionListResult,
   SessionMessage,
+  SessionSettingsDTO,
   SessionStatsDTO,
+  SkillInfo,
   ThinkingLevel,
 } from "@shared/types";
 
@@ -40,6 +44,10 @@ const pi: Pi = {
   writeFile: (filePath: string, content: string): Promise<FileResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.filesWriteFile, filePath, content),
 
+  listSkills: (): Promise<SkillInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.skillsList),
+  createSkill: (name: string, description: string): Promise<FileResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.skillsCreate, name, description),
+
   listSessions: (): Promise<SessionListResult> => ipcRenderer.invoke(IPC_CHANNELS.sessionsList),
   loadSession: (path: string): Promise<SessionMessage[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.sessionsLoad, path),
@@ -47,16 +55,25 @@ const pi: Pi = {
   newSession: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.sessionsNew),
   renameSession: (name: string): Promise<FileResult> => ipcRenderer.invoke(IPC_CHANNELS.sessionsRename, name),
   getSessionStats: (): Promise<SessionStatsDTO> => ipcRenderer.invoke(IPC_CHANNELS.sessionsStats),
+  getSessionSettings: (): Promise<SessionSettingsDTO> =>
+    ipcRenderer.invoke(IPC_CHANNELS.sessionsSettings),
+  setAutoCompaction: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.sessionsSetAutoCompaction, enabled),
 
   switchModel: (provider: string, model: string): Promise<ConnectResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.modelSwitch, provider, model),
   setThinkingLevel: (level: ThinkingLevel): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.modelThinkingLevel, level),
   getActiveModel: (): Promise<ActiveModelInfo> => ipcRenderer.invoke(IPC_CHANNELS.modelActive),
+  getActiveTools: (): Promise<string[]> => ipcRenderer.invoke(IPC_CHANNELS.modelActiveTools),
+  setActiveTools: (tools: string[]): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.modelSetActiveTools, tools),
 
   copyText: (text: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.systemCopyText, text),
+  readClipboardImage: (): Promise<ChatImage | undefined> =>
+    ipcRenderer.invoke(IPC_CHANNELS.systemReadClipboardImage),
 
-  sendMessage: (text: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.chatSend, text),
+  sendMessage: (input: ChatSendInput): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.chatSend, input),
   abort: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.chatAbort),
   onChatEvent: (callback: (event: ChatEvent) => void): void => {
     ipcRenderer.removeAllListeners(IPC_CHANNELS.chatEvent);

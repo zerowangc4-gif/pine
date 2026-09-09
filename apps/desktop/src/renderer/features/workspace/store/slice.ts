@@ -146,6 +146,15 @@ export const workspaceSlice = createSlice({
       state.error = action.payload.error;
     },
 
+    refreshFileSuccess(state, action: PayloadAction<{ path: string; content: string }>) {
+      const file = state.openFiles.find((item) => item.path === action.payload.path);
+      if (file && file.content !== action.payload.content) {
+        file.previousContent = file.content;
+        file.content = action.payload.content;
+        file.savedContent = action.payload.content;
+      }
+    },
+
     closeFile(state, action: PayloadAction<string>) {
       const index = state.openFiles.findIndex((file) => file.path === action.payload);
       if (index >= 0) {
@@ -203,6 +212,7 @@ export const {
   openFileRequest,
   openFileSuccess,
   openFileFailure,
+  refreshFileSuccess,
   closeFile,
   setActivePath,
   editFile,

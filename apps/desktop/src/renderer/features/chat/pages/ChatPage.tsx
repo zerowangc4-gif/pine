@@ -21,8 +21,10 @@ import {
   assistantEnded,
   assistantStarted,
   chatError,
+  getActiveToolsRequest,
   getSessionStatsRequest,
   listSessionsRequest,
+  messageUsageReceived,
   sessionStatsReceived,
   settled,
   textDelta,
@@ -42,10 +44,19 @@ export function ChatPage() {
     dispatch(loadProviders());
     dispatch(getActiveModelRequest());
     dispatch(getSessionStatsRequest());
+    dispatch(getActiveToolsRequest());
   }, [dispatch]);
 
   useEffect(() => {
     window.pi.onFilesChanged(() => dispatch(refreshTreeRequest()));
+  }, [dispatch]);
+
+  // VSCode-like: refresh the explorer when the window regains focus, in case
+  // the file watcher missed changes made while the app was in the background.
+  useEffect(() => {
+    const onFocus = () => dispatch(refreshTreeRequest());
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [dispatch]);
 
   useEffect(() => {
@@ -66,6 +77,9 @@ export function ChatPage() {
         case "assistant_end":
           dispatch(assistantEnded());
           break;
+        case "message_usage":
+          dispatch(messageUsageReceived(event.usage));
+          break;
         case "tool_start":
           dispatch(toolStarted(event.toolName));
           break;
@@ -74,8 +88,9 @@ export function ChatPage() {
           break;
         case "settled":
           dispatch(settled());
-          // The conversation was just persisted; refresh the session list.
+          // The conversation was just persisted; refresh the session list and stats.
           dispatch(listSessionsRequest());
+          dispatch(getSessionStatsRequest());
           break;
         case "session_stats":
           dispatch(sessionStatsReceived(event.stats));
@@ -207,8 +222,8 @@ const Main = styled.div`
 const TabBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 6px 10px 0;
+  gap: ${({ theme }) => theme.spaces["0.5"]};
+  padding: ${({ theme }) => theme.spaces["1.5"]} ${({ theme }) => theme.spaces["2.5"]} 0;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.bg};
   overflow-x: auto;
@@ -222,8 +237,8 @@ const TabBar = styled.div`
 const Tab = styled.div<{ $active?: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
+  gap: ${({ theme }) => theme.spaces["1.5"]};
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["3.5"]};
   border-radius: ${({ theme }) => theme.radius.md} ${({ theme }) => theme.radius.md} 0 0;
   font-size: 13px;
   color: ${({ theme, $active }) => ($active ? theme.colors.text : theme.colors.textDim)};
@@ -261,7 +276,7 @@ const TabClose = styled.button`
   justify-content: center;
   width: 16px;
   height: 16px;
-  margin-left: 2px;
+  margin-left: ${({ theme }) => theme.spaces["0.5"]};
   border: none;
   border-radius: ${({ theme }) => theme.radius.sm};
   background: transparent;

@@ -44,12 +44,20 @@ src/
     utils.ts               Cross-process helpers (toErrorMessage)
   main/                    Main process (Node)
     index.ts               Entry: window + wiring
+    core/                  SDK re-exports + base prompt
+      pi.ts                The ONLY place SDK capabilities are re-exported from
+      prompt.ts            Minimal base system prompt
     ipc/                   Thin ipcMain handlers, grouped by domain
-      providers.ts         list-providers, connect
+      providers.ts         list-providers, connect, switch-model, thinking-level
       files.ts             open-folder, read-dir, create/read/write file
       chat.ts              chat send/abort
-    services/
-      pine-service.ts      PineService: owns runtime, connection, workspace, session
+      sessions.ts          session list/load/delete/rename/settings
+      skills.ts            skill list/create
+      system.ts            clipboard copy/read
+    services/              Main-process logic (one concern per file)
+      pine-service.ts      PineService facade: runtime, connection, workspace, session
+      resources.ts         project resource loader (skills/extensions/context files)
+      messages.ts          session message extraction helpers
   preload/
     index.ts               Exposes window.pi via contextBridge
   renderer/                Renderer process (React)
@@ -128,8 +136,42 @@ npx eslint apps/desktop/src
 
 `ChatView` send → `sendMessage` (adds the user bubble) → saga calls `window.pi.sendMessage()` → `PineService.sendChatMessage()` lazily creates an `AgentSession` bound to the workspace folder (in-memory session, custom `ResourceLoader`, no default config loaded) and calls `session.prompt()`. Agent events are reduced to `ChatEvent`s and streamed back over the `chat:event` channel; `ChatPage` maps them into the chat slice.
 
+- **Images** are attached via paste (Ctrl+V) / drag-drop / right-click paste / file picker, sent as `ImageContent` (base64). Only models with `acceptsImages` accept them; the model dropdown marks such models with a "视觉" badge.
+- **While streaming** the composer offers **追问 (followUp)** and **打断 (steer)** instead of a plain send; the main process calls `session.followUp()` / `session.steer()` directly. The message list keeps the user at the bottom only while they are already near the bottom (no forced scroll lock).
+
+## Feature map
+
+Where each capability lives (find → change here):
+
+| Capability | Main / preload / shared | Renderer |
+| --- | --- | --- |
+| Provider/model list, connect, switch, thinking level | `services/pine-service.ts` · `ipc/providers.ts` | `features/login/` |
+| Folder & file tree, create/rename/delete, auto-refresh | `ipc/files.ts` | `features/workspace/components/FileExplorer.tsx` + `store/` |
+| Editor + line numbers + save + **diff view** | — | `features/workspace/components/EditorView.tsx` + `DiffView.tsx` |
+| Chat send/abort, streaming events, **images**, per-message cost | `services/pine-service.ts` · `services/messages.ts` · `ipc/chat.ts` | `features/chat/components/ChatView.tsx` · `ComposerBar.tsx` |
+| Sessions list/load/rename/delete/settings/auto-compaction | `services/pine-service.ts` · `ipc/sessions.ts` | `features/chat/components/SessionsPanel.tsx` · `ComposerBar.tsx` |
+| **Skills** (list + create) | `services/resources.ts` · `ipc/skills.ts` | `features/chat/components/SkillsModal.tsx` |
+| **Tool permissions** (enable/disable bash/edit/write) | `services/pine-service.ts` · `ipc/providers.ts` | `features/chat/components/PermissionsModal.tsx` |
+| **Extensions** + context files (AGENTS.md/SYSTEM.md) | `services/resources.ts` | — |
+| Clipboard (copy text / read image) | `ipc/system.ts` | `ChatView.tsx` (paste menu) |
+| i18n strings | `shared/errors.ts` (error keys) | `renderer/i18n/locales/*.json` |
+
+## How to add a new capability (checklist)
+
+Any new cross-process capability follows the same 5 steps. Do all of them:
+
+1. **Type** — add the method + payload types to `shared/types.ts` (`Pi` interface).
+2. **Channel** — add a channel constant to `shared/ipc.ts`.
+3. **Bridge** — wire it in `preload/index.ts` (`window.pi.*`).
+4. **Handler + logic** — add an `ipcMain.handle` in `main/ipc/<domain>.ts`; put real logic in `PineService` (or a `services/*.ts` module). If it uses a new SDK capability, first re-export it from `main/core/pi.ts`.
+5. **Renderer** — call it from a saga (`store/saga.ts`) or directly for transient UI state, and add any user-facing strings to **both** locale files.
+
 ## Notes
 
 - The agent runs with the default coding tools (`read`, `bash`, `edit`, `write`) scoped to the opened folder.
 - Credentials are kept **in memory only** (`InMemoryCredentialStore` + `setRuntimeApiKey`) and are lost on app restart.
-- After the agent edits files, the explorer does not auto-refresh; open a different folder or restart to rescan.
+- The explorer auto-refreshes via a file watcher + window-focus refresh; there is no manual refresh button.
+- Project skills load from `.pi/skills` and `.agents/skills`; project extensions load from `.pi/extensions` and `.agents/extensions`; project `AGENTS.md` / `SYSTEM.md` are injected into the system prompt.
+- Creating a skill via the UI also regenerates `.pi/skills/README.md`, a browsable index of all skills (the agent additionally sees skills in its system prompt).
+- Tool permissions are **in-memory toggles only** (no per-call approval): `read` is always on; `bash` / `edit` / `write` can be toggled from the shield button in the composer. Changes apply to the next session immediately.
+- Global `~/.pi/agent` config is intentionally **never** loaded (the app passes the project root as `agentDir`).

@@ -3,6 +3,7 @@ export interface ModelInfo {
   name?: string;
   contextWindow?: number;
   reasoning?: boolean;
+  acceptsImages?: boolean;
 }
 
 export interface ProviderInfo {
@@ -30,7 +31,14 @@ export interface SessionStatsDTO {
   tokens: number;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
   cost: number;
+}
+
+export interface SessionSettingsDTO {
+  name?: string;
+  autoCompaction: boolean;
 }
 
 export interface ConnectInput {
@@ -58,11 +66,25 @@ export interface FileResult {
   error?: string;
 }
 
+/** A discovered project skill (for the skills manager UI). */
+export interface SkillInfo {
+  name: string;
+  description: string;
+  filePath: string;
+}
+
 /** A saved conversation entry returned by the main process. */
 export interface SessionToolStep {
   id: string;
   name: string;
   status: "done" | "error";
+}
+
+/** Token/cost usage for a single assistant message. */
+export interface MessageUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cost: number;
 }
 
 export interface SessionMessage {
@@ -71,6 +93,21 @@ export interface SessionMessage {
   text: string;
   thinking?: string;
   tools?: SessionToolStep[];
+  images?: ChatImage[];
+  usage?: MessageUsage;
+}
+
+/** A pasted/attached image in a chat message (base64 payload). */
+export interface ChatImage {
+  data: string;
+  mimeType: string;
+}
+
+export interface ChatSendInput {
+  text: string;
+  images: ChatImage[];
+  /** How to deliver while the agent is streaming: interrupt (steer) or wait (followUp). */
+  streamingBehavior?: "steer" | "followUp";
 }
 
 export interface SessionInfo {
@@ -103,6 +140,7 @@ export type ChatEvent =
   | { type: "tool_end"; toolName: string; isError: boolean }
   | { type: "settled" }
   | { type: "session_stats"; stats: SessionStatsDTO }
+  | { type: "message_usage"; usage: MessageUsage }
   | { type: "error"; message: string };
 
 /**
@@ -125,6 +163,10 @@ export interface Pi {
   readFile(filePath: string): Promise<string>;
   writeFile(filePath: string, content: string): Promise<FileResult>;
 
+  // Skills
+  listSkills(): Promise<SkillInfo[]>;
+  createSkill(name: string, description: string): Promise<FileResult>;
+
   // Sessions
   listSessions(): Promise<SessionListResult>;
   loadSession(path: string): Promise<SessionMessage[]>;
@@ -132,18 +174,23 @@ export interface Pi {
   newSession(): Promise<void>;
   renameSession(name: string): Promise<FileResult>;
   getSessionStats(): Promise<SessionStatsDTO>;
+  getSessionSettings(): Promise<SessionSettingsDTO>;
+  setAutoCompaction(enabled: boolean): Promise<void>;
 
   // Model & thinking level
   switchModel(provider: string, model: string): Promise<ConnectResult>;
   setThinkingLevel(level: ThinkingLevel): Promise<void>;
   getActiveModel(): Promise<ActiveModelInfo>;
+  getActiveTools(): Promise<string[]>;
+  setActiveTools(tools: string[]): Promise<void>;
 
   // System helpers
   copyText(text: string): Promise<void>;
+  readClipboardImage(): Promise<ChatImage | undefined>;
   onFilesChanged(callback: () => void): void;
 
   // Chat
-  sendMessage(text: string): Promise<void>;
+  sendMessage(input: ChatSendInput): Promise<void>;
   abort(): Promise<void>;
   onChatEvent(callback: (event: ChatEvent) => void): void;
 }

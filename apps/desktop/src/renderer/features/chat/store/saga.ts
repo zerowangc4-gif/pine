@@ -1,12 +1,16 @@
 import type { SagaIterator } from "redux-saga";
 import { call, put, takeLatest } from "redux-saga/effects";
-import type { FileResult, SessionListResult, SessionMessage, SessionStatsDTO } from "@shared/types";
+import type { FileResult, SessionListResult, SessionMessage, SessionSettingsDTO, SessionStatsDTO } from "@shared/types";
 import { toErrorMessage } from "@shared/utils";
 import {
   chatError,
   deleteSessionFailure,
   deleteSessionRequest,
   deleteSessionSuccess,
+  getActiveToolsRequest,
+  getActiveToolsSuccess,
+  getSessionSettingsRequest,
+  getSessionSettingsSuccess,
   getSessionStatsRequest,
   getSessionStatsSuccess,
   listSessionsFailure,
@@ -20,6 +24,9 @@ import {
   renameSessionFailure,
   renameSessionRequest,
   sendMessage,
+  setActiveToolsRequest,
+  setActiveToolsSuccess,
+  setAutoCompactionRequest,
 } from "./slice";
 
 function* sendMessageSaga(action: ReturnType<typeof sendMessage>): SagaIterator {
@@ -44,6 +51,7 @@ function* loadSessionSaga(action: ReturnType<typeof loadSessionRequest>): SagaIt
     const messages: SessionMessage[] = yield call(() => window.pi.loadSession(action.payload));
     yield put(loadSessionSuccess({ path: action.payload, messages }));
     yield put(getSessionStatsRequest());
+    yield put(getSessionSettingsRequest());
     yield put(listSessionsRequest());
   } catch (error) {
     yield put(loadSessionFailure(toErrorMessage(error)));
@@ -72,6 +80,42 @@ function* getSessionStatsSaga(): SagaIterator {
   }
 }
 
+function* getSessionSettingsSaga(): SagaIterator {
+  try {
+    const settings: SessionSettingsDTO = yield call(() => window.pi.getSessionSettings());
+    yield put(getSessionSettingsSuccess(settings));
+  } catch {
+    // No active session yet; leave the settings empty.
+  }
+}
+
+function* setAutoCompactionSaga(action: ReturnType<typeof setAutoCompactionRequest>): SagaIterator {
+  try {
+    yield call(() => window.pi.setAutoCompaction(action.payload));
+    yield put(getSessionSettingsRequest());
+  } catch (error) {
+    yield put(chatError(toErrorMessage(error)));
+  }
+}
+
+function* getActiveToolsSaga(): SagaIterator {
+  try {
+    const tools: string[] = yield call(() => window.pi.getActiveTools());
+    yield put(getActiveToolsSuccess(tools));
+  } catch {
+    // Keep the default tool set.
+  }
+}
+
+function* setActiveToolsSaga(action: ReturnType<typeof setActiveToolsRequest>): SagaIterator {
+  try {
+    yield call(() => window.pi.setActiveTools(action.payload));
+    yield put(setActiveToolsSuccess(action.payload));
+  } catch (error) {
+    yield put(chatError(toErrorMessage(error)));
+  }
+}
+
 function* renameSessionSaga(action: ReturnType<typeof renameSessionRequest>): SagaIterator {
   try {
     const result: FileResult = yield call(() => window.pi.renameSession(action.payload));
@@ -90,6 +134,8 @@ function* newSessionSaga(): SagaIterator {
     yield call(() => window.pi.newSession());
     yield put(newSessionSuccess());
     yield put(listSessionsRequest());
+    // Reset the stats bar to zero so it stays visible after clearing the chat.
+    yield put(getSessionStatsRequest());
   } catch (error) {
     yield put(chatError(toErrorMessage(error)));
   }
@@ -103,4 +149,8 @@ export function* chatSaga(): SagaIterator {
   yield takeLatest(newSessionRequest.type, newSessionSaga);
   yield takeLatest(renameSessionRequest.type, renameSessionSaga);
   yield takeLatest(getSessionStatsRequest.type, getSessionStatsSaga);
+  yield takeLatest(getSessionSettingsRequest.type, getSessionSettingsSaga);
+  yield takeLatest(setAutoCompactionRequest.type, setAutoCompactionSaga);
+  yield takeLatest(getActiveToolsRequest.type, getActiveToolsSaga);
+  yield takeLatest(setActiveToolsRequest.type, setActiveToolsSaga);
 }

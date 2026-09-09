@@ -13,6 +13,8 @@ export interface OpenFile {
   name: string;
   content: string;
   savedContent: string;
+  /** Content before the last external change (agent edit), for the diff view. */
+  previousContent?: string;
   loading?: boolean;
 }
 

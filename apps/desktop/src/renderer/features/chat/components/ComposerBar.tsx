@@ -3,24 +3,19 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { Dropdown, type DropdownOption } from "@renderer/components/Dropdown";
 import { Modal } from "@renderer/components/Modal";
-import { GearIcon } from "@renderer/components/icons";
+import { GearIcon, ShieldIcon, SparkleIcon } from "@renderer/components/icons";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
+import { formatCost, formatTokens } from "@renderer/utils/format";
 import type { ThinkingLevel } from "@shared/types";
 import { setThinkingLevelRequest, switchModelRequest } from "@renderer/features/login";
 import type { SessionStatsDTO } from "@shared/types";
-import { renameSessionRequest } from "../store";
-
-function formatTokens(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
-  return `${value}`;
-}
-
-function formatCost(value: number): string {
-  if (value <= 0) return "$0";
-  if (value < 0.01) return `$${value.toFixed(4)}`;
-  return `$${value.toFixed(2)}`;
-}
+import {
+  getSessionSettingsRequest,
+  renameSessionRequest,
+  setAutoCompactionRequest,
+} from "../store";
+import { SkillsModal } from "./SkillsModal";
+import { PermissionsModal } from "./PermissionsModal";
 
 export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
   const { t } = useTranslation();
@@ -29,9 +24,11 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
     (state) => state.login,
   );
   const streaming = useAppSelector((state) => state.chat.streaming);
-  const { sessions, activeSessionPath } = useAppSelector((state) => state.chat);
+  const { sessions, activeSessionPath, sessionSettings } = useAppSelector((state) => state.chat);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [sessionName, setSessionName] = useState("");
 
   // Only providers that already have a usable API key are selectable here.
@@ -43,10 +40,11 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
           provider.models.map((model) => ({
             value: `${provider.id}::${model.id}`,
             label: model.name ?? model.id,
-            hint: provider.name,
+            group: provider.name,
+            hint: model.acceptsImages ? t("chat.visionModel") : undefined,
           })),
         ),
-    [providers],
+    [providers, t],
   );
 
   const selectedModelValue =
@@ -61,6 +59,7 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
 
   function openSettings() {
     setSessionName(activeSession?.name ?? activeSession?.firstMessage ?? "");
+    dispatch(getSessionSettingsRequest());
     setSettingsOpen(true);
   }
 
@@ -101,22 +100,28 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
         >
           <GearIcon />
         </GearButton>
+        <GearButton title={t("skills.title")} onClick={() => setSkillsOpen(true)}>
+          <SparkleIcon />
+        </GearButton>
+        <GearButton title={t("permissions.title")} onClick={() => setPermissionsOpen(true)}>
+          <ShieldIcon />
+        </GearButton>
       </Left>
 
       <Stats>
-        {stats && (
-          <>
-            <StatItem>{t("chat.messagesCount", { count: stats.totalMessages })}</StatItem>
-            <StatDivider />
-            <StatItem
-              title={t("chat.tokensDetail", { input: stats.inputTokens, output: stats.outputTokens })}
-            >
-              {t("chat.tokens", { count: formatTokens(stats.tokens) })}
-            </StatItem>
-            <StatDivider />
-            <StatItem>{t("chat.cost", { amount: formatCost(stats.cost) })}</StatItem>
-          </>
-        )}
+        <StatItem>{t("chat.messagesCount", { count: stats?.totalMessages ?? 0 })}</StatItem>
+        <StatDivider />
+        <StatItem>{t("chat.inputTokens", { count: formatTokens(stats?.inputTokens ?? 0) })}</StatItem>
+        <StatDivider />
+        <StatItem>{t("chat.outputTokens", { count: formatTokens(stats?.outputTokens ?? 0) })}</StatItem>
+        <StatDivider />
+        <StatItem>
+          {t("chat.cacheTokens", {
+            count: formatTokens((stats?.cacheReadTokens ?? 0) + (stats?.cacheWriteTokens ?? 0)),
+          })}
+        </StatItem>
+        <StatDivider />
+        <StatItem>{t("chat.cost", { amount: formatCost(stats?.cost ?? 0) })}</StatItem>
       </Stats>
 
       {settingsOpen && (
@@ -143,8 +148,28 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
             }}
             placeholder={t("chat.sessionNamePlaceholder")}
           />
+
+          <ToggleRow>
+            <ToggleInfo>
+              <SettingsLabel>{t("chat.autoCompaction")}</SettingsLabel>
+              <SettingsHint>{t("chat.autoCompactionHint")}</SettingsHint>
+            </ToggleInfo>
+            <SwitchButton
+              type="button"
+              role="switch"
+              aria-checked={sessionSettings?.autoCompaction ?? false}
+              $on={sessionSettings?.autoCompaction ?? false}
+              onClick={() => dispatch(setAutoCompactionRequest(!(sessionSettings?.autoCompaction ?? false)))}
+            >
+              <SwitchKnob $on={sessionSettings?.autoCompaction ?? false} />
+            </SwitchButton>
+          </ToggleRow>
         </Modal>
       )}
+
+      {skillsOpen && <SkillsModal onClose={() => setSkillsOpen(false)} />}
+
+      {permissionsOpen && <PermissionsModal onClose={() => setPermissionsOpen(false)} />}
     </Root>
   );
 }
@@ -267,6 +292,54 @@ const SettingsInput = styled.input`
     border-color: ${({ theme }) => theme.colors.accent};
     box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.accentSoft};
   }
+`;
+
+const SettingsHint = styled.p`
+  color: ${({ theme }) => theme.colors.textDim};
+  font-size: 12px;
+  line-height: 1.5;
+`;
+
+const ToggleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.spaces["3"]};
+  margin-top: ${({ theme }) => theme.spaces["4"]};
+`;
+
+const ToggleInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+
+  & ${SettingsLabel} {
+    margin-bottom: ${({ theme }) => theme.spaces["1"]};
+  }
+`;
+
+const SwitchButton = styled.button<{ $on: boolean }>`
+  flex: none;
+  position: relative;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.full};
+  background: ${({ theme, $on }) => ($on ? theme.colors.accent : theme.colors.borderStrong)};
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.transition.fast};
+`;
+
+const SwitchKnob = styled.span<{ $on: boolean }>`
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: ${({ theme }) => theme.colors.accentText};
+  transition: transform ${({ theme }) => theme.transition.fast};
+  transform: ${({ $on }) => ($on ? "translateX(18px)" : "none")};
 `;
 
 const ModalButton = styled.button<{ $primary?: boolean }>`

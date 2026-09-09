@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { ChevronRightIcon } from "./icons";
@@ -7,6 +7,7 @@ export interface DropdownOption {
   value: string;
   label: string;
   hint?: string;
+  group?: string;
   disabled?: boolean;
 }
 
@@ -21,9 +22,22 @@ interface DropdownProps {
 export function Dropdown({ options, value, onChange, placeholder, disabled }: DropdownProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const selected = options.find((option) => option.value === value);
+
+  function handleToggle() {
+    if (!open) {
+      const trigger = triggerRef.current;
+      if (trigger) {
+        const rect = trigger.getBoundingClientRect();
+        setOpenUp(window.innerHeight - rect.bottom < 320);
+      }
+    }
+    setOpen(!open);
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -41,13 +55,24 @@ export function Dropdown({ options, value, onChange, placeholder, disabled }: Dr
       return options;
     }
     return options.filter((option) =>
-      `${option.label} ${option.hint ?? ""}`.toLowerCase().includes(keyword),
+      `${option.label} ${option.hint ?? ""} ${option.group ?? ""}`.toLowerCase().includes(keyword),
     );
   }, [options, query]);
 
+  const groups = useMemo(() => {
+    const grouped = new Map<string, DropdownOption[]>();
+    for (const option of filtered) {
+      const key = option.group ?? "";
+      const list = grouped.get(key) ?? [];
+      list.push(option);
+      grouped.set(key, list);
+    }
+    return Array.from(grouped, ([name, items]) => ({ name: name || undefined, items }));
+  }, [filtered]);
+
   return (
     <Root ref={rootRef}>
-      <Trigger type="button" disabled={disabled} $open={open} onClick={() => setOpen((isOpen) => !isOpen)}>
+      <Trigger ref={triggerRef} type="button" disabled={disabled} $open={open} onClick={handleToggle}>
         <Value $muted={!selected}>{selected ? selected.label : placeholder}</Value>
         {selected?.hint && <Hint>{selected.hint}</Hint>}
         <Chevron $open={open}>
@@ -56,7 +81,7 @@ export function Dropdown({ options, value, onChange, placeholder, disabled }: Dr
       </Trigger>
 
       {open && (
-        <Menu>
+        <Menu $up={openUp}>
           {options.length > 8 && (
             <Search
               autoFocus
@@ -67,21 +92,26 @@ export function Dropdown({ options, value, onChange, placeholder, disabled }: Dr
           )}
           <List>
             {filtered.length === 0 && <Empty>{t("login.noMatch")}</Empty>}
-            {filtered.map((option) => (
-              <Item
-                key={option.value}
-                $selected={option.value === value}
-                $disabled={option.disabled}
-                onClick={() => {
-                  if (option.disabled) return;
-                  onChange(option.value);
-                  setOpen(false);
-                  setQuery("");
-                }}
-              >
-                <Value>{option.label}</Value>
-                {option.hint && <Hint>{option.hint}</Hint>}
-              </Item>
+            {groups.map((group) => (
+              <Fragment key={group.name ?? "__ungrouped__"}>
+                {group.name && <GroupHeader>{group.name}</GroupHeader>}
+                {group.items.map((option) => (
+                  <Item
+                    key={option.value}
+                    $selected={option.value === value}
+                    $disabled={option.disabled}
+                    onClick={() => {
+                      if (option.disabled) return;
+                      onChange(option.value);
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                  >
+                    <Value>{option.label}</Value>
+                    {option.hint && <Hint>{option.hint}</Hint>}
+                  </Item>
+                ))}
+              </Fragment>
             ))}
           </List>
         </Menu>
@@ -97,9 +127,9 @@ const Root = styled.div`
 const Trigger = styled.button<{ $open?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: ${({ theme }) => theme.spaces["2.5"]};
   width: 100%;
-  padding: 12px 14px;
+  padding: ${({ theme }) => theme.spaces["3"]} ${({ theme }) => theme.spaces["3.5"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme, $open }) => ($open ? theme.colors.accent : theme.colors.border)};
   background: ${({ theme }) => theme.colors.surface2};
@@ -151,13 +181,13 @@ const Chevron = styled.span<{ $open?: boolean }>`
   transform: ${({ $open }) => ($open ? "rotate(90deg)" : "rotate(0deg)")};
 `;
 
-const Menu = styled.div`
+const Menu = styled.div<{ $up?: boolean }>`
   position: absolute;
-  top: calc(100% + 8px);
+  ${({ $up }) => ($up ? "bottom: calc(100% + 8px);" : "top: calc(100% + 8px);")}
   left: 0;
   right: 0;
   z-index: ${({ theme }) => theme.z.dropdown};
-  padding: 8px;
+  padding: ${({ theme }) => theme.spaces["2"]};
   border-radius: ${({ theme }) => theme.radius.lg};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.bg};
@@ -166,8 +196,8 @@ const Menu = styled.div`
 
 const Search = styled.input`
   width: 100%;
-  margin-bottom: 8px;
-  padding: 10px 12px;
+  margin-bottom: ${({ theme }) => theme.spaces["2"]};
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
   outline: none;
@@ -189,15 +219,15 @@ const List = styled.div`
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: ${({ theme }) => theme.spaces["0.5"]};
 `;
 
 const Item = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: ${({ theme }) => theme.spaces["2.5"]};
   width: 100%;
-  padding: 10px 12px;
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3"]};
   border: none;
   border-radius: ${({ theme }) => theme.radius.md};
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
@@ -213,8 +243,17 @@ const Item = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
 `;
 
 const Empty = styled.div`
-  padding: 16px;
+  padding: ${({ theme }) => theme.spaces["4"]};
   text-align: center;
   color: ${({ theme }) => theme.colors.textDim};
   font-size: 13px;
+`;
+
+const GroupHeader = styled.div`
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["3"]} ${({ theme }) => theme.spaces["1"]};
+  color: ${({ theme }) => theme.colors.textDim};
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 `;

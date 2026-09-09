@@ -80,7 +80,7 @@ async function createEntry(service: PineService, dirPath: string, name: string, 
     if (!trimmed) {
       return { ok: false, error: AppError.nameRequired };
     }
-    const target = path.join(dir, trimmed);
+    const target = resolveWithinRoot(service.getWorkspaceRoot(), path.join(dir, trimmed));
     if (await pathExists(target)) {
       return { ok: false, error: AppError.nameExists };
     }
@@ -177,7 +177,7 @@ export function registerFilesIpc(
         if (!trimmed) {
           return { ok: false, error: AppError.nameRequired };
         }
-        const nextPath = path.join(path.dirname(resolved), trimmed);
+        const nextPath = resolveWithinRoot(root, path.join(path.dirname(resolved), trimmed));
         if (nextPath === resolved) {
           return { ok: true, path: resolved };
         }

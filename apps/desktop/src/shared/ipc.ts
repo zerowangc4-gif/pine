@@ -17,18 +17,26 @@ export const IPC_CHANNELS = {
   filesWriteFile: "files:write-file",
   filesChanged: "files:changed",
 
+  skillsList: "skills:list",
+  skillsCreate: "skills:create",
+
   sessionsList: "sessions:list",
   sessionsLoad: "sessions:load",
   sessionsDelete: "sessions:delete",
   sessionsNew: "sessions:new",
   sessionsRename: "sessions:rename",
   sessionsStats: "sessions:stats",
+  sessionsSettings: "sessions:settings",
+  sessionsSetAutoCompaction: "sessions:set-auto-compaction",
 
   modelSwitch: "model:switch",
   modelThinkingLevel: "model:thinking-level",
   modelActive: "model:active",
+  modelActiveTools: "model:active-tools",
+  modelSetActiveTools: "model:set-active-tools",
 
   systemCopyText: "system:copy-text",
+  systemReadClipboardImage: "system:read-clipboard-image",
 
   chatSend: "chat:send",
   chatAbort: "chat:abort",

@@ -1,6 +1,12 @@
 import { ipcMain } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc";
-import type { FileResult, SessionListResult, SessionMessage, SessionStatsDTO } from "@shared/types";
+import type {
+  FileResult,
+  SessionListResult,
+  SessionMessage,
+  SessionSettingsDTO,
+  SessionStatsDTO,
+} from "@shared/types";
 import type { PineService } from "../services/pine-service";
 
 export function registerSessionsIpc(service: PineService): void {
@@ -24,4 +30,11 @@ export function registerSessionsIpc(service: PineService): void {
   );
 
   ipcMain.handle(IPC_CHANNELS.sessionsStats, (): SessionStatsDTO => service.getSessionStats());
+
+  ipcMain.handle(IPC_CHANNELS.sessionsSettings, (): SessionSettingsDTO => service.getSessionSettings());
+
+  ipcMain.handle(
+    IPC_CHANNELS.sessionsSetAutoCompaction,
+    (_event, enabled: boolean): Promise<void> => service.setAutoCompaction(enabled),
+  );
 }

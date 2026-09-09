@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { SessionInfo, SessionMessage, SessionStatsDTO } from "@shared/types";
+import type { ChatImage, MessageUsage, SessionInfo, SessionMessage, SessionSettingsDTO, SessionStatsDTO } from "@shared/types";
 import { createId } from "@renderer/utils/id";
 import type { ChatMessage, State } from "../types/state";
 
@@ -8,6 +8,7 @@ const initialState: State = {
   streaming: false,
   sessions: [],
   sessionsLoading: false,
+  activeTools: ["read", "bash", "edit", "write"],
 };
 
 function toChatMessage(message: SessionMessage): ChatMessage {
@@ -17,6 +18,8 @@ function toChatMessage(message: SessionMessage): ChatMessage {
     text: message.text,
     thinking: message.thinking,
     tools: message.tools?.map((tool) => ({ id: tool.id, name: tool.name, status: tool.status })),
+    images: message.images,
+    usage: message.usage,
   };
 }
 
@@ -34,14 +37,25 @@ export const chatSlice = createSlice({
   name: "chat",
   initialState,
   reducers: {
-    sendMessage(state, action: PayloadAction<string>) {
-      state.messages.push({ id: createId(), role: "user", text: action.payload });
+    sendMessage(
+      state,
+      action: PayloadAction<{ text: string; images: ChatImage[]; streamingBehavior?: "steer" | "followUp" }>,
+    ) {
+      state.messages.push({
+        id: createId(),
+        role: "user",
+        text: action.payload.text,
+        images: action.payload.images.length > 0 ? action.payload.images : undefined,
+      });
       state.error = undefined;
     },
     agentStarted(state) {
       state.streaming = true;
     },
     assistantStarted(state) {
+      if (!state.streaming) {
+        return;
+      }
       const current = lastAssistant(state);
       if (current?.streaming) {
         return;
@@ -71,6 +85,12 @@ export const chatSlice = createSlice({
       const current = lastAssistant(state);
       if (current) {
         current.streaming = false;
+      }
+    },
+    messageUsageReceived(state, action: PayloadAction<MessageUsage>) {
+      const current = lastAssistant(state);
+      if (current) {
+        current.usage = action.payload;
       }
     },
     toolStarted(state, action: PayloadAction<string>) {
@@ -145,6 +165,7 @@ export const chatSlice = createSlice({
         state.messages = [];
         state.streaming = false;
         state.sessionStats = undefined;
+        state.sessionSettings = undefined;
       }
     },
     deleteSessionFailure(state, action: PayloadAction<string>) {
@@ -163,6 +184,7 @@ export const chatSlice = createSlice({
       state.error = undefined;
       state.streaming = false;
       state.sessionStats = undefined;
+      state.sessionSettings = undefined;
     },
 
     clearSessionError(state) {
@@ -176,6 +198,21 @@ export const chatSlice = createSlice({
     sessionStatsReceived(state, action: PayloadAction<SessionStatsDTO>) {
       state.sessionStats = action.payload;
     },
+
+    getSessionSettingsRequest(_state) {},
+    getSessionSettingsSuccess(state, action: PayloadAction<SessionSettingsDTO>) {
+      state.sessionSettings = action.payload;
+    },
+    setAutoCompactionRequest(_state, _action: PayloadAction<boolean>) {},
+
+    getActiveToolsRequest(_state) {},
+    getActiveToolsSuccess(state, action: PayloadAction<string[]>) {
+      state.activeTools = action.payload;
+    },
+    setActiveToolsRequest(_state, _action: PayloadAction<string[]>) {},
+    setActiveToolsSuccess(state, action: PayloadAction<string[]>) {
+      state.activeTools = action.payload;
+    },
   },
 });
 
@@ -186,6 +223,7 @@ export const {
   textDelta,
   thinkingDelta,
   assistantEnded,
+  messageUsageReceived,
   toolStarted,
   toolEnded,
   settled,
@@ -208,4 +246,11 @@ export const {
   getSessionStatsRequest,
   getSessionStatsSuccess,
   sessionStatsReceived,
+  getSessionSettingsRequest,
+  getSessionSettingsSuccess,
+  setAutoCompactionRequest,
+  getActiveToolsRequest,
+  getActiveToolsSuccess,
+  setActiveToolsRequest,
+  setActiveToolsSuccess,
 } = chatSlice.actions;

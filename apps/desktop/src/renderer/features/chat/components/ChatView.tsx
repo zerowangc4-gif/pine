@@ -1,45 +1,165 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import styled from "styled-components";
-import { CheckIcon, CrossIcon, Spinner } from "@renderer/components/icons";
+import { CheckIcon, CrossIcon, ImageIcon, Spinner } from "@renderer/components/icons";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { errorText } from "@renderer/utils/error";
+import { formatCost } from "@renderer/utils/format";
+import type { ChatImage } from "@shared/types";
 import { ComposerBar } from "./ComposerBar";
 import { clearError, sendMessage } from "../store";
 import type { ChatMessage, ToolStep } from "../types/state";
+
+function readImageFile(file: File): Promise<ChatImage> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const match = /^data:(image\/[\w.+-]+);base64,(.+)$/.exec(String(reader.result));
+      if (match) {
+        resolve({ mimeType: match[1], data: match[2] });
+      } else {
+        reject(new Error("Unsupported image"));
+      }
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read image"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function imageFiles(list: FileList | null): File[] {
+  return Array.from(list ?? []).filter((file) => file.type.startsWith("image/"));
+}
 
 export function ChatView() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { messages, streaming, error, sessionStats } = useAppSelector((state) => state.chat);
   const rootPath = useAppSelector((state) => state.workspace.rootPath);
+  const { providers, selectedProvider, selectedModel } = useAppSelector((state) => state.login);
   const [input, setInput] = useState("");
+  const [images, setImages] = useState<ChatImage[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [pasteMenu, setPasteMenu] = useState<{ x: number; y: number } | undefined>();
+  const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottom = useRef(true);
+
+  const acceptsImages = useMemo(() => {
+    const provider = providers.find((item) => item.id === selectedProvider);
+    return provider?.models.find((item) => item.id === selectedModel)?.acceptsImages ?? false;
+  }, [providers, selectedProvider, selectedModel]);
 
   useEffect(() => {
     const element = scrollRef.current;
-    if (element) {
+    if (element && stickToBottom.current) {
       element.scrollTop = element.scrollHeight;
     }
   }, [messages, streaming]);
 
-  const canSend = input.trim().length > 0 && Boolean(rootPath) && !streaming;
+  function handleScroll() {
+    const element = scrollRef.current;
+    if (!element) return;
+    const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
+    stickToBottom.current = distanceFromBottom < 40;
+  }
 
-  function handleSend() {
-    if (!canSend) return;
-    dispatch(sendMessage(input.trim()));
+  useEffect(() => {
+    if (!pasteMenu) return;
+    function close(event: MouseEvent) {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest("[data-paste-menu]")) {
+        setPasteMenu(undefined);
+      }
+    }
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [pasteMenu]);
+
+  const hasText = input.trim().length > 0;
+  const hasInput = hasText || images.length > 0;
+  const canSend = hasInput && Boolean(rootPath) && !streaming;
+
+  async function addImageFiles(files: File[]) {
+    if (files.length === 0) return;
+    const next = await Promise.all(files.map(readImageFile));
+    setImages((previous) => [...previous, ...next]);
+  }
+
+  function handlePaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const files = imageFiles(event.clipboardData.files);
+    if (files.length === 0) return;
+    event.preventDefault();
+    void addImageFiles(files);
+  }
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    void addImageFiles(imageFiles(event.target.files));
+    event.target.value = "";
+  }
+
+  function hasImageFiles(event: React.DragEvent): boolean {
+    return Array.from(event.dataTransfer?.types ?? []).includes("Files");
+  }
+
+  function handleDragOver(event: React.DragEvent) {
+    if (!acceptsImages || !hasImageFiles(event)) return;
+    event.preventDefault();
+    setDragging(true);
+  }
+
+  function handleDragLeave(event: React.DragEvent) {
+    if (event.currentTarget === event.target) {
+      setDragging(false);
+    }
+  }
+
+  function handleDrop(event: React.DragEvent) {
+    if (!acceptsImages || !hasImageFiles(event)) return;
+    event.preventDefault();
+    setDragging(false);
+    void addImageFiles(imageFiles(event.dataTransfer.files));
+  }
+
+  function handleComposerContextMenu(event: React.MouseEvent) {
+    if (!acceptsImages) return;
+    event.preventDefault();
+    setPasteMenu({ x: event.clientX, y: event.clientY });
+  }
+
+  async function pasteImageFromClipboard() {
+    setPasteMenu(undefined);
+    const image = await window.pi.readClipboardImage();
+    if (image) {
+      setImages((previous) => [...previous, image]);
+    }
+  }
+
+  function handleSend(streamingBehavior?: "steer" | "followUp") {
+    if (streaming) {
+      if (!streamingBehavior || !hasInput) return;
+      dispatch(sendMessage({ text: input.trim(), images, streamingBehavior }));
+    } else {
+      if (!canSend) return;
+      dispatch(sendMessage({ text: input.trim(), images }));
+    }
     setInput("");
+    setImages([]);
+    stickToBottom.current = true;
   }
 
   return (
-    <Root>
-      <Messages ref={scrollRef}>
+    <Root
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <Messages ref={scrollRef} onScroll={handleScroll}>
         {messages.length === 0 ? (
           <Welcome>
             <WelcomeTitle>{t("chat.welcomeTitle")}</WelcomeTitle>
-            <WelcomeHint>{t("chat.welcomeHint")}</WelcomeHint>
+            <WelcomeHint>{rootPath ? t("chat.welcomeHintReady") : t("chat.welcomeHint")}</WelcomeHint>
           </Welcome>
         ) : (
           messages.map((message) => <MessageRow key={message.id} message={message} />)
@@ -54,29 +174,81 @@ export function ChatView() {
       )}
 
       <Composer>
-        <ComposerBox>
+        {images.length > 0 && (
+          <ImageStrip>
+            {images.map((image, index) => (
+              <Thumb key={`${index}-${image.mimeType}`}>
+                <ThumbImg src={`data:${image.mimeType};base64,${image.data}`} alt="" />
+                <ThumbRemove
+                  title={t("chat.removeImage")}
+                  onClick={() => setImages((previous) => previous.filter((_, itemIndex) => itemIndex !== index))}
+                >
+                  ×
+                </ThumbRemove>
+              </Thumb>
+            ))}
+          </ImageStrip>
+        )}
+        <ComposerBox onContextMenu={handleComposerContextMenu}>
+          <AttachButton
+            type="button"
+            disabled={!acceptsImages || streaming}
+            title={acceptsImages ? t("chat.attachImage") : t("chat.noImageSupport")}
+            onClick={() => fileRef.current?.click()}
+          >
+            <ImageIcon />
+          </AttachButton>
+          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={handleFileChange} />
           <Textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
+            onPaste={handlePaste}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                handleSend();
+                handleSend(streaming ? "followUp" : undefined);
               }
             }}
             placeholder={rootPath ? t("chat.inputPlaceholder") : t("chat.noFolderYet")}
             rows={1}
           />
           {streaming ? (
-            <StopButton onClick={() => void window.pi.abort()}>{t("chat.stop")}</StopButton>
+            <>
+              <FollowUpButton
+                disabled={!hasInput}
+                title={t("chat.followUpHint")}
+                onClick={() => handleSend("followUp")}
+              >
+                {t("chat.followUp")}
+              </FollowUpButton>
+              <SteerButton
+                disabled={!hasInput}
+                title={t("chat.steerHint")}
+                onClick={() => handleSend("steer")}
+              >
+                {t("chat.steer")}
+              </SteerButton>
+              <StopButton onClick={() => void window.pi.abort()}>{t("chat.stop")}</StopButton>
+            </>
           ) : (
-            <SendButton disabled={!canSend} onClick={handleSend}>
+            <SendButton disabled={!canSend} onClick={() => handleSend()}>
               {t("chat.send")}
             </SendButton>
           )}
         </ComposerBox>
         <ComposerBar stats={sessionStats} />
       </Composer>
+
+      {dragging && <DropOverlay>{t("chat.dropImages")}</DropOverlay>}
+
+      {pasteMenu && (
+        <PasteMenu data-paste-menu style={{ left: pasteMenu.x, top: pasteMenu.y }} onClick={(event) => event.stopPropagation()}>
+          <PasteMenuItem onClick={() => void pasteImageFromClipboard()}>
+            <ImageIcon />
+            {t("chat.pasteImage")}
+          </PasteMenuItem>
+        </PasteMenu>
+      )}
     </Root>
   );
 }
@@ -86,7 +258,16 @@ function MessageRow({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
       <UserRow>
-        <UserBubble>{message.text}</UserBubble>
+        <UserBubble>
+          {message.images && message.images.length > 0 && (
+            <UserImages>
+              {message.images.map((image, index) => (
+                <UserImage key={index} src={`data:${image.mimeType};base64,${image.data}`} alt="" />
+              ))}
+            </UserImages>
+          )}
+          {message.text}
+        </UserBubble>
       </UserRow>
     );
   }
@@ -145,6 +326,16 @@ function AssistantRow({ message, label }: { message: ChatMessage; label: string 
         ) : message.streaming ? (
           <Caret />
         ) : null}
+
+        {message.usage && message.usage.cost > 0 && (
+          <UsageLine>
+            {t("chat.perMessageUsage", {
+              input: message.usage.inputTokens,
+              output: message.usage.outputTokens,
+              cost: formatCost(message.usage.cost),
+            })}
+          </UsageLine>
+        )}
       </AssistantBody>
     </AssistantRowWrap>
   );
@@ -158,18 +349,65 @@ const ToolStatus = styled.span`
 // ───────────────────────── styled ─────────────────────────
 
 const Root = styled.div`
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
 `;
 
+const DropOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: ${({ theme }) => theme.z.dropdown};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ theme }) => theme.colors.bg};
+  border: 2px dashed ${({ theme }) => theme.colors.accent};
+  color: ${({ theme }) => theme.colors.accent};
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+`;
+
+const PasteMenu = styled.div`
+  position: fixed;
+  z-index: ${({ theme }) => theme.z.dropdown};
+  min-width: 150px;
+  padding: ${({ theme }) => theme.spaces["1.5"]};
+  border-radius: ${({ theme }) => theme.radius.md};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.bg};
+  box-shadow: ${({ theme }) => theme.shadow.md};
+`;
+
+const PasteMenuItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spaces["2"]};
+  width: 100%;
+  padding: ${({ theme }) => `${theme.spaces["2"]} ${theme.spaces["3"]}`};
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: transparent;
+  color: ${({ theme }) => theme.colors.textMuted};
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.surfaceHover};
+    color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
 const Messages = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 24px 28px;
+  padding: ${({ theme }) => theme.spaces["6"]} ${({ theme }) => theme.spaces["7"]};
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: ${({ theme }) => theme.spaces["5"]};
 `;
 
 const Welcome = styled.div`
@@ -184,7 +422,7 @@ const WelcomeTitle = styled.div`
 `;
 
 const WelcomeHint = styled.div`
-  margin-top: 8px;
+  margin-top: ${({ theme }) => theme.spaces["2"]};
   color: ${({ theme }) => theme.colors.textDim};
   font-size: 13.5px;
 `;
@@ -192,9 +430,9 @@ const WelcomeHint = styled.div`
 const ErrorBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0 28px 12px;
-  padding: 10px 14px;
+  gap: ${({ theme }) => theme.spaces["2.5"]};
+  margin: 0 ${({ theme }) => theme.spaces["7"]} ${({ theme }) => theme.spaces["3"]};
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3.5"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.colors.danger};
   background: ${({ theme }) => theme.colors.dangerSoft};
@@ -217,15 +455,85 @@ const ErrorClose = styled.button`
 `;
 
 const Composer = styled.div`
-  padding: 14px 28px 20px;
+  padding: ${({ theme }) => theme.spaces["3.5"]} ${({ theme }) => theme.spaces["7"]} ${({ theme }) => theme.spaces["5"]};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const ImageStrip = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spaces["2"]};
+  margin-bottom: ${({ theme }) => theme.spaces["2.5"]};
+`;
+
+const Thumb = styled.div`
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  overflow: hidden;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const ThumbImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const ThumbRemove = styled.button`
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: ${({ theme }) => theme.colors.bg};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.danger};
+    color: ${({ theme }) => theme.colors.accentText};
+  }
+`;
+
+const AttachButton = styled.button`
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: transparent;
+  color: ${({ theme }) => theme.colors.textDim};
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.transition.fast}, color ${({ theme }) => theme.transition.fast};
+
+  &:hover:not(:disabled) {
+    background: ${({ theme }) => theme.colors.surfaceHover};
+    color: ${({ theme }) => theme.colors.text};
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
 `;
 
 const ComposerBox = styled.div`
   display: flex;
   align-items: flex-end;
-  gap: 10px;
-  padding: 8px 8px 8px 16px;
+  gap: ${({ theme }) => theme.spaces["2.5"]};
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
   border-radius: ${({ theme }) => theme.radius.lg};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.surface2};
@@ -241,7 +549,7 @@ const Textarea = styled.textarea`
   flex: 1;
   min-height: 24px;
   max-height: 180px;
-  padding: 6px 0;
+  padding: ${({ theme }) => theme.spaces["1.5"]} 0;
   border: none;
   outline: none;
   resize: none;
@@ -258,7 +566,7 @@ const Textarea = styled.textarea`
 
 const SendButton = styled.button`
   flex: none;
-  padding: 8px 18px;
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
   border: none;
   border-radius: ${({ theme }) => theme.radius.md};
   cursor: pointer;
@@ -280,7 +588,7 @@ const SendButton = styled.button`
 
 const StopButton = styled.button`
   flex: none;
-  padding: 8px 18px;
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
   border: 1px solid ${({ theme }) => theme.colors.danger};
   border-radius: ${({ theme }) => theme.radius.md};
   cursor: pointer;
@@ -295,6 +603,33 @@ const StopButton = styled.button`
   }
 `;
 
+const FollowUpButton = styled.button`
+  flex: none;
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["3.5"]};
+  border: 1px solid ${({ theme }) => theme.colors.accent};
+  border-radius: ${({ theme }) => theme.radius.md};
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.accent};
+  background: ${({ theme }) => theme.colors.accentSoft};
+
+  &:hover:not(:disabled) {
+    opacity: 0.85;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+const SteerButton = styled(FollowUpButton)`
+  border-color: ${({ theme }) => theme.colors.warning};
+  color: ${({ theme }) => theme.colors.warning};
+  background: transparent;
+`;
+
 const UserRow = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -302,7 +637,7 @@ const UserRow = styled.div`
 
 const UserBubble = styled.div`
   max-width: 72%;
-  padding: 10px 16px;
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["4"]};
   border-radius: 16px 16px 4px 16px;
   background: ${({ theme }) => theme.colors.accentSoft};
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -312,10 +647,24 @@ const UserBubble = styled.div`
   word-break: break-word;
 `;
 
+const UserImages = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spaces["2"]};
+  margin-bottom: ${({ theme }) => theme.spaces["2"]};
+`;
+
+const UserImage = styled.img`
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
 const AssistantRowWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: ${({ theme }) => theme.spaces["1.5"]};
   max-width: 100%;
 `;
 
@@ -330,7 +679,7 @@ const AssistantLabel = styled.div`
 const AssistantBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: ${({ theme }) => theme.spaces["2.5"]};
   align-self: flex-start;
   max-width: 92%;
 `;
@@ -338,14 +687,14 @@ const AssistantBody = styled.div`
 const ToolList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: ${({ theme }) => theme.spaces["1.5"]};
 `;
 
 const ToolChip = styled.span<{ $status: ToolStep["status"] }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: ${({ theme }) => theme.spaces["1.5"]};
+  padding: ${({ theme }) => theme.spaces["1"]} ${({ theme }) => theme.spaces["2.5"]};
   border-radius: ${({ theme }) => theme.radius.full};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.surface2};
@@ -372,7 +721,7 @@ const ThinkingToggle = styled.button`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 8px 12px;
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["3"]};
   border: none;
   background: ${({ theme }) => theme.colors.surface2};
   color: ${({ theme }) => theme.colors.textDim};
@@ -400,7 +749,7 @@ const Chevron = styled.span<{ $open: boolean }>`
 `;
 
 const ThinkingText = styled.div`
-  padding: 10px 12px;
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3"]};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
   color: ${({ theme }) => theme.colors.textDim};
   font-size: 12.5px;
@@ -423,6 +772,11 @@ const Caret = styled.span`
   }
 `;
 
+const UsageLine = styled.div`
+  color: ${({ theme }) => theme.colors.textDim};
+  font-size: 11.5px;
+`;
+
 const MarkdownBody = styled.div`
   color: ${({ theme }) => theme.colors.text};
   font-size: 14.5px;
@@ -438,14 +792,14 @@ const MarkdownBody = styled.div`
   }
 
   p {
-    margin: 8px 0;
+    margin: ${({ theme }) => theme.spaces["2"]} 0;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    margin: 16px 0 8px;
+    margin: ${({ theme }) => theme.spaces["4"]} 0 ${({ theme }) => theme.spaces["2"]};
     color: ${({ theme }) => theme.colors.text};
     font-weight: 700;
     line-height: 1.3;
@@ -465,12 +819,12 @@ const MarkdownBody = styled.div`
 
   ul,
   ol {
-    margin: 8px 0;
+    margin: ${({ theme }) => theme.spaces["2"]} 0;
     padding-left: 22px;
   }
 
   li {
-    margin: 3px 0;
+    margin: ${({ theme }) => theme.spaces["0.5"]} 0;
   }
 
   li::marker {
@@ -483,13 +837,13 @@ const MarkdownBody = styled.div`
     background: ${({ theme }) => theme.colors.surfaceHover};
     border: 1px solid ${({ theme }) => theme.colors.border};
     border-radius: 4px;
-    padding: 1px 5px;
+    padding: ${({ theme }) => theme.spaces["0"]} ${({ theme }) => theme.spaces["1"]};
     color: ${({ theme }) => theme.colors.accent};
   }
 
   pre {
-    margin: 10px 0;
-    padding: 14px 16px;
+    margin: ${({ theme }) => theme.spaces["2.5"]} 0;
+    padding: ${({ theme }) => theme.spaces["3.5"]} ${({ theme }) => theme.spaces["4"]};
     border-radius: ${({ theme }) => theme.radius.md};
     background: ${({ theme }) => theme.colors.codeBg};
     border: 1px solid ${({ theme }) => theme.colors.border};
@@ -506,7 +860,7 @@ const MarkdownBody = styled.div`
 
   table {
     border-collapse: collapse;
-    margin: 10px 0;
+    margin: ${({ theme }) => theme.spaces["2.5"]} 0;
     width: 100%;
     font-size: 13px;
   }
@@ -514,7 +868,7 @@ const MarkdownBody = styled.div`
   th,
   td {
     border: 1px solid ${({ theme }) => theme.colors.border};
-    padding: 6px 10px;
+    padding: ${({ theme }) => theme.spaces["1.5"]} ${({ theme }) => theme.spaces["2.5"]};
     text-align: left;
   }
 
@@ -523,8 +877,8 @@ const MarkdownBody = styled.div`
   }
 
   blockquote {
-    margin: 10px 0;
-    padding: 8px 14px;
+    margin: ${({ theme }) => theme.spaces["2.5"]} 0;
+    padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["3.5"]};
     border-left: 3px solid ${({ theme }) => theme.colors.accent};
     background: ${({ theme }) => theme.colors.surface};
     color: ${({ theme }) => theme.colors.textMuted};

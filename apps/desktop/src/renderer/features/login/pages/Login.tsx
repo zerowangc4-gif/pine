@@ -16,10 +16,12 @@ import {
   setApiKey,
 } from "../store";
 
-function formatWindow(contextWindow?: number): string {
+function formatWindow(t: (key: string, options: Record<string, string>) => string, contextWindow?: number): string {
   if (!contextWindow) return "";
-  if (contextWindow >= 1_000_000) return `${(contextWindow / 1_000_000).toFixed(1)}M context`;
-  return `${Math.round(contextWindow / 1000)}k context`;
+  if (contextWindow >= 1_000_000) {
+    return t("login.contextM", { size: (contextWindow / 1_000_000).toFixed(1) });
+  }
+  return t("login.contextK", { size: `${Math.round(contextWindow / 1000)}` });
 }
 
 export function Login() {
@@ -64,9 +66,9 @@ export function Login() {
       (currentProvider?.models ?? []).map((model) => ({
         value: model.id,
         label: model.name ?? model.id,
-        hint: formatWindow(model.contextWindow),
+        hint: formatWindow(t, model.contextWindow),
       })),
-    [currentProvider],
+    [currentProvider, t],
   );
 
   const [showKey, setShowKey] = useState(false);
@@ -162,7 +164,7 @@ const Page = styled.div`
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 32px;
+  padding: ${({ theme }) => theme.spaces["8"]};
   background: ${({ theme }) => theme.gradients.page};
 `;
 
@@ -195,7 +197,7 @@ const Card = styled.div`
   z-index: 1;
   width: 100%;
   max-width: 440px;
-  padding: 40px;
+  padding: ${({ theme }) => theme.spaces["10"]};
   border-radius: ${({ theme }) => theme.radius.xl};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.surface};
@@ -206,8 +208,8 @@ const Card = styled.div`
 const Brand = styled.div`
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 30px;
+  gap: ${({ theme }) => theme.spaces["3.5"]};
+  margin-bottom: ${({ theme }) => theme.spaces["7"]};
 `;
 
 const LogoBox = styled.div`
@@ -241,26 +243,26 @@ const Subtitle = styled.p`
 const Form = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: ${({ theme }) => theme.spaces["5"]};
 `;
 
 const Field = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: ${({ theme }) => theme.spaces["2"]};
 `;
 
 const Label = styled.label`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: ${({ theme }) => theme.spaces["2"]};
   color: ${({ theme }) => theme.colors.textMuted};
   font-size: 13px;
   font-weight: 600;
 `;
 
 const ConfiguredBadge = styled.span`
-  padding: 2px 8px;
+  padding: ${({ theme }) => theme.spaces["0.5"]} ${({ theme }) => theme.spaces["2"]};
   border-radius: ${({ theme }) => theme.radius.full};
   background: ${({ theme }) => theme.colors.successSoft};
   color: ${({ theme }) => theme.colors.success};
@@ -274,7 +276,7 @@ const Hint = styled.p`
 `;
 
 const ErrorText = styled.p`
-  padding: 11px 14px;
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3.5"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.colors.danger};
   background: ${({ theme }) => theme.colors.dangerSoft};
@@ -287,10 +289,10 @@ const ConnectButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: ${({ theme }) => theme.spaces["2"]};
   width: 100%;
-  margin-top: 6px;
-  padding: 13px 18px;
+  margin-top: ${({ theme }) => theme.spaces["1.5"]};
+  padding: ${({ theme }) => theme.spaces["3"]} ${({ theme }) => theme.spaces["4"]};
   border: none;
   border-radius: ${({ theme }) => theme.radius.md};
   cursor: pointer;
@@ -321,8 +323,8 @@ const ConnectButton = styled.button`
 const KeyWrap = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px 4px 16px;
+  gap: ${({ theme }) => theme.spaces["2"]};
+  padding: ${({ theme }) => theme.spaces["1"]} ${({ theme }) => theme.spaces["1.5"]} ${({ theme }) => theme.spaces["1"]} ${({ theme }) => theme.spaces["4"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.surface2};
@@ -351,7 +353,7 @@ const KeyInput = styled.input`
 
 const KeyToggle = styled.button`
   flex: none;
-  padding: 7px 12px;
+  padding: ${({ theme }) => theme.spaces["1.5"]} ${({ theme }) => theme.spaces["3"]};
   border: none;
   border-radius: ${({ theme }) => theme.radius.sm};
   cursor: pointer;

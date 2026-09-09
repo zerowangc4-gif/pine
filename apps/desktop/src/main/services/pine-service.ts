@@ -2,7 +2,6 @@ import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
 import {
   createAgentSession,
-  createExtensionRuntime,
   InMemoryCredentialStore,
   ModelRuntime,
   SessionManager,
@@ -17,6 +16,7 @@ import { toErrorMessage } from "@shared/utils";
 import type {
   ActiveModelInfo,
   ChatEvent,
+  ChatImage,
   ConnectInput,
   ConnectResult,
   FileResult,
@@ -24,10 +24,13 @@ import type {
   SessionInfo,
   SessionListResult,
   SessionMessage,
+  SessionSettingsDTO,
   SessionStatsDTO,
-  SessionToolStep,
+  SkillInfo,
   ThinkingLevel,
 } from "@shared/types";
+import { extractSessionMessages } from "./messages";
+import { createProjectResourceLoader, loadProjectSkills, writeSkillsIndex } from "./resources";
 
 interface Connection {
   provider: string;
@@ -36,59 +39,22 @@ interface Connection {
   thinkingLevel: ThinkingLevel;
 }
 
-const SYSTEM_PROMPT =
-  "You are Pine, a coding assistant. Work inside the opened project folder. " +
-  "Be concise and direct. Use the available tools to read, edit, and run code when needed.";
-
 const DEFAULT_THINKING_LEVEL: ThinkingLevel = "high";
 
-interface TextBlock {
-  type: "text";
-  text: string;
-}
+const DEFAULT_TOOLS = ["read", "bash", "edit", "write"];
 
-interface ThinkingBlock {
-  type: "thinking";
-  thinking: string;
-}
-
-interface ToolCallBlock {
-  type: "toolCall";
-  id: string;
-  name: string;
-}
-
-function contentBlocks<T extends { type: string }>(content: unknown, type: T["type"]): T[] {
-  if (!Array.isArray(content)) {
-    return [];
-  }
-  return content.filter(
-    (block): block is T =>
-      typeof block === "object" && block !== null && (block as { type?: unknown }).type === type,
-  );
-}
-
-function messageText(content: unknown): string {
-  if (typeof content === "string") {
-    return content;
-  }
-  return contentBlocks<TextBlock>(content, "text")
-    .map((block) => block.text)
-    .join("");
-}
-
-function messageThinking(content: unknown): string {
-  return contentBlocks<ThinkingBlock>(content, "thinking")
-    .map((block) => block.thinking)
-    .join("\n");
-}
-
-function messageTools(content: unknown): SessionToolStep[] {
-  return contentBlocks<ToolCallBlock>(content, "toolCall").map((block) => ({
-    id: block.id,
-    name: block.name,
-    status: "done",
-  }));
+function skillTemplate(name: string, description: string): string {
+  return [
+    "---",
+    `name: ${name}`,
+    `description: ${description}`,
+    "---",
+    "",
+    `# ${name}`,
+    "",
+    "Describe the workflow and any scripts/references below.",
+    "",
+  ].join("\n");
 }
 
 /**
@@ -102,6 +68,7 @@ export class PineService {
   private session?: AgentSession;
   private sessionCwd?: string;
   private unsubscribe?: () => void;
+  private activeTools: string[] = DEFAULT_TOOLS;
 
   constructor(
     private readonly send: (event: ChatEvent) => void,
@@ -133,6 +100,7 @@ export class PineService {
           name: model.name,
           contextWindow: model.contextWindow,
           reasoning: model.reasoning,
+          acceptsImages: model.input.includes("image"),
         })),
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -177,7 +145,7 @@ export class PineService {
         provider: input.provider,
         model: input.model,
         apiKey,
-        thinkingLevel: DEFAULT_THINKING_LEVEL,
+        thinkingLevel: this.connection?.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
       };
       await this.disposeSession();
 
@@ -230,6 +198,15 @@ export class PineService {
     };
   }
 
+  getActiveTools(): string[] {
+    return [...this.activeTools];
+  }
+
+  setActiveTools(tools: string[]): void {
+    this.activeTools = tools.length > 0 ? [...tools] : DEFAULT_TOOLS;
+    this.session?.setActiveToolsByName(this.activeTools);
+  }
+
   // ── workspace ──────────────────────────────────────────────────────────
 
   setWorkspaceRoot(root: string): void {
@@ -240,16 +217,72 @@ export class PineService {
     return this.workspaceRoot;
   }
 
+  // ── skills ────────────────────────────────────────────────────────────
+
+  listSkills(): SkillInfo[] {
+    if (!this.workspaceRoot) {
+      return [];
+    }
+    return loadProjectSkills(this.workspaceRoot).map((skill) => ({
+      name: skill.name,
+      description: skill.description,
+      filePath: skill.filePath,
+    }));
+  }
+
+  async createSkill(name: string, description: string): Promise<FileResult> {
+    try {
+      const root = this.workspaceRoot;
+      if (!root) {
+        return { ok: false, error: AppError.noFolder };
+      }
+      const trimmed = name.trim();
+      if (!trimmed) {
+        return { ok: false, error: AppError.nameRequired };
+      }
+      const filePath = path.join(root, ".pi", "skills", trimmed, "SKILL.md");
+      if (existsSync(filePath)) {
+        return { ok: false, error: AppError.nameExists };
+      }
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, skillTemplate(trimmed, description.trim()), "utf8");
+      await writeSkillsIndex(root);
+      return { ok: true, path: filePath };
+    } catch (error) {
+      return { ok: false, error: toErrorMessage(error) };
+    }
+  }
+
   // ── chat ───────────────────────────────────────────────────────────────
 
-  async sendChatMessage(text: string): Promise<void> {
+  async sendChatMessage(
+    text: string,
+    images: ChatImage[] = [],
+    streamingBehavior?: "steer" | "followUp",
+  ): Promise<void> {
     try {
       const session = await this.ensureSession();
+      const imageContent = images.map((image) => ({
+        type: "image" as const,
+        data: image.data,
+        mimeType: image.mimeType,
+      }));
       if (session.isStreaming) {
-        this.send({ type: "error", message: AppError.streaming });
+        if (!streamingBehavior) {
+          this.send({ type: "error", message: AppError.streaming });
+          return;
+        }
+        const imagesArg = imageContent.length > 0 ? imageContent : undefined;
+        if (streamingBehavior === "steer") {
+          await session.steer(text, imagesArg);
+        } else {
+          await session.followUp(text, imagesArg);
+        }
         return;
       }
-      await session.prompt(text);
+      await session.prompt(text, {
+        images: imageContent.length > 0 ? imageContent : undefined,
+      });
     } catch (error) {
       this.send({ type: "error", message: toErrorMessage(error) });
     }
@@ -263,7 +296,9 @@ export class PineService {
 
   async listSessions(): Promise<SessionListResult> {
     try {
-      const sessions = await SessionManager.listAll(this.sessionsDir);
+      const sessions = this.workspaceRoot
+        ? await SessionManager.list(this.workspaceRoot, this.sessionsDir)
+        : [];
       return {
         sessions: sessions.map(toSharedSessionInfo),
         activePath: this.activeSessionPath(),
@@ -293,15 +328,17 @@ export class PineService {
     }
 
     const sessionManager = SessionManager.open(sessionPath, this.sessionsDir, this.workspaceRoot);
+    const resourceLoader = await this.createResources();
     const { session } = await createAgentSession({
       cwd: this.workspaceRoot,
       agentDir: this.workspaceRoot,
       model,
       thinkingLevel: this.connection.thinkingLevel,
       modelRuntime: runtime,
-      resourceLoader: createMinimalResourceLoader(),
+      resourceLoader,
       sessionManager,
       settingsManager: SettingsManager.inMemory({ compaction: { enabled: false } }),
+      tools: this.activeTools,
     });
 
     this.session = session;
@@ -327,6 +364,9 @@ export class PineService {
   }
 
   async newSession(): Promise<void> {
+    if (this.session?.isStreaming) {
+      await this.session.abort();
+    }
     await this.disposeSession();
   }
 
@@ -350,6 +390,17 @@ export class PineService {
     return this.currentStats();
   }
 
+  getSessionSettings(): SessionSettingsDTO {
+    return {
+      name: this.session?.sessionManager.getSessionName(),
+      autoCompaction: this.session?.autoCompactionEnabled ?? false,
+    };
+  }
+
+  async setAutoCompaction(enabled: boolean): Promise<void> {
+    this.session?.setAutoCompactionEnabled(enabled);
+  }
+
   private activeSessionPath(): string | undefined {
     return this.session?.sessionManager.getSessionFile();
   }
@@ -364,40 +415,23 @@ export class PineService {
       tokens: stats?.tokens.total ?? 0,
       inputTokens: stats?.tokens.input ?? 0,
       outputTokens: stats?.tokens.output ?? 0,
+      cacheReadTokens: stats?.tokens.cacheRead ?? 0,
+      cacheWriteTokens: stats?.tokens.cacheWrite ?? 0,
       cost: stats?.cost ?? 0,
     };
   }
 
   private extractSessionMessages(): SessionMessage[] {
-    const manager = this.session?.sessionManager;
-    if (!manager) {
-      return [];
-    }
-
-    const messages: SessionMessage[] = [];
-    for (const entry of manager.getBranch()) {
-      if (entry.type !== "message") {
-        continue;
-      }
-      const message = entry.message;
-      if (message.role === "user") {
-        messages.push({ id: entry.id, role: "user", text: messageText(message.content) });
-      } else if (message.role === "assistant") {
-        const tools = messageTools(message.content);
-        const thinking = messageThinking(message.content);
-        messages.push({
-          id: entry.id,
-          role: "assistant",
-          text: messageText(message.content),
-          thinking: thinking || undefined,
-          tools: tools.length > 0 ? tools : undefined,
-        });
-      }
-    }
-    return messages;
+    return this.session ? extractSessionMessages(this.session) : [];
   }
 
   // ── session lifecycle ──────────────────────────────────────────────────
+
+  private async createResources(): Promise<ResourceLoader> {
+    const resources = createProjectResourceLoader(this.workspaceRoot!);
+    await resources.loadExtensions();
+    return resources.loader;
+  }
 
   private async ensureSession(): Promise<AgentSession> {
     if (!this.workspaceRoot) {
@@ -425,15 +459,17 @@ export class PineService {
       retry: { enabled: true, maxRetries: 2 },
     });
 
+    const resourceLoader = await this.createResources();
     const { session } = await createAgentSession({
       cwd: this.workspaceRoot,
       agentDir: this.workspaceRoot,
       model,
       thinkingLevel: this.connection.thinkingLevel,
       modelRuntime: runtime,
-      resourceLoader: createMinimalResourceLoader(),
+      resourceLoader,
       sessionManager: SessionManager.create(this.workspaceRoot, this.sessionsDir),
       settingsManager,
+      tools: this.activeTools,
     });
 
     this.session = session;
@@ -476,6 +512,17 @@ export class PineService {
       case "message_end":
         if (event.message.role === "assistant") {
           this.send({ type: "assistant_end" });
+          const usage = event.message.usage;
+          if (usage) {
+            this.send({
+              type: "message_usage",
+              usage: {
+                inputTokens: usage.input,
+                outputTokens: usage.output,
+                cost: usage.cost?.total ?? 0,
+              },
+            });
+          }
         }
         break;
       case "tool_execution_start":
@@ -507,18 +554,3 @@ function toSharedSessionInfo(info: SdkSessionInfo): SessionInfo {
   };
 }
 
-function createMinimalResourceLoader(): ResourceLoader {
-  return {
-    getExtensions: () => ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),
-    getSkills: () => ({ skills: [], diagnostics: [] }),
-    getPrompts: () => ({ prompts: [], diagnostics: [] }),
-    getThemes: () => ({ themes: [], diagnostics: [] }),
-    getAgentsFiles: () => ({ agentsFiles: [] }),
-    getSystemPrompt: () => SYSTEM_PROMPT,
-    getSystemPromptSource: () => undefined,
-    getAppendSystemPrompt: () => [],
-    getAppendSystemPromptSources: () => [],
-    extendResources: () => {},
-    reload: async () => {},
-  };
-}

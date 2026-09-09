@@ -151,13 +151,13 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3.5"]};
 `;
 
 const Title = styled.div`
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: ${({ theme }) => theme.spaces["1.5"]};
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -168,7 +168,7 @@ const Title = styled.div`
 const Actions = styled.div`
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: ${({ theme }) => theme.spaces["0.5"]};
 `;
 
 const NewButton = styled.button`
@@ -195,13 +195,13 @@ const Body = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 8px 8px;
+  padding: 0 ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["2"]};
 `;
 
 const Centered = styled.div`
   display: flex;
   justify-content: center;
-  padding: 18px;
+  padding: ${({ theme }) => theme.spaces["4"]};
 `;
 
 const Empty = styled.div`
@@ -209,7 +209,7 @@ const Empty = styled.div`
   flex-direction: column;
   align-items: center;
   gap: ${({ theme }) => theme.spaces["2.5"]};
-  padding: 18px;
+  padding: ${({ theme }) => theme.spaces["4"]};
   text-align: center;
 `;
 
@@ -221,8 +221,8 @@ const EmptyText = styled.div`
 const SessionRow = styled.div<{ $active?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
+  gap: ${({ theme }) => theme.spaces["1.5"]};
+  padding: ${({ theme }) => theme.spaces["1.5"]} ${({ theme }) => theme.spaces["2.5"]};
   border-radius: ${({ theme }) => theme.radius.sm};
   cursor: pointer;
   color: ${({ theme, $active }) => ($active ? theme.colors.text : theme.colors.textMuted)};
@@ -249,8 +249,8 @@ const SessionName = styled.div`
 const SessionMeta = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 2px;
+  gap: ${({ theme }) => theme.spaces["1"]};
+  margin-top: ${({ theme }) => theme.spaces["0.5"]};
   color: ${({ theme }) => theme.colors.textDim};
   font-size: 11px;
 `;
@@ -288,8 +288,8 @@ const DeleteButton = styled.button`
 const ErrorBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: ${({ theme }) => theme.spaces["2"]};
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["3"]};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.dangerSoft};
 `;
@@ -315,11 +315,11 @@ const ErrorClose = styled.button`
 `;
 
 const ModalButton = styled.button<{ $danger?: boolean }>`
-  padding: 8px 16px;
+  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme, $danger }) => ($danger ? "transparent" : theme.colors.border)};
   background: ${({ theme, $danger }) => ($danger ? theme.colors.danger : theme.colors.surface2)};
-  color: ${({ theme, $danger }) => ($danger ? "#fff" : theme.colors.text)};
+  color: ${({ theme, $danger }) => ($danger ? theme.colors.accentText : theme.colors.text)};
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

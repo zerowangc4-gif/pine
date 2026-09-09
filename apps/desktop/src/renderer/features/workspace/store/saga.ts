@@ -19,6 +19,7 @@ import {
   openFileSuccess,
   openFolderRequest,
   openFolderSuccess,
+  refreshFileSuccess,
   refreshTreeRequest,
   renameEntryRequest,
   renameEntrySuccess,
@@ -150,7 +151,7 @@ function* refreshTreeSaga(): SagaIterator {
     }
     try {
       const content: string = yield call(() => window.pi.readFile(file.path));
-      yield put(openFileSuccess({ path: file.path, content }));
+      yield put(refreshFileSuccess({ path: file.path, content }));
     } catch {
       // The file may have been removed on disk; keep the tab as-is.
     }

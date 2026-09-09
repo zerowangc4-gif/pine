@@ -4,11 +4,17 @@
 
 ## 0. 宪法（不可妥协）
 
-1. **代码必须干净**：单一职责、命名清晰、无死代码、无重复、不硬编码颜色/间距（见 5.4）。每次改动必须过 typecheck + lint。
-2. **先想清楚谁会用**：动手前先回答「谁会用这个功能？他为什么要用？操作顺不顺？」。没有使用理由的功能不加，宁可少而精。
-3. **UI 状态只在 Redux（内存）**：主题 / 语言 / 布局等 UI 状态不用 localStorage、不落盘；用户数据（会话）才持久化。
-4. **核心包导出收敛一处**：主进程用 SDK 只从 `src/main/core/pi.ts` 导入（见 5.5）。
-5. **文档实时更新**：改了能力/约定，同步更新 `AGENTS.md` 与 `docs/DESIGN_NOTES.md`，允许删除、修改旧内容。
+每次动手前、每次完工后，必须反复问三句话：
+
+1. **谁会用？** —— 没有使用理由的功能不加，宁可少而精。想清楚「他为什么用、操作顺不顺」。
+2. **代码极致干净？** —— 单一职责、命名清晰、无死代码/死导入、无重复、不硬编码颜色/间距/文案。改完必须过 `typecheck` + `lint`（涉及 main/preload 再 `electron-vite build`），全绿才算完。
+3. **架构干净？** —— 功能按 feature 分层；跨进程只走 `shared/types.ts`（类型）+ `shared/ipc.ts`（channel）+ `preload` 桥接；主进程 SDK 能力只从 `src/main/core/pi.ts` 导入；能力走 skills/extensions，不写死提示词。
+
+硬性红线（违反即重做）：
+- UI 状态只在 Redux（内存），不落盘；用户数据（会话）才持久化。
+- 新增 IPC 能力走五步：types → ipc channel → preload → main handler/logic → renderer saga + 双语 i18n。
+- 改了能力/约定，同步更新 `AGENTS.md` 与 `docs/DESIGN_NOTES.md`。
+- 主进程不得直接 import SDK 包，渲染层不得 import SDK。
 
 ## 1. 项目是什么
 

@@ -6,12 +6,13 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  wide?: boolean;
 }
 
-export function Modal({ title, onClose, children, footer }: ModalProps) {
+export function Modal({ title, onClose, children, footer, wide = false }: ModalProps) {
   return (
     <Overlay onClick={onClose}>
-      <Card onClick={(event) => event.stopPropagation()}>
+      <Card $wide={wide} onClick={(event) => event.stopPropagation()}>
         <Title>{title}</Title>
         <Body>{children}</Body>
         {footer && <Footer>{footer}</Footer>}
@@ -30,8 +31,9 @@ const Overlay = styled.div`
   background: rgba(0, 0, 0, 0.5);
 `;
 
-const Card = styled.div`
-  width: 360px;
+const Card = styled.div<{ $wide?: boolean }>`
+  width: ${({ $wide }) => ($wide ? "560px" : "360px")};
+  max-width: calc(100vw - 48px);
   padding: ${({ theme }) => theme.spaces["6"]};
   border-radius: ${({ theme }) => theme.radius.lg};
   border: 1px solid ${({ theme }) => theme.colors.border};

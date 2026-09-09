@@ -29,4 +29,14 @@ export function registerProviderIpc(service: PineService): void {
   );
 
   ipcMain.handle(IPC_CHANNELS.modelActive, (): ActiveModelInfo => service.getActiveModel());
+
+  ipcMain.handle(IPC_CHANNELS.modelActiveTools, (): string[] => service.getActiveTools());
+
+  ipcMain.handle(
+    IPC_CHANNELS.modelSetActiveTools,
+    (_event, tools: string[]): Promise<void> => {
+      service.setActiveTools(tools);
+      return Promise.resolve();
+    },
+  );
 }

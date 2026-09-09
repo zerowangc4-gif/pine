@@ -9,6 +9,10 @@ let mainWindow: BrowserWindow | undefined;
 
 const getWindow = (): BrowserWindow | undefined => mainWindow;
 
+/** Must match the renderer dark theme's `bg` (`theme.ts` darkColors.bg) to
+ * avoid a white flash before the renderer paints its own background. */
+const WINDOW_BACKGROUND = "#0b0e16";
+
 /**
  * Sessions live next to the app itself ("install dir/sessions") instead of in
  * the user's home directory, so every conversation travels with the app folder.
@@ -34,7 +38,7 @@ function createWindow(): void {
     minHeight: 640,
     autoHideMenuBar: true,
     title: "Pine",
-    backgroundColor: "#0b0e16",
+    backgroundColor: WINDOW_BACKGROUND,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.mjs"),
       sandbox: false,
