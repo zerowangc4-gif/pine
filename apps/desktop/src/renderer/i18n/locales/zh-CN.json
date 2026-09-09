@@ -1,0 +1,81 @@
+{
+  "common": {
+    "appName": "Pine",
+    "loading": "加载中…",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确定",
+    "close": "关闭",
+    "search": "搜索…",
+    "refresh": "刷新"
+  },
+  "login": {
+    "title": "Pine",
+    "subtitle": "连接到 Pi 编码助手",
+    "provider": "服务提供商",
+    "providerPlaceholder": "选择提供商",
+    "providerLoading": "加载中…",
+    "model": "模型",
+    "modelPlaceholder": "选择模型",
+    "modelRequiresProvider": "请先选择提供商",
+    "apiKey": "API Key",
+    "apiKeyHint": "密钥仅保存在本机内存中，不会写入磁盘。",
+    "show": "显示",
+    "hide": "隐藏",
+    "connect": "连接",
+    "connecting": "连接中…",
+    "connected": "已连接",
+    "connectedHint": "密钥已生效，可以开始使用了。",
+    "reconfigure": "重新配置",
+    "noMatch": "无匹配项",
+    "selectProviderAndModel": "请选择服务提供商与模型"
+  },
+  "files": {
+    "explorer": "资源管理器",
+    "openFolder": "打开文件夹",
+    "newFile": "新建文件",
+    "newFolder": "新建文件夹",
+    "open": "打开",
+    "noFolder": "尚未打开文件夹",
+    "openFolderHint": "打开一个文件夹以开始使用",
+    "fileNamePlaceholder": "文件名",
+    "folderNamePlaceholder": "文件夹名",
+    "nameExists": "已存在同名文件或文件夹",
+    "nameRequired": "请输入名称",
+    "readError": "读取失败"
+  },
+  "chat": {
+    "tab": "聊天",
+    "welcomeTitle": "开始对话",
+    "welcomeHint": "打开文件夹后，向助手描述你的需求。",
+    "inputPlaceholder": "输入消息…（Enter 发送，Shift+Enter 换行）",
+    "send": "发送",
+    "stop": "停止",
+    "thinking": "思考中",
+    "toolRunning": "正在执行",
+    "toolDone": "已完成",
+    "toolError": "执行失败",
+    "noFolderYet": "请先打开一个文件夹，再开始对话",
+    "empty": "还没有消息",
+    "unsaved": "未保存",
+    "saved": "已保存",
+    "assistant": "助手",
+    "you": "你"
+  },
+  "error": {
+    "noFolder": "请先打开一个文件夹",
+    "notConnected": "请先连接模型",
+    "modelNotFound": "未找到模型",
+    "connectFailed": "连接失败",
+    "pathOutsideRoot": "路径超出工作目录",
+    "nameExists": "已存在同名文件或文件夹",
+    "nameRequired": "名称不能为空",
+    "operationFailed": "操作失败",
+    "streaming": "正在生成中，请稍候"
+  },
+  "language": {
+    "label": "语言",
+    "zh": "中文",
+    "en": "English"
+  }
+}

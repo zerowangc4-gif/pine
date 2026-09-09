@@ -15,6 +15,13 @@ export default tseslint.config(
       ecmaVersion: 2022,
       globals: { ...globals.browser, ...globals.node },
     },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/no-empty-object-type": ["error", { allowInterfaces: "with-single-extends" }],
+    },
   },
   {
     files: ["apps/desktop/src/renderer/**/*.{ts,tsx}"],

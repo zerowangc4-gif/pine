@@ -1,0 +1,81 @@
+{
+  "common": {
+    "appName": "Pine",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "OK",
+    "close": "Close",
+    "search": "Search…",
+    "refresh": "Refresh"
+  },
+  "login": {
+    "title": "Pine",
+    "subtitle": "Connect to the Pi coding assistant",
+    "provider": "Provider",
+    "providerPlaceholder": "Select provider",
+    "providerLoading": "Loading…",
+    "model": "Model",
+    "modelPlaceholder": "Select model",
+    "modelRequiresProvider": "Select a provider first",
+    "apiKey": "API Key",
+    "apiKeyHint": "The key is kept in memory only and never written to disk.",
+    "show": "Show",
+    "hide": "Hide",
+    "connect": "Connect",
+    "connecting": "Connecting…",
+    "connected": "Connected",
+    "connectedHint": "Your key is active. You are ready to go.",
+    "reconfigure": "Reconfigure",
+    "noMatch": "No matches",
+    "selectProviderAndModel": "Please select a provider and a model"
+  },
+  "files": {
+    "explorer": "Explorer",
+    "openFolder": "Open Folder",
+    "newFile": "New File",
+    "newFolder": "New Folder",
+    "open": "Open",
+    "noFolder": "No folder opened",
+    "openFolderHint": "Open a folder to get started",
+    "fileNamePlaceholder": "File name",
+    "folderNamePlaceholder": "Folder name",
+    "nameExists": "A file or folder with this name already exists",
+    "nameRequired": "Enter a name",
+    "readError": "Failed to read"
+  },
+  "chat": {
+    "tab": "Chat",
+    "welcomeTitle": "Start a conversation",
+    "welcomeHint": "Open a folder and describe what you want to build.",
+    "inputPlaceholder": "Type a message… (Enter to send, Shift+Enter for newline)",
+    "send": "Send",
+    "stop": "Stop",
+    "thinking": "Thinking",
+    "toolRunning": "Running",
+    "toolDone": "Done",
+    "toolError": "Failed",
+    "noFolderYet": "Open a folder before starting a conversation",
+    "empty": "No messages yet",
+    "unsaved": "Unsaved",
+    "saved": "Saved",
+    "assistant": "Assistant",
+    "you": "You"
+  },
+  "error": {
+    "noFolder": "Open a folder first",
+    "notConnected": "Connect a model first",
+    "modelNotFound": "Model not found",
+    "connectFailed": "Connection failed",
+    "pathOutsideRoot": "Path is outside the workspace folder",
+    "nameExists": "A file or folder with this name already exists",
+    "nameRequired": "Enter a name",
+    "operationFailed": "Operation failed",
+    "streaming": "A response is already generating"
+  },
+  "language": {
+    "label": "Language",
+    "zh": "中文",
+    "en": "English"
+  }
+}
