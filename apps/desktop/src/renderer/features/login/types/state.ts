@@ -1,4 +1,4 @@
-import type { ProviderInfo } from "@shared";
+import type { ProviderInfo, ThinkingLevel } from "@shared";
 
 export interface State {
   providers: ProviderInfo[];
@@ -6,6 +6,7 @@ export interface State {
   providersError?: string;
   selectedProvider?: string;
   selectedModel?: string;
+  thinkingLevel: ThinkingLevel;
   apiKey: string;
   connecting: boolean;
   connected: boolean;

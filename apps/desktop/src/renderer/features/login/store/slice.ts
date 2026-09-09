@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { ProviderInfo } from "@shared";
+import type { ActiveModelInfo, ProviderInfo, ThinkingLevel } from "@shared";
 import type { State } from "../types/state";
 
 const initialState: State = {
@@ -7,6 +7,7 @@ const initialState: State = {
   loadingProviders: false,
   selectedProvider: undefined,
   selectedModel: undefined,
+  thinkingLevel: "high",
   apiKey: "",
   connecting: false,
   connected: false,
@@ -61,6 +62,26 @@ export const loginSlice = createSlice({
       state.connected = false;
       state.error = action.payload;
     },
+
+    switchModelRequest(_state, _action: PayloadAction<{ provider: string; model: string }>) {},
+    switchModelSuccess(state, action: PayloadAction<{ provider: string; model: string }>) {
+      state.selectedProvider = action.payload.provider;
+      state.selectedModel = action.payload.model;
+      state.error = undefined;
+    },
+
+    setThinkingLevelRequest(_state, _action: PayloadAction<ThinkingLevel>) {},
+    setThinkingLevelSuccess(state, action: PayloadAction<ThinkingLevel>) {
+      state.thinkingLevel = action.payload;
+      state.error = undefined;
+    },
+
+    getActiveModelRequest(_state) {},
+    getActiveModelSuccess(state, action: PayloadAction<ActiveModelInfo>) {
+      state.selectedProvider = action.payload.provider;
+      state.selectedModel = action.payload.model;
+      state.thinkingLevel = action.payload.thinkingLevel;
+    },
   },
 });
 
@@ -74,4 +95,10 @@ export const {
   connectRequest,
   connectSuccess,
   connectFailure,
+  switchModelRequest,
+  switchModelSuccess,
+  setThinkingLevelRequest,
+  setThinkingLevelSuccess,
+  getActiveModelRequest,
+  getActiveModelSuccess,
 } = loginSlice.actions;

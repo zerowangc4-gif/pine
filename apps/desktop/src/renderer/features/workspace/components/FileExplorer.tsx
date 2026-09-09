@@ -4,38 +4,50 @@ import styled from "styled-components";
 import { Modal } from "@renderer/components/Modal";
 import {
   ChevronRightIcon,
+  CollapseAllIcon,
+  CopyIcon,
   FileIcon,
   FilePlusIcon,
   FolderIcon,
   FolderOpenIcon,
   FolderPlusIcon,
+  PencilIcon,
+  RevealIcon,
   Spinner,
+  TrashIcon,
 } from "@renderer/components/icons";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { errorText } from "@renderer/utils/error";
+import { basename, relativePath } from "@renderer/utils/path";
 import {
   clearWorkspaceError,
+  collapseAll,
   createFileRequest,
   createFolderRequest,
+  deleteEntryRequest,
   loadDirRequest,
   openFileRequest,
   openFolderRequest,
+  renameEntryRequest,
   toggleDir,
 } from "../store";
 import type { FileNode } from "../types/state";
 
-type EntryKind = "file" | "folder";
+type ModalKind = "createFile" | "createFolder" | "rename" | "delete";
 
 interface MenuState {
   x: number;
   y: number;
   path: string;
   isDir: boolean;
+  isRoot: boolean;
 }
 
 interface ModalState {
-  kind: EntryKind;
-  dirPath: string;
+  kind: ModalKind;
+  dirPath?: string;
+  targetPath?: string;
+  initialName?: string;
 }
 
 export function FileExplorer() {
@@ -48,8 +60,11 @@ export function FileExplorer() {
 
   useEffect(() => {
     if (!menu) return;
-    function close() {
-      setMenu(undefined);
+    function close(event: MouseEvent) {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest("[data-context-menu]")) {
+        setMenu(undefined);
+      }
     }
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -57,20 +72,43 @@ export function FileExplorer() {
 
   const rootNode = rootPath ? nodes[rootPath] : undefined;
 
-  function openCreateModal(kind: EntryKind, dirPath: string) {
-    setModal({ kind, dirPath });
+  function openModal(modalState: ModalState, initialName = "") {
+    setModal(modalState);
+    setName(initialName);
+  }
+
+  function closeModal() {
+    setModal(undefined);
     setName("");
   }
 
-  function submitCreate() {
-    if (!modal || !name.trim()) return;
-    if (modal.kind === "file") {
+  function submitModal() {
+    if (!modal) return;
+    if (modal.kind === "createFile" && modal.dirPath) {
       dispatch(createFileRequest({ dirPath: modal.dirPath, name: name.trim() }));
-    } else {
+    } else if (modal.kind === "createFolder" && modal.dirPath) {
       dispatch(createFolderRequest({ dirPath: modal.dirPath, name: name.trim() }));
+    } else if (modal.kind === "rename" && modal.targetPath) {
+      dispatch(renameEntryRequest({ path: modal.targetPath, name: name.trim() }));
+    } else if (modal.kind === "delete" && modal.targetPath) {
+      dispatch(deleteEntryRequest(modal.targetPath));
     }
-    setModal(undefined);
+    closeModal();
   }
+
+  function copyText(text: string) {
+    void window.pi.copyText(text);
+  }
+
+  const modalTitle = modal
+    ? modal.kind === "createFile"
+      ? t("files.newFile")
+      : modal.kind === "createFolder"
+        ? t("files.newFolder")
+        : modal.kind === "rename"
+          ? t("files.rename")
+          : t("files.delete")
+    : "";
 
   return (
     <Root>
@@ -82,10 +120,13 @@ export function FileExplorer() {
           </ActionButton>
           {rootPath && (
             <>
-              <ActionButton title={t("files.newFile")} onClick={() => openCreateModal("file", rootPath)}>
+              <ActionButton title={t("files.collapseAll")} onClick={() => dispatch(collapseAll())}>
+                <CollapseAllIcon />
+              </ActionButton>
+              <ActionButton title={t("files.newFile")} onClick={() => openModal({ kind: "createFile", dirPath: rootPath })}>
                 <FilePlusIcon />
               </ActionButton>
-              <ActionButton title={t("files.newFolder")} onClick={() => openCreateModal("folder", rootPath)}>
+              <ActionButton title={t("files.newFolder")} onClick={() => openModal({ kind: "createFolder", dirPath: rootPath })}>
                 <FolderPlusIcon />
               </ActionButton>
             </>
@@ -104,7 +145,13 @@ export function FileExplorer() {
           </EmptyState>
         ) : rootNode ? (
           <Tree>
-            <TreeNode node={rootNode} depth={0} label={rootName ?? rootNode.name} onMenu={setMenu} />
+            <TreeNode
+              node={rootNode}
+              depth={0}
+              label={rootName ?? rootNode.name}
+              isRoot
+              onMenu={setMenu}
+            />
           </Tree>
         ) : (
           <TreeHint>{t("common.loading")}</TreeHint>
@@ -119,62 +166,156 @@ export function FileExplorer() {
       )}
 
       {menu && (
-        <ContextMenu style={{ left: menu.x, top: menu.y }} onClick={(event) => event.stopPropagation()}>
+        <ContextMenu
+          data-context-menu
+          style={{ left: menu.x, top: menu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
           {menu.isDir && (
             <>
               <ContextItem
                 onClick={() => {
-                  openCreateModal("file", menu.path);
+                  openModal({ kind: "createFile", dirPath: menu.path });
                   setMenu(undefined);
                 }}
               >
+                <FilePlusIcon />
                 {t("files.newFile")}
               </ContextItem>
               <ContextItem
                 onClick={() => {
-                  openCreateModal("folder", menu.path);
+                  openModal({ kind: "createFolder", dirPath: menu.path });
                   setMenu(undefined);
                 }}
               >
+                <FolderPlusIcon />
                 {t("files.newFolder")}
               </ContextItem>
               <ContextDivider />
             </>
           )}
+          {!menu.isDir && (
+            <ContextItem
+              onClick={() => {
+                dispatch(openFileRequest(menu.path));
+                setMenu(undefined);
+              }}
+            >
+              <FileIcon />
+              {t("files.open")}
+            </ContextItem>
+          )}
+          {!menu.isRoot && (
+            <>
+              <ContextItem
+                onClick={() => {
+                  openModal({ kind: "rename", targetPath: menu.path, initialName: basename(menu.path) });
+                  setMenu(undefined);
+                }}
+              >
+                <PencilIcon />
+                {t("files.rename")}
+              </ContextItem>
+            </>
+          )}
           <ContextItem
             onClick={() => {
-              dispatch(openFileRequest(menu.path));
+              copyText(menu.path);
               setMenu(undefined);
             }}
           >
-            {t("files.open")}
+            <CopyIcon />
+            {t("files.copyPath")}
           </ContextItem>
+          {rootPath && !menu.isRoot && (
+            <ContextItem
+              onClick={() => {
+                copyText(relativePath(rootPath, menu.path));
+                setMenu(undefined);
+              }}
+            >
+              <CopyIcon />
+              {t("files.copyRelativePath")}
+            </ContextItem>
+          )}
+          <ContextItem
+            onClick={() => {
+              void window.pi.revealInExplorer(menu.path);
+              setMenu(undefined);
+            }}
+          >
+            <RevealIcon />
+            {t("files.reveal")}
+          </ContextItem>
+          {menu.isRoot && (
+            <>
+              <ContextDivider />
+              <ContextItem
+                onClick={() => {
+                  dispatch(collapseAll());
+                  setMenu(undefined);
+                }}
+              >
+                <CollapseAllIcon />
+                {t("files.collapseAll")}
+              </ContextItem>
+            </>
+          )}
+          {!menu.isRoot && (
+            <>
+              <ContextDivider />
+              <DangerItem
+                onClick={() => {
+                  openModal({ kind: "delete", targetPath: menu.path, initialName: basename(menu.path) });
+                  setMenu(undefined);
+                }}
+              >
+                <TrashIcon />
+                {t("files.delete")}
+              </DangerItem>
+            </>
+          )}
         </ContextMenu>
       )}
 
       {modal && (
         <Modal
-          title={modal.kind === "file" ? t("files.newFile") : t("files.newFolder")}
-          onClose={() => setModal(undefined)}
+          title={modalTitle}
+          onClose={closeModal}
           footer={
             <>
-              <ModalButton onClick={() => setModal(undefined)}>{t("common.cancel")}</ModalButton>
-              <ModalButton $primary disabled={!name.trim()} onClick={submitCreate}>
-                {t("common.confirm")}
+              <ModalButton onClick={closeModal}>{t("common.cancel")}</ModalButton>
+              <ModalButton
+                $primary={modal.kind !== "delete"}
+                $danger={modal.kind === "delete"}
+                disabled={modal.kind !== "delete" && !name.trim()}
+                onClick={submitModal}
+              >
+                {modal.kind === "delete" ? t("common.delete") : t("common.confirm")}
               </ModalButton>
             </>
           }
         >
-          <NameInput
-            autoFocus
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") submitCreate();
-              if (event.key === "Escape") setModal(undefined);
-            }}
-            placeholder={modal.kind === "file" ? t("files.fileNamePlaceholder") : t("files.folderNamePlaceholder")}
-          />
+          {modal.kind === "delete" ? (
+            <ConfirmText>{t("files.deleteConfirm", { name: modal.initialName ?? "" })}</ConfirmText>
+          ) : (
+            <NameInput
+              autoFocus
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") submitModal();
+                if (event.key === "Escape") closeModal();
+              }}
+              placeholder={
+                modal.kind === "rename"
+                  ? t("files.renamePlaceholder")
+                  : modal.kind === "createFile"
+                    ? t("files.fileNamePlaceholder")
+                    : t("files.folderNamePlaceholder")
+              }
+            />
+          )}
         </Modal>
       )}
     </Root>
@@ -185,11 +326,13 @@ function TreeNode({
   node,
   depth,
   label,
+  isRoot = false,
   onMenu,
 }: {
   node: FileNode;
   depth: number;
   label: string;
+  isRoot?: boolean;
   onMenu: (menu: MenuState) => void;
 }) {
   const dispatch = useAppDispatch();
@@ -217,7 +360,7 @@ function TreeNode({
         onClick={handleClick}
         onContextMenu={(event) => {
           event.preventDefault();
-          onMenu({ x: event.clientX, y: event.clientY, path: node.path, isDir });
+          onMenu({ x: event.clientX, y: event.clientY, path: node.path, isDir, isRoot });
         }}
       >
         {isDir ? (
@@ -425,7 +568,7 @@ const ErrorClose = styled.button`
 const ContextMenu = styled.div`
   position: fixed;
   z-index: ${({ theme }) => theme.z.dropdown};
-  min-width: 160px;
+  min-width: 184px;
   padding: 6px;
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -434,7 +577,9 @@ const ContextMenu = styled.div`
 `;
 
 const ContextItem = styled.button`
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   padding: 8px 12px;
   border: none;
@@ -449,6 +594,13 @@ const ContextItem = styled.button`
   &:hover {
     background: ${({ theme }) => theme.colors.surfaceHover};
     color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
+const DangerItem = styled(ContextItem)`
+  &:hover {
+    background: ${({ theme }) => theme.colors.dangerSoft};
+    color: ${({ theme }) => theme.colors.danger};
   }
 `;
 
@@ -478,11 +630,13 @@ const NameInput = styled.input`
   }
 `;
 
-const ModalButton = styled.button<{ $primary?: boolean }>`
+const ModalButton = styled.button<{ $primary?: boolean; $danger?: boolean }>`
   padding: 8px 16px;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme, $primary }) => ($primary ? "transparent" : theme.colors.border)};
-  background: ${({ theme, $primary }) => ($primary ? theme.gradients.accent : theme.colors.surface2)};
+  border: 1px solid
+    ${({ theme, $primary, $danger }) => ($primary || $danger ? "transparent" : theme.colors.border)};
+  background: ${({ theme, $primary, $danger }) =>
+    $danger ? theme.colors.danger : $primary ? theme.gradients.accent : theme.colors.surface2};
   color: ${({ theme }) => theme.colors.text};
   font-size: 13px;
   font-weight: 600;
@@ -497,4 +651,11 @@ const ModalButton = styled.button<{ $primary?: boolean }>`
     opacity: 0.45;
     cursor: not-allowed;
   }
+`;
+
+const ConfirmText = styled.div`
+  color: ${({ theme }) => theme.colors.textMuted};
+  font-size: 13.5px;
+  line-height: 1.6;
+  word-break: break-word;
 `;

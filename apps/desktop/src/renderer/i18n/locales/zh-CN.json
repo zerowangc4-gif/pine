@@ -5,6 +5,7 @@
     "save": "保存",
     "cancel": "取消",
     "confirm": "确定",
+    "delete": "删除",
     "close": "关闭",
     "search": "搜索…",
     "refresh": "刷新"
@@ -20,6 +21,9 @@
     "modelRequiresProvider": "请先选择提供商",
     "apiKey": "API Key",
     "apiKeyHint": "密钥仅保存在本机内存中，不会写入磁盘。",
+    "configured": "已配置",
+    "configuredHint": "该提供商已配置密钥，可直接连接，或输入新密钥覆盖。",
+    "configuredKeyPlaceholder": "已配置密钥，可留空",
     "show": "显示",
     "hide": "隐藏",
     "connect": "连接",
@@ -42,7 +46,15 @@
     "folderNamePlaceholder": "文件夹名",
     "nameExists": "已存在同名文件或文件夹",
     "nameRequired": "请输入名称",
-    "readError": "读取失败"
+    "readError": "读取失败",
+    "collapseAll": "折叠全部",
+    "rename": "重命名",
+    "renamePlaceholder": "新名称",
+    "delete": "删除",
+    "deleteConfirm": "确定删除“{{name}}”吗？此操作无法撤销。",
+    "copyPath": "复制路径",
+    "copyRelativePath": "复制相对路径",
+    "reveal": "在资源管理器中显示"
   },
   "chat": {
     "tab": "聊天",
@@ -60,7 +72,29 @@
     "unsaved": "未保存",
     "saved": "已保存",
     "assistant": "助手",
-    "you": "你"
+    "you": "你",
+    "sessions": "会话",
+    "newSession": "新建会话",
+    "noSessions": "还没有保存的会话",
+    "untitledSession": "未命名会话",
+    "deleteSession": "删除会话",
+    "deleteSessionConfirm": "确定删除会话“{{name}}”吗？此操作无法撤销。",
+    "sessionMessages": "{{count}} 条消息",
+    "sessionSettings": "会话设置",
+    "sessionName": "会话名称",
+    "sessionNamePlaceholder": "给这个会话起个名字",
+    "model": "模型",
+    "needKey": "需配置密钥",
+    "modeFast": "快速",
+    "modeDeep": "深度",
+    "messagesCount": "{{count}} 条消息",
+    "tokens": "{{count}} tokens",
+    "tokensDetail": "输入 {{input}} · 输出 {{output}}",
+    "cost": "{{amount}}"
+  },
+  "editor": {
+    "lineCol": "行 {{line}}，列 {{column}}",
+    "lines": "{{count}} 行"
   },
   "error": {
     "noFolder": "请先打开一个文件夹",
@@ -71,11 +105,24 @@
     "nameExists": "已存在同名文件或文件夹",
     "nameRequired": "名称不能为空",
     "operationFailed": "操作失败",
-    "streaming": "正在生成中，请稍候"
+    "streaming": "正在生成中，请稍候",
+    "cannotDeleteRoot": "无法删除工作目录根目录",
+    "sessionNotFound": "会话不存在",
+    "sessionLoadFailed": "会话加载失败",
+    "apiKeyRequired": "请输入 API Key，或选择已配置密钥的提供商",
+    "noActiveSession": "当前没有活动会话"
   },
   "language": {
     "label": "语言",
     "zh": "中文",
     "en": "English"
+  },
+  "theme": {
+    "light": "切换到浅色主题",
+    "dark": "切换到深色主题"
+  },
+  "layout": {
+    "fullscreen": "全屏（隐藏侧栏）",
+    "showSidebar": "显示侧栏"
   }
 }

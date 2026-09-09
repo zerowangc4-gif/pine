@@ -9,6 +9,17 @@ let mainWindow: BrowserWindow | undefined;
 
 const getWindow = (): BrowserWindow | undefined => mainWindow;
 
+/**
+ * Sessions live next to the app itself ("install dir/sessions") instead of in
+ * the user's home directory, so every conversation travels with the app folder.
+ * In development `app.getAppPath()` is the project root; when packaged we fall
+ * back to the directory containing the executable, which stays writable.
+ */
+function getSessionsDir(): string {
+  const baseDir = app.isPackaged ? path.dirname(app.getPath("exe")) : app.getAppPath();
+  return path.join(baseDir, "sessions");
+}
+
 function sendToWindow(event: ChatEvent): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IPC_CHANNELS.chatEvent, event);
@@ -45,7 +56,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  const service = new PineService(sendToWindow);
+  const service = new PineService(sendToWindow, getSessionsDir());
   registerIpc(service, getWindow);
   createWindow();
 

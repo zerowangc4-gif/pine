@@ -6,13 +6,14 @@ import styled from "styled-components";
 import { CheckIcon, CrossIcon, Spinner } from "@renderer/components/icons";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { errorText } from "@renderer/utils/error";
+import { ComposerBar } from "./ComposerBar";
 import { clearError, sendMessage } from "../store";
 import type { ChatMessage, ToolStep } from "../types/state";
 
 export function ChatView() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { messages, streaming, error } = useAppSelector((state) => state.chat);
+  const { messages, streaming, error, sessionStats } = useAppSelector((state) => state.chat);
   const rootPath = useAppSelector((state) => state.workspace.rootPath);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -74,6 +75,7 @@ export function ChatView() {
             </SendButton>
           )}
         </ComposerBox>
+        <ComposerBar stats={sessionStats} />
       </Composer>
     </Root>
   );

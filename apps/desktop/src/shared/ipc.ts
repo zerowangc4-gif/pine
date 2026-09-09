@@ -10,8 +10,25 @@ export const IPC_CHANNELS = {
   filesReadDir: "files:read-dir",
   filesCreateFile: "files:create-file",
   filesCreateFolder: "files:create-folder",
+  filesRename: "files:rename",
+  filesDelete: "files:delete",
+  filesReveal: "files:reveal",
   filesReadFile: "files:read-file",
   filesWriteFile: "files:write-file",
+  filesChanged: "files:changed",
+
+  sessionsList: "sessions:list",
+  sessionsLoad: "sessions:load",
+  sessionsDelete: "sessions:delete",
+  sessionsNew: "sessions:new",
+  sessionsRename: "sessions:rename",
+  sessionsStats: "sessions:stats",
+
+  modelSwitch: "model:switch",
+  modelThinkingLevel: "model:thinking-level",
+  modelActive: "model:active",
+
+  systemCopyText: "system:copy-text",
 
   chatSend: "chat:send",
   chatAbort: "chat:abort",

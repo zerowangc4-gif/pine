@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { Dropdown, type DropdownOption } from "@renderer/components/Dropdown";
 import { LanguageSwitcher } from "@renderer/components/LanguageSwitcher";
+import { ThemeSwitcher } from "@renderer/components/ThemeSwitcher";
 import { LogoMark, Spinner } from "@renderer/components/icons";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { errorText } from "@renderer/utils/error";
@@ -69,14 +70,19 @@ export function Login() {
   );
 
   const [showKey, setShowKey] = useState(false);
+  const selectedConfigured = currentProvider?.configured ?? false;
   const canConnect =
-    Boolean(selectedProvider) && Boolean(selectedModel) && apiKey.trim().length > 0 && !connecting;
+    Boolean(selectedProvider) &&
+    Boolean(selectedModel) &&
+    (apiKey.trim().length > 0 || selectedConfigured) &&
+    !connecting;
 
   return (
     <Page>
       <Glow $position="top" />
       <Glow $position="bottom" />
       <TopBar>
+        <ThemeSwitcher />
         <LanguageSwitcher />
       </TopBar>
       <Card>
@@ -114,13 +120,20 @@ export function Login() {
           </Field>
 
           <Field>
-            <Label>{t("login.apiKey")}</Label>
+            <Label>
+              {t("login.apiKey")}
+              {selectedConfigured && <ConfiguredBadge>{t("login.configured")}</ConfiguredBadge>}
+            </Label>
             <KeyWrap>
               <KeyInput
                 type={showKey ? "text" : "password"}
                 value={apiKey}
                 onChange={(event) => dispatch(setApiKey(event.target.value))}
-                placeholder={currentProvider?.apiKeyLabel ?? t("login.apiKey")}
+                placeholder={
+                  selectedConfigured
+                    ? t("login.configuredKeyPlaceholder")
+                    : (currentProvider?.apiKeyLabel ?? t("login.apiKey"))
+                }
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -128,7 +141,7 @@ export function Login() {
                 {showKey ? t("login.hide") : t("login.show")}
               </KeyToggle>
             </KeyWrap>
-            <Hint>{t("login.apiKeyHint")}</Hint>
+            <Hint>{selectedConfigured ? t("login.configuredHint") : t("login.apiKeyHint")}</Hint>
           </Field>
 
           {(providersError ?? error) && <ErrorText>{errorText(providersError ?? error)}</ErrorText>}
@@ -158,6 +171,9 @@ const TopBar = styled.div`
   top: 20px;
   right: 24px;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spaces["2"]};
 `;
 
 const Glow = styled.div<{ $position: "top" | "bottom" }>`
@@ -235,8 +251,20 @@ const Field = styled.div`
 `;
 
 const Label = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: ${({ theme }) => theme.colors.textMuted};
   font-size: 13px;
+  font-weight: 600;
+`;
+
+const ConfiguredBadge = styled.span`
+  padding: 2px 8px;
+  border-radius: ${({ theme }) => theme.radius.full};
+  background: ${({ theme }) => theme.colors.successSoft};
+  color: ${({ theme }) => theme.colors.success};
+  font-size: 11px;
   font-weight: 600;
 `;
 

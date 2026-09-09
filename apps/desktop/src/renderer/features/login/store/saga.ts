@@ -1,6 +1,6 @@
 import type { SagaIterator } from "redux-saga";
 import { call, put, select, takeLatest } from "redux-saga/effects";
-import type { ProviderInfo } from "@shared/types";
+import type { ActiveModelInfo, ProviderInfo } from "@shared/types";
 import { toErrorMessage } from "@shared/utils";
 import type { RootState } from "@renderer/store";
 import type { State } from "../types/state";
@@ -8,10 +8,17 @@ import {
   connectFailure,
   connectRequest,
   connectSuccess,
+  getActiveModelRequest,
+  getActiveModelSuccess,
   loadProviders,
   loadProvidersFailure,
   loadProvidersSuccess,
+  setThinkingLevelRequest,
+  setThinkingLevelSuccess,
+  switchModelRequest,
+  switchModelSuccess,
 } from "./slice";
+import { chatError } from "../../chat/store";
 
 function* loadProvidersSaga(): SagaIterator {
   try {
@@ -48,7 +55,43 @@ function* connectSaga(): SagaIterator {
   }
 }
 
+function* switchModelSaga(action: ReturnType<typeof switchModelRequest>): SagaIterator {
+  try {
+    const result = yield call(() =>
+      window.pi.switchModel(action.payload.provider, action.payload.model),
+    );
+    if (result.ok) {
+      yield put(switchModelSuccess({ provider: action.payload.provider, model: action.payload.model }));
+    } else {
+      yield put(chatError(result.error ?? "error.operationFailed"));
+    }
+  } catch (error) {
+    yield put(chatError(toErrorMessage(error)));
+  }
+}
+
+function* setThinkingLevelSaga(action: ReturnType<typeof setThinkingLevelRequest>): SagaIterator {
+  try {
+    yield call(() => window.pi.setThinkingLevel(action.payload));
+    yield put(setThinkingLevelSuccess(action.payload));
+  } catch (error) {
+    yield put(chatError(toErrorMessage(error)));
+  }
+}
+
+function* getActiveModelSaga(): SagaIterator {
+  try {
+    const active: ActiveModelInfo = yield call(() => window.pi.getActiveModel());
+    yield put(getActiveModelSuccess(active));
+  } catch {
+    // Not connected yet; the login flow will populate the selection.
+  }
+}
+
 export function* loginSaga(): SagaIterator {
   yield takeLatest(loadProviders.type, loadProvidersSaga);
   yield takeLatest(connectRequest.type, connectSaga);
+  yield takeLatest(switchModelRequest.type, switchModelSaga);
+  yield takeLatest(setThinkingLevelRequest.type, setThinkingLevelSaga);
+  yield takeLatest(getActiveModelRequest.type, getActiveModelSaga);
 }

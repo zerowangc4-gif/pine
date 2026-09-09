@@ -1,6 +1,6 @@
-import { promises as fs } from "node:fs";
+import { watch, promises as fs, type FSWatcher } from "node:fs";
 import path from "node:path";
-import { dialog, ipcMain, type BrowserWindow } from "electron";
+import { dialog, ipcMain, shell, type BrowserWindow } from "electron";
 import { AppError } from "@shared/errors";
 import { IPC_CHANNELS } from "@shared/ipc";
 import type { DirEntry, FileResult } from "@shared/types";
@@ -8,6 +8,48 @@ import { toErrorMessage } from "@shared/utils";
 import type { PineService } from "../services/pine-service";
 
 type EntryKind = "file" | "folder";
+
+let fileWatcher: FSWatcher | undefined;
+let fileWatcherTimer: NodeJS.Timeout | undefined;
+
+function sendFilesChanged(getWindow: () => BrowserWindow | undefined): void {
+  const window = getWindow();
+  if (window && !window.isDestroyed()) {
+    window.webContents.send(IPC_CHANNELS.filesChanged);
+  }
+}
+
+/**
+ * Auto-refresh the explorer when files change on disk, the same way VSCode does.
+ * Debounced so bursts of writes (e.g. an agent editing several files) collapse
+ * into a single refresh.
+ */
+function watchWorkspace(root: string, getWindow: () => BrowserWindow | undefined): void {
+  fileWatcher?.close();
+  fileWatcher = undefined;
+  if (fileWatcherTimer) {
+    clearTimeout(fileWatcherTimer);
+    fileWatcherTimer = undefined;
+  }
+
+  try {
+    fileWatcher = watch(root, { recursive: true }, () => {
+      if (fileWatcherTimer) {
+        clearTimeout(fileWatcherTimer);
+      }
+      fileWatcherTimer = setTimeout(() => {
+        fileWatcherTimer = undefined;
+        sendFilesChanged(getWindow);
+      }, 300);
+    });
+    fileWatcher.on("error", () => {
+      // A disappearing watch (e.g. deleted root) is safe to ignore.
+    });
+  } catch {
+    // Recursive watching is unavailable on some platforms; the explorer stays
+    // correct via explicit file operations.
+  }
+}
 
 async function pathExists(target: string): Promise<boolean> {
   try {
@@ -71,6 +113,7 @@ export function registerFilesIpc(
     }
     const root = result.filePaths[0];
     service.setWorkspaceRoot(root);
+    watchWorkspace(root, getWindow);
     return root;
   });
 
@@ -120,4 +163,51 @@ export function registerFilesIpc(
       }
     },
   );
+
+  ipcMain.handle(
+    IPC_CHANNELS.filesRename,
+    async (_event, target: string, name: string): Promise<FileResult> => {
+      try {
+        const root = service.getWorkspaceRoot();
+        const resolved = resolveWithinRoot(root, target);
+        if (resolved === path.resolve(root ?? "")) {
+          return { ok: false, error: AppError.operationFailed };
+        }
+        const trimmed = name.trim();
+        if (!trimmed) {
+          return { ok: false, error: AppError.nameRequired };
+        }
+        const nextPath = path.join(path.dirname(resolved), trimmed);
+        if (nextPath === resolved) {
+          return { ok: true, path: resolved };
+        }
+        if (await pathExists(nextPath)) {
+          return { ok: false, error: AppError.nameExists };
+        }
+        await fs.rename(resolved, nextPath);
+        return { ok: true, path: nextPath };
+      } catch (error) {
+        return { ok: false, error: toErrorMessage(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(IPC_CHANNELS.filesDelete, async (_event, target: string): Promise<FileResult> => {
+    try {
+      const root = service.getWorkspaceRoot();
+      const resolved = resolveWithinRoot(root, target);
+      if (resolved === path.resolve(root ?? "")) {
+        return { ok: false, error: AppError.cannotDeleteRoot };
+      }
+      await fs.rm(resolved, { recursive: true, force: true });
+      return { ok: true, path: resolved };
+    } catch (error) {
+      return { ok: false, error: toErrorMessage(error) };
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.filesReveal, (_event, target: string): void => {
+    const resolved = resolveWithinRoot(service.getWorkspaceRoot(), target);
+    shell.showItemInFolder(resolved);
+  });
 }

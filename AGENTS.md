@@ -2,6 +2,14 @@
 
 本文件是给 AI 编程助手（以及新接手的人）的项目约定。写代码前先读完本文件，涉及 SDK 接口时以本文件第 2、3 节指向的文档为准。
 
+## 0. 宪法（不可妥协）
+
+1. **代码必须干净**：单一职责、命名清晰、无死代码、无重复、不硬编码颜色/间距（见 5.4）。每次改动必须过 typecheck + lint。
+2. **先想清楚谁会用**：动手前先回答「谁会用这个功能？他为什么要用？操作顺不顺？」。没有使用理由的功能不加，宁可少而精。
+3. **UI 状态只在 Redux（内存）**：主题 / 语言 / 布局等 UI 状态不用 localStorage、不落盘；用户数据（会话）才持久化。
+4. **核心包导出收敛一处**：主进程用 SDK 只从 `src/main/core/pi.ts` 导入（见 5.5）。
+5. **文档实时更新**：改了能力/约定，同步更新 `AGENTS.md` 与 `docs/DESIGN_NOTES.md`，允许删除、修改旧内容。
+
 ## 1. 项目是什么
 
 Pine 是一个 Electron 桌面端，把 `@earendil-works/pi-coding-agent`（Pi 编码助手 SDK）嵌进自定义 UI：登录选模型 → 打开文件夹 → 与助手对话，助手能用 read/bash/edit/write 工具在那个文件夹里工作。
@@ -133,20 +141,21 @@ apps/desktop/src/
   shared/                 跨进程共享：types.ts / ipc.ts / errors.ts / utils.ts
   main/                   主进程（Node）
     index.ts              入口：建窗口 + 组装
-    ipc/                  薄壳 ipcMain handler，按域拆：providers / files / chat
+    core/pi.ts            **唯一** SDK 导出入口（按分类再导出）
+    ipc/                  薄壳 ipcMain handler：providers / files / chat / sessions / system
     services/pine-service.ts   PineService 类：runtime + 连接 + 工作目录 + 会话
   preload/index.ts        暴露 window.pi
   renderer/
-    main.tsx / App.tsx    入口 + 路由守卫
-    theme/                主题 token + GlobalStyle
+    main.tsx / ThemedRoot.tsx / App.tsx    入口 + 主题注入 + 路由守卫
+    theme/                theme.ts（dark/light 两个主题，spaces+colors）+ GlobalStyle
     i18n/                 i18next 初始化 + zh-CN / en-US 语言包
-    components/           Dropdown / Modal / icons / LanguageSwitcher
+    components/           Dropdown / Modal / icons / LanguageSwitcher / ThemeSwitcher
     utils/                id / path / error
-    store/                Redux store + rootSaga
+    store/                Redux store + rootSaga + themeSlice + layoutSlice
     features/
-      login/              登录
+      login/              登录 / 模型切换
       workspace/          文件树 + 编辑器
-      chat/               聊天
+      chat/               聊天 / 会话 / 会话设置
 ```
 
 **每个 feature 固定形状**：
@@ -183,18 +192,23 @@ features/<name>/
 - 渲染层展示错误统一走 `utils/error.ts` 的 `errorText()`：是 key 就翻译，否则原文透传。
 - 新增错误码：`shared/errors.ts` 加常量 + 两个语言包的 `error.*` 命名空间都加。
 
-### 5.4 样式
+### 5.4 样式与主题
 
-- **禁止硬编码颜色**。所有 styled 组件用 `({ theme }) => theme.colors.*` / `gradients.*` / `spacing.*` / `radius.*` 等。
-- 新 token 加到 `theme/theme.ts`，`Theme` 接口是契约。
+- **禁止硬编码颜色与间距**：颜色用 `theme.colors.*`，距离/内边距/间隙用 `theme.spaces["…"]`（Tailwind 风格 scale：`1`=4px、`4`=16px…，见 `theme/theme.ts`）。
+- 只有两个主题：`dark`（默认）/ `light`，由 `theme/theme.ts` 的 `themes` / `getTheme()` 提供；切换走 `ThemeSwitcher`（Redux `theme` slice，仅内存，不持久化）。
+- 新 token 必须先改 `Theme` 接口（契约），再补两个主题各自的值。
 - 图标只放在 `components/icons.tsx`（SVG 组件 + `Spinner`），其他地方不要重复写 SVG。
 
-### 5.5 国际化
+### 5.5 核心包导出收敛
+
+- 主进程用到的 Pi SDK 能力**必须**从 `src/main/core/pi.ts` 一个文件导入，不要直接 import 包。新增 SDK 能力时先在该文件补导出。
+
+### 5.6 国际化
 
 - 所有用户可见文案走 `useTranslation()` 的 `t("feature.key")`，**禁止硬编码中文/英文**。
 - 每个 key 必须同时加到 `i18n/locales/zh-CN.json` 和 `en-US.json`。
 
-### 5.6 通用
+### 5.7 通用
 
 - 命名清晰、单一职责；无用的代码/导入直接删，不留死代码。
 - 通用工具放 `renderer/utils/` 或 `shared/utils.ts`（跨进程时），不复制粘贴。

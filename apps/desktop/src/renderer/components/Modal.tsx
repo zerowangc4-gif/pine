@@ -32,7 +32,7 @@ const Overlay = styled.div`
 
 const Card = styled.div`
   width: 360px;
-  padding: 24px;
+  padding: ${({ theme }) => theme.spaces["6"]};
   border-radius: ${({ theme }) => theme.radius.lg};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.bg};
@@ -40,7 +40,7 @@ const Card = styled.div`
 `;
 
 const Title = styled.div`
-  margin-bottom: 16px;
+  margin-bottom: ${({ theme }) => theme.spaces["4"]};
   color: ${({ theme }) => theme.colors.text};
   font-size: 16px;
   font-weight: 700;
@@ -53,6 +53,6 @@ const Body = styled.div`
 const Footer = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
+  gap: ${({ theme }) => theme.spaces["2"]};
+  margin-top: ${({ theme }) => theme.spaces["4"]};
 `;

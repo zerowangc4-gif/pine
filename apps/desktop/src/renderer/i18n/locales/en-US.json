@@ -5,6 +5,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "OK",
+    "delete": "Delete",
     "close": "Close",
     "search": "Search…",
     "refresh": "Refresh"
@@ -20,6 +21,9 @@
     "modelRequiresProvider": "Select a provider first",
     "apiKey": "API Key",
     "apiKeyHint": "The key is kept in memory only and never written to disk.",
+    "configured": "Configured",
+    "configuredHint": "This provider already has a key. Connect directly, or enter a new key to override.",
+    "configuredKeyPlaceholder": "Already configured — leave empty",
     "show": "Show",
     "hide": "Hide",
     "connect": "Connect",
@@ -42,7 +46,15 @@
     "folderNamePlaceholder": "Folder name",
     "nameExists": "A file or folder with this name already exists",
     "nameRequired": "Enter a name",
-    "readError": "Failed to read"
+    "readError": "Failed to read",
+    "collapseAll": "Collapse All",
+    "rename": "Rename",
+    "renamePlaceholder": "New name",
+    "delete": "Delete",
+    "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+    "copyPath": "Copy Path",
+    "copyRelativePath": "Copy Relative Path",
+    "reveal": "Reveal in Explorer"
   },
   "chat": {
     "tab": "Chat",
@@ -60,7 +72,29 @@
     "unsaved": "Unsaved",
     "saved": "Saved",
     "assistant": "Assistant",
-    "you": "You"
+    "you": "You",
+    "sessions": "Sessions",
+    "newSession": "New Session",
+    "noSessions": "No saved sessions yet",
+    "untitledSession": "Untitled session",
+    "deleteSession": "Delete Session",
+    "deleteSessionConfirm": "Delete session \"{{name}}\"? This cannot be undone.",
+    "sessionMessages": "{{count}} messages",
+    "sessionSettings": "Session Settings",
+    "sessionName": "Session name",
+    "sessionNamePlaceholder": "Name this session",
+    "model": "Model",
+    "needKey": "needs a key",
+    "modeFast": "Fast",
+    "modeDeep": "Deep",
+    "messagesCount": "{{count}} messages",
+    "tokens": "{{count}} tokens",
+    "tokensDetail": "In {{input}} · Out {{output}}",
+    "cost": "{{amount}}"
+  },
+  "editor": {
+    "lineCol": "Ln {{line}}, Col {{column}}",
+    "lines": "{{count}} lines"
   },
   "error": {
     "noFolder": "Open a folder first",
@@ -71,11 +105,24 @@
     "nameExists": "A file or folder with this name already exists",
     "nameRequired": "Enter a name",
     "operationFailed": "Operation failed",
-    "streaming": "A response is already generating"
+    "streaming": "A response is already generating",
+    "cannotDeleteRoot": "The workspace root cannot be deleted",
+    "sessionNotFound": "Session not found",
+    "sessionLoadFailed": "Failed to load the session",
+    "apiKeyRequired": "Enter an API key or choose a provider that already has one",
+    "noActiveSession": "No active session"
   },
   "language": {
     "label": "Language",
     "zh": "中文",
     "en": "English"
+  },
+  "theme": {
+    "light": "Switch to light theme",
+    "dark": "Switch to dark theme"
+  },
+  "layout": {
+    "fullscreen": "Fullscreen (hide sidebar)",
+    "showSidebar": "Show sidebar"
   }
 }

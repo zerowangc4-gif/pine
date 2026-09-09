@@ -1,3 +1,5 @@
+import type { SessionInfo, SessionStatsDTO } from "@shared/types";
+
 export interface ToolStep {
   id: string;
   name: string;
@@ -17,4 +19,9 @@ export interface State {
   messages: ChatMessage[];
   streaming: boolean;
   error?: string;
+  sessions: SessionInfo[];
+  sessionsLoading: boolean;
+  activeSessionPath?: string;
+  sessionError?: string;
+  sessionStats?: SessionStatsDTO;
 }

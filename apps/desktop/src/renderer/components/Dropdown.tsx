@@ -7,6 +7,7 @@ export interface DropdownOption {
   value: string;
   label: string;
   hint?: string;
+  disabled?: boolean;
 }
 
 interface DropdownProps {
@@ -70,7 +71,9 @@ export function Dropdown({ options, value, onChange, placeholder, disabled }: Dr
               <Item
                 key={option.value}
                 $selected={option.value === value}
+                $disabled={option.disabled}
                 onClick={() => {
+                  if (option.disabled) return;
                   onChange(option.value);
                   setOpen(false);
                   setQuery("");
@@ -189,7 +192,7 @@ const List = styled.div`
   gap: 2px;
 `;
 
-const Item = styled.button<{ $selected?: boolean }>`
+const Item = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
   display: flex;
   align-items: center;
   gap: 10px;
@@ -197,14 +200,15 @@ const Item = styled.button<{ $selected?: boolean }>`
   padding: 10px 12px;
   border: none;
   border-radius: ${({ theme }) => theme.radius.md};
-  cursor: pointer;
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   text-align: left;
+  opacity: ${({ $disabled }) => ($disabled ? 0.45 : 1)};
   background: ${({ theme, $selected }) => ($selected ? theme.colors.accentSoft : "transparent")};
   color: ${({ theme, $selected }) => ($selected ? theme.colors.text : theme.colors.textMuted)};
   transition: background ${({ theme }) => theme.transition.fast};
 
   &:hover {
-    background: ${({ theme }) => theme.colors.surfaceHover};
+    background: ${({ theme, $disabled }) => ($disabled ? "transparent" : theme.colors.surfaceHover)};
   }
 `;
 

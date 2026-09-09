@@ -3,7 +3,7 @@ import styled from "styled-components";
 
 const Toggle = styled.button`
   flex: none;
-  padding: 6px 12px;
+  padding: ${({ theme }) => `${theme.spaces["1.5"]} ${theme.spaces["3"]}`};
   border-radius: ${({ theme }) => theme.radius.sm};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.surface2};

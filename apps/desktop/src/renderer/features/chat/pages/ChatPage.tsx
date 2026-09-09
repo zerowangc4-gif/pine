@@ -2,16 +2,28 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { LanguageSwitcher } from "@renderer/components/LanguageSwitcher";
-import { ChatIcon } from "@renderer/components/icons";
+import { ThemeSwitcher } from "@renderer/components/ThemeSwitcher";
+import { ChatIcon, MaximizeIcon, PanelLeftIcon } from "@renderer/components/icons";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { EditorView, FileExplorer } from "@renderer/features/workspace";
-import { closeFile, setActivePath } from "@renderer/features/workspace";
+import { setSidebarWidth, toggleSidebar } from "@renderer/store/layoutSlice";
+import {
+  EditorView,
+  FileExplorer,
+  closeFile,
+  refreshTreeRequest,
+  setActivePath,
+} from "@renderer/features/workspace";
+import { getActiveModelRequest, loadProviders } from "@renderer/features/login";
 import { ChatView } from "../components/ChatView";
+import { SessionsPanel } from "../components/SessionsPanel";
 import {
   agentStarted,
   assistantEnded,
   assistantStarted,
   chatError,
+  getSessionStatsRequest,
+  listSessionsRequest,
+  sessionStatsReceived,
   settled,
   textDelta,
   thinkingDelta,
@@ -23,6 +35,18 @@ export function ChatPage() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { openFiles, activePath } = useAppSelector((state) => state.workspace);
+  const { sidebarWidth, sidebarVisible } = useAppSelector((state) => state.layout);
+
+  useEffect(() => {
+    dispatch(listSessionsRequest());
+    dispatch(loadProviders());
+    dispatch(getActiveModelRequest());
+    dispatch(getSessionStatsRequest());
+  }, [dispatch]);
+
+  useEffect(() => {
+    window.pi.onFilesChanged(() => dispatch(refreshTreeRequest()));
+  }, [dispatch]);
 
   useEffect(() => {
     window.pi.onChatEvent((event) => {
@@ -50,6 +74,11 @@ export function ChatPage() {
           break;
         case "settled":
           dispatch(settled());
+          // The conversation was just persisted; refresh the session list.
+          dispatch(listSessionsRequest());
+          break;
+        case "session_stats":
+          dispatch(sessionStatsReceived(event.stats));
           break;
         case "error":
           dispatch(chatError(event.message));
@@ -60,9 +89,34 @@ export function ChatPage() {
 
   return (
     <Layout>
-      <Sidebar>
-        <FileExplorer />
-      </Sidebar>
+      {sidebarVisible && (
+        <>
+          <Sidebar $width={sidebarWidth}>
+            <ExplorerSlot>
+              <FileExplorer />
+            </ExplorerSlot>
+            <SessionsSlot>
+              <SessionsPanel />
+            </SessionsSlot>
+          </Sidebar>
+          <ResizeHandle
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }}
+            onPointerMove={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                dispatch(setSidebarWidth(event.clientX));
+              }
+            }}
+            onPointerUp={(event) => {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }}
+            onPointerCancel={(event) => {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }}
+          />
+        </>
+      )}
       <Main>
         <TabBar>
           <Tab $active={activePath === undefined} onClick={() => dispatch(setActivePath(undefined))}>
@@ -88,6 +142,13 @@ export function ChatPage() {
             </Tab>
           ))}
           <TabSpacer />
+          <HeaderIconButton
+            title={sidebarVisible ? t("layout.fullscreen") : t("layout.showSidebar")}
+            onClick={() => dispatch(toggleSidebar())}
+          >
+            {sidebarVisible ? <MaximizeIcon /> : <PanelLeftIcon />}
+          </HeaderIconButton>
+          <ThemeSwitcher />
           <LanguageSwitcher />
         </TabBar>
         <Content>{activePath ? <EditorView /> : <ChatView />}</Content>
@@ -102,10 +163,37 @@ const Layout = styled.div`
   background: ${({ theme }) => theme.colors.bgDeep};
 `;
 
-const Sidebar = styled.aside`
+const Sidebar = styled.aside<{ $width: number }>`
   flex: none;
-  width: 264px;
+  width: ${({ $width }) => $width}px;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ResizeHandle = styled.div`
+  flex: none;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  background: transparent;
+  transition: background ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.accent};
+  }
+`;
+
+const ExplorerSlot = styled.div`
+  flex: 1;
+  min-height: 0;
+`;
+
+const SessionsSlot = styled.div`
+  flex: none;
+  height: 224px;
 `;
 
 const Main = styled.div`
@@ -190,6 +278,26 @@ const TabClose = styled.button`
 
 const TabSpacer = styled.div`
   flex: 1;
+`;
+
+const HeaderIconButton = styled.button`
+  flex: none;
+  width: 34px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.surface2};
+  color: ${({ theme }) => theme.colors.textMuted};
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.transition.fast}, color ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.surfaceHover};
+    color: ${({ theme }) => theme.colors.text};
+  }
 `;
 
 const Content = styled.div`

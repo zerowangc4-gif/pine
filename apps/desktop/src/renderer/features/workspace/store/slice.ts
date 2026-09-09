@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { DirEntry } from "@shared/types";
-import { basename } from "@renderer/utils/path";
-import type { State } from "../types/state";
+import { basename, isPathUnder, remapPath } from "@renderer/utils/path";
+import type { FileNode, State } from "../types/state";
 
 const initialState: State = {
   nodes: {},
@@ -68,6 +68,57 @@ export const workspaceSlice = createSlice({
 
     createFileRequest(_state, _action: PayloadAction<{ dirPath: string; name: string }>) {},
     createFolderRequest(_state, _action: PayloadAction<{ dirPath: string; name: string }>) {},
+
+    renameEntryRequest(_state, _action: PayloadAction<{ path: string; name: string }>) {},
+    renameEntrySuccess(state, action: PayloadAction<{ oldPath: string; newPath: string }>) {
+      const { oldPath, newPath } = action.payload;
+      const nextNodes: Record<string, FileNode> = {};
+      for (const [key, node] of Object.entries(state.nodes)) {
+        const mappedPath = remapPath(key, oldPath, newPath);
+        nextNodes[mappedPath] = {
+          ...node,
+          path: mappedPath,
+          name: mappedPath === newPath ? basename(newPath) : node.name,
+          children: node.children?.map((child) => remapPath(child, oldPath, newPath)),
+        };
+      }
+      state.nodes = nextNodes;
+      state.openFiles = state.openFiles.map((file) => {
+        const mappedPath = remapPath(file.path, oldPath, newPath);
+        return mappedPath === file.path ? file : { ...file, path: mappedPath, name: basename(mappedPath) };
+      });
+      if (state.activePath) {
+        state.activePath = remapPath(state.activePath, oldPath, newPath);
+      }
+    },
+
+    deleteEntryRequest(_state, _action: PayloadAction<string>) {},
+    deleteEntrySuccess(state, action: PayloadAction<string>) {
+      const removed = action.payload;
+      for (const key of Object.keys(state.nodes)) {
+        if (isPathUnder(key, removed)) {
+          delete state.nodes[key];
+        }
+      }
+      for (const node of Object.values(state.nodes)) {
+        if (node.children) {
+          node.children = node.children.filter((child) => !isPathUnder(child, removed));
+        }
+      }
+      state.openFiles = state.openFiles.filter((file) => !isPathUnder(file.path, removed));
+      if (state.activePath && isPathUnder(state.activePath, removed)) {
+        state.activePath = state.openFiles[0]?.path;
+      }
+    },
+
+    refreshTreeRequest(_state) {},
+    collapseAll(state) {
+      for (const node of Object.values(state.nodes)) {
+        if (node.type === "dir") {
+          node.expanded = false;
+        }
+      }
+    },
 
     openFileRequest(_state, _action: PayloadAction<string>) {},
     openFileSuccess(state, action: PayloadAction<{ path: string; content: string }>) {
@@ -143,6 +194,12 @@ export const {
   toggleDir,
   createFileRequest,
   createFolderRequest,
+  renameEntryRequest,
+  renameEntrySuccess,
+  deleteEntryRequest,
+  deleteEntrySuccess,
+  refreshTreeRequest,
+  collapseAll,
   openFileRequest,
   openFileSuccess,
   openFileFailure,

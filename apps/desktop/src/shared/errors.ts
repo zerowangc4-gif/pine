@@ -15,6 +15,11 @@ export const AppError = {
   nameRequired: "error.nameRequired",
   operationFailed: "error.operationFailed",
   streaming: "error.streaming",
+  cannotDeleteRoot: "error.cannotDeleteRoot",
+  sessionNotFound: "error.sessionNotFound",
+  sessionLoadFailed: "error.sessionLoadFailed",
+  apiKeyRequired: "error.apiKeyRequired",
+  noActiveSession: "error.noActiveSession",
 } as const;
 
 export type AppErrorKey = (typeof AppError)[keyof typeof AppError];
