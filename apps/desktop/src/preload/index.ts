@@ -1,12 +1,8 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { ipcChannels, type ElectronApi } from "@/shared/ipc";
+import type { Pi } from "@shared";
 
-const electronApi: ElectronApi = {
-  onReady: listener => {
-    ipcRenderer.on(ipcChannels.ready, (_event, ready: boolean) => {
-      listener(ready);
-    });
-  },
+const pi: Pi = {
+  loadConfig: (callback: (value: string) => void) => ipcRenderer.on("load-config", (_event, value) => callback(value)),
 };
 
-contextBridge.exposeInMainWorld("electronApi", electronApi);
+contextBridge.exposeInMainWorld("pi", pi);

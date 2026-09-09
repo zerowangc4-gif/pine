@@ -1,31 +1,25 @@
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
-import { ipcChannels } from "@/shared/ipc";
+import { sendMessage } from "./send";
 
-function createWindow(): void {
+const createWindow = () => {
   const window = new BrowserWindow({
-    width: 900,
+    width: 800,
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.mjs"),
-      contextIsolation: true,
-      nodeIntegration: false,
       sandbox: false,
     },
   });
 
-  window.webContents.once("did-finish-load", () => {
-    window.webContents.send(ipcChannels.ready, true);
-  });
+  window.webContents.once("did-finish-load", () => sendMessage(window));
 
-  const rendererUrl = process.env.ELECTRON_RENDERER_URL;
-
-  if (rendererUrl) {
-    void window.loadURL(rendererUrl);
+  if (process.env.ELECTRON_RENDERER_URL) {
+    window.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    void window.loadFile(path.join(__dirname, "../renderer/index.html"));
+    window.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
-}
+};
 
 app.whenReady().then(() => {
   createWindow();
