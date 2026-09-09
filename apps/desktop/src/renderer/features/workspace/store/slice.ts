@@ -151,7 +151,9 @@ export const workspaceSlice = createSlice({
       if (file && file.content !== action.payload.content) {
         file.previousContent = file.content;
         file.content = action.payload.content;
-        file.savedContent = action.payload.content;
+        // Keep `savedContent` as the last user-saved version. An external
+        // (agent) edit therefore surfaces as a dirty, reviewable diff instead
+        // of being silently accepted into the saved baseline.
       }
     },
 
@@ -174,11 +176,19 @@ export const workspaceSlice = createSlice({
         file.content = action.payload.content;
       }
     },
+    revertFile(state, action: PayloadAction<string>) {
+      const file = state.openFiles.find((item) => item.path === action.payload);
+      if (file) {
+        file.content = file.savedContent;
+        file.previousContent = undefined;
+      }
+    },
     saveFileRequest(_state, _action: PayloadAction<string>) {},
     saveFileSuccess(state, action: PayloadAction<{ path: string; content: string }>) {
       const file = state.openFiles.find((item) => item.path === action.payload.path);
       if (file) {
         file.savedContent = action.payload.content;
+        file.previousContent = undefined;
       }
     },
     saveFileFailure(state, action: PayloadAction<{ path: string; error: string }>) {
@@ -216,6 +226,7 @@ export const {
   closeFile,
   setActivePath,
   editFile,
+  revertFile,
   saveFileRequest,
   saveFileSuccess,
   saveFileFailure,

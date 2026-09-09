@@ -5,7 +5,8 @@
     "cancel": "Cancel",
     "confirm": "OK",
     "delete": "Delete",
-    "search": "Search…"
+    "search": "Search…",
+    "close": "Close"
   },
   "login": {
     "title": "Pine",
@@ -106,6 +107,8 @@
     "autoCompaction": "Auto-compact context",
     "autoCompactionHint": "Summarize early turns automatically when the conversation grows too long",
     "model": "Model",
+    "connectProvider": "Connect Provider",
+    "addConnection": "Add a provider key",
     "modeFast": "Fast",
     "modeDeep": "Deep",
     "messagesCount": "{{count}} messages",
@@ -120,7 +123,8 @@
     "lines": "{{count}} lines",
     "encoding": "UTF-8",
     "diff": "Diff",
-    "exitDiff": "Exit diff"
+    "exitDiff": "Exit diff",
+    "revert": "Revert"
   },
   "error": {
     "noFolder": "Open a folder first",

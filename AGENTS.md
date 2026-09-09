@@ -13,7 +13,7 @@
 硬性红线（违反即重做）：
 - UI 状态只在 Redux（内存），不落盘；用户数据（会话）才持久化。
 - 新增 IPC 能力走五步：types → ipc channel → preload → main handler/logic → renderer saga + 双语 i18n。
-- 改了能力/约定，同步更新 `AGENTS.md` 与 `docs/DESIGN_NOTES.md`。
+- 改了能力/约定，同步更新 `AGENTS.md` 与 `docs/DEVELOPMENT.html`（唯一开发入口）。
 - 主进程不得直接 import SDK 包，渲染层不得 import SDK。
 
 ## 1. 项目是什么
@@ -34,8 +34,9 @@ Pine 是一个 Electron 桌面端，把 `@earendil-works/pi-coding-agent`（Pi �
 
 ### 2.1 本项目自带文档
 
-- **SDK 接口文档**：`docs/sdk-api-reference.md`（完整 API、入参/返回、以及"如何不加载 Pi 默认配置"的逐项对照表）。同名 `.html` 是网页版，内容相同。
-- **架构交接文档**：`apps/desktop/README.md`（目录结构、进程数据流、约定、命令、关键流程）。
+- **开发入口（唯一、必读）**：`docs/DEVELOPMENT.html`——架构、目录、进程数据流、规范、关键流程、功能地图、质量门。人和 AI 都先读这个。
+- **SDK 接口详解**：`docs/sdk-api-reference.html`（完整 API、入参/返回、以及"如何不加载 Pi 默认配置"的逐项对照表）。同名 `.md` 是纯文本版，内容相同。
+- **快速入口**：`apps/desktop/README.md`（命令 + 架构速览 + 文档索引，指向上面两个）。
 
 ### 2.2 SDK 官方文档（随包安装，最权威）
 

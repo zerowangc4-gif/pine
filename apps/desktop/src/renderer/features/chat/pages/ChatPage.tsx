@@ -81,10 +81,10 @@ export function ChatPage() {
           dispatch(messageUsageReceived(event.usage));
           break;
         case "tool_start":
-          dispatch(toolStarted(event.toolName));
+          dispatch(toolStarted({ id: event.toolId, name: event.toolName }));
           break;
         case "tool_end":
-          dispatch(toolEnded({ name: event.toolName, isError: event.isError }));
+          dispatch(toolEnded({ id: event.toolId, isError: event.isError }));
           break;
         case "settled":
           dispatch(settled());

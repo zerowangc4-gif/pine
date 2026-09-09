@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { Modal } from "@renderer/components/Modal";
+import { ModalButton, TextInput } from "@renderer/components/ui";
 import { SparkleIcon } from "@renderer/components/icons";
 import { errorText } from "@renderer/utils/error";
 import type { SkillInfo } from "@shared/types";
@@ -76,7 +77,7 @@ export function SkillsModal({ onClose }: { onClose: () => void }) {
       {creating ? (
         <Form>
           <Label>{t("skills.name")}</Label>
-          <Input
+          <TextInput
             autoFocus
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -151,21 +152,6 @@ const Label = styled.div`
   font-weight: 600;
 `;
 
-const Input = styled.input`
-  padding: ${({ theme }) => `${theme.spaces["2.5"]} ${theme.spaces["3.5"]}`};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  outline: none;
-  background: ${({ theme }) => theme.colors.surface2};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 14px;
-
-  &:focus {
-    border-color: ${({ theme }) => theme.colors.accent};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.accentSoft};
-  }
-`;
-
 const Textarea = styled.textarea`
   padding: ${({ theme }) => `${theme.spaces["2.5"]} ${theme.spaces["3.5"]}`};
   border-radius: ${({ theme }) => theme.radius.md};
@@ -200,23 +186,4 @@ const ErrorText = styled.div`
   font-size: 13px;
 `;
 
-const ModalButton = styled.button<{ $primary?: boolean }>`
-  padding: ${({ theme }) => `${theme.spaces["2"]} ${theme.spaces["4"]}`};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme, $primary }) => ($primary ? "transparent" : theme.colors.border)};
-  background: ${({ theme, $primary }) => ($primary ? theme.gradients.accent : theme.colors.surface2)};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity ${({ theme }) => theme.transition.fast};
 
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-`;

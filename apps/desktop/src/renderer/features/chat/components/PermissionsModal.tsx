@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { Modal } from "@renderer/components/Modal";
+import { ModalButton, SwitchButton, SwitchKnob } from "@renderer/components/ui";
 import { ShieldIcon } from "@renderer/components/icons";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { setActiveToolsRequest } from "../store";
@@ -100,42 +101,4 @@ const ReadBadge = styled.span`
   font-weight: 600;
 `;
 
-const SwitchButton = styled.button<{ $on: boolean }>`
-  flex: none;
-  position: relative;
-  width: 42px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.full};
-  background: ${({ theme, $on }) => ($on ? theme.colors.accent : theme.colors.borderStrong)};
-  cursor: pointer;
-  transition: background ${({ theme }) => theme.transition.fast};
-`;
 
-const SwitchKnob = styled.span<{ $on: boolean }>`
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.colors.accentText};
-  transition: transform ${({ theme }) => theme.transition.fast};
-  transform: ${({ $on }) => ($on ? "translateX(18px)" : "none")};
-`;
-
-const ModalButton = styled.button`
-  padding: ${({ theme }) => `${theme.spaces["2"]} ${theme.spaces["4"]}`};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surface2};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.surfaceHover};
-  }
-`;

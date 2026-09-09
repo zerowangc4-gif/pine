@@ -136,8 +136,8 @@ export type ChatEvent =
   | { type: "text_delta"; delta: string }
   | { type: "thinking_delta"; delta: string }
   | { type: "assistant_end" }
-  | { type: "tool_start"; toolName: string }
-  | { type: "tool_end"; toolName: string; isError: boolean }
+  | { type: "tool_start"; toolId: string; toolName: string }
+  | { type: "tool_end"; toolId: string; toolName: string; isError: boolean }
   | { type: "settled" }
   | { type: "session_stats"; stats: SessionStatsDTO }
   | { type: "message_usage"; usage: MessageUsage }

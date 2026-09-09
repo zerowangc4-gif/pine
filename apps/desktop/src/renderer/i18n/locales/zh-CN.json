@@ -5,7 +5,8 @@
     "cancel": "取消",
     "confirm": "确定",
     "delete": "删除",
-    "search": "搜索…"
+    "search": "搜索…",
+    "close": "关闭"
   },
   "login": {
     "title": "Pine",
@@ -106,6 +107,8 @@
     "autoCompaction": "自动压缩上下文",
     "autoCompactionHint": "对话过长时自动总结早期内容，避免超出上下文窗口",
     "model": "模型",
+    "connectProvider": "连接服务商",
+    "addConnection": "添加服务商密钥",
     "modeFast": "快速",
     "modeDeep": "深度",
     "messagesCount": "{{count}} 条消息",
@@ -120,7 +123,8 @@
     "lines": "{{count}} 行",
     "encoding": "UTF-8",
     "diff": "查看改动",
-    "exitDiff": "退出改动"
+    "exitDiff": "退出改动",
+    "revert": "还原"
   },
   "error": {
     "noFolder": "请先打开一个文件夹",

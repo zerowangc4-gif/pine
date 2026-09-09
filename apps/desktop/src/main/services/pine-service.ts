@@ -425,6 +425,17 @@ export class PineService {
     return this.session ? extractSessionMessages(this.session) : [];
   }
 
+  private scheduleStatsPush(): void {
+    const session = this.session;
+    queueMicrotask(() => {
+      // Only push if the session is unchanged; a folder switch / new session
+      // may have disposed it in between.
+      if (session && this.session === session) {
+        this.send({ type: "session_stats", stats: this.currentStats() });
+      }
+    });
+  }
+
   // ── session lifecycle ──────────────────────────────────────────────────
 
   private async createResources(): Promise<ResourceLoader> {
@@ -524,16 +535,26 @@ export class PineService {
             });
           }
         }
+        // The SDK appends this message to the session *after* listeners run, so
+        // defer one microtask to read stats that already include it. This keeps
+        // the bottom bar live (per message / tool result) instead of only at
+        // agent_settled.
+        this.scheduleStatsPush();
         break;
       case "tool_execution_start":
-        this.send({ type: "tool_start", toolName: event.toolName });
+        this.send({ type: "tool_start", toolId: event.toolCallId, toolName: event.toolName });
         break;
       case "tool_execution_end":
-        this.send({ type: "tool_end", toolName: event.toolName, isError: event.isError });
+        this.send({ type: "tool_end", toolId: event.toolCallId, toolName: event.toolName, isError: event.isError });
         break;
       case "agent_settled":
         this.send({ type: "settled" });
         this.send({ type: "session_stats", stats: this.currentStats() });
+        break;
+      case "entry_appended":
+        // Custom entries (compaction/branch summaries) carry usage too; refresh
+        // the bar when they land.
+        this.scheduleStatsPush();
         break;
       default:
         break;

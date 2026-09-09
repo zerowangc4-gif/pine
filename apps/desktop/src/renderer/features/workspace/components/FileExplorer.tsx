@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { Modal } from "@renderer/components/Modal";
+import { ModalButton } from "@renderer/components/ui";
 import {
   ChevronRightIcon,
   CollapseAllIcon,
@@ -574,28 +575,7 @@ const NameInput = styled.input`
   }
 `;
 
-const ModalButton = styled.button<{ $primary?: boolean; $danger?: boolean }>`
-  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid
-    ${({ theme, $primary, $danger }) => ($primary || $danger ? "transparent" : theme.colors.border)};
-  background: ${({ theme, $primary, $danger }) =>
-    $danger ? theme.colors.danger : $primary ? theme.gradients.accent : theme.colors.surface2};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity ${({ theme }) => theme.transition.fast};
 
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-`;
 
 const ConfirmText = styled.div`
   color: ${({ theme }) => theme.colors.textMuted};

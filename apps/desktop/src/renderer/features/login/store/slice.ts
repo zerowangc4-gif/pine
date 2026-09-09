@@ -63,6 +63,28 @@ export const loginSlice = createSlice({
       state.error = action.payload;
     },
 
+    // Connect a *different* provider from the chat composer while already
+    // connected. Keeps `connected` true on failure so the chat page is not
+    // bounced back to the login screen.
+    connectWithKeyRequest(
+      state,
+      _action: PayloadAction<{ provider: string; model: string; apiKey: string }>,
+    ) {
+      state.connecting = true;
+      state.error = undefined;
+    },
+    connectWithKeySuccess(state, action: PayloadAction<{ provider: string; model: string }>) {
+      state.connecting = false;
+      state.connected = true;
+      state.selectedProvider = action.payload.provider;
+      state.selectedModel = action.payload.model;
+      state.error = undefined;
+    },
+    connectWithKeyFailure(state, action: PayloadAction<string>) {
+      state.connecting = false;
+      state.error = action.payload;
+    },
+
     switchModelRequest(_state, _action: PayloadAction<{ provider: string; model: string }>) {},
     switchModelSuccess(state, action: PayloadAction<{ provider: string; model: string }>) {
       state.selectedProvider = action.payload.provider;
@@ -95,6 +117,9 @@ export const {
   connectRequest,
   connectSuccess,
   connectFailure,
+  connectWithKeyRequest,
+  connectWithKeySuccess,
+  connectWithKeyFailure,
   switchModelRequest,
   switchModelSuccess,
   setThinkingLevelRequest,

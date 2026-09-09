@@ -8,6 +8,9 @@ import {
   connectFailure,
   connectRequest,
   connectSuccess,
+  connectWithKeyFailure,
+  connectWithKeyRequest,
+  connectWithKeySuccess,
   getActiveModelRequest,
   getActiveModelSuccess,
   loadProviders,
@@ -58,6 +61,22 @@ function* connectSaga(): SagaIterator {
   }
 }
 
+function* connectWithKeySaga(action: ReturnType<typeof connectWithKeyRequest>): SagaIterator {
+  try {
+    const result = yield call(() => window.pi.connect(action.payload));
+    if (result.ok) {
+      yield put(connectWithKeySuccess({ provider: action.payload.provider, model: action.payload.model }));
+      // Refresh `configured` flags so the composer's model list reflects the
+      // provider that just received a key.
+      yield put(loadProviders());
+    } else {
+      yield put(connectWithKeyFailure(result.error ?? "error.connectFailed"));
+    }
+  } catch (error) {
+    yield put(connectWithKeyFailure(toErrorMessage(error)));
+  }
+}
+
 function* switchModelSaga(action: ReturnType<typeof switchModelRequest>): SagaIterator {
   try {
     const result = yield call(() =>
@@ -94,6 +113,7 @@ function* getActiveModelSaga(): SagaIterator {
 export function* loginSaga(): SagaIterator {
   yield takeLatest(loadProviders.type, loadProvidersSaga);
   yield takeLatest(connectRequest.type, connectSaga);
+  yield takeLatest(connectWithKeyRequest.type, connectWithKeySaga);
   yield takeLatest(switchModelRequest.type, switchModelSaga);
   yield takeLatest(setThinkingLevelRequest.type, setThinkingLevelSaga);
   yield takeLatest(getActiveModelRequest.type, getActiveModelSaga);

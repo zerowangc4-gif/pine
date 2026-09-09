@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { editFile, saveFileRequest } from "../store";
+import { editFile, revertFile, saveFileRequest } from "../store";
 import { DiffView } from "./DiffView";
 
 interface CursorPosition {
@@ -93,6 +93,11 @@ export function EditorView() {
           <DiffButton $active={showDiff} onClick={() => setShowDiff((value) => !value)}>
             {showDiff ? t("editor.exitDiff") : t("editor.diff")}
           </DiffButton>
+        )}
+        {hasDiff && (
+          <RevertButton onClick={() => dispatch(revertFile(openFile.path))}>
+            {t("editor.revert")}
+          </RevertButton>
         )}
         <SaveButton disabled={!dirty} onClick={() => dispatch(saveFileRequest(file.path))}>
           {t("common.save")}
@@ -202,6 +207,23 @@ const DiffButton = styled.button<{ $active: boolean }>`
   &:hover {
     background: ${({ theme, $active }) => ($active ? theme.colors.accentSoft : theme.colors.surfaceHover)};
     color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
+const RevertButton = styled.button`
+  flex: none;
+  padding: ${({ theme }) => theme.spaces["1.5"]} ${({ theme }) => theme.spaces["3.5"]};
+  border-radius: ${({ theme }) => theme.radius.sm};
+  border: 1px solid ${({ theme }) => theme.colors.danger};
+  background: ${({ theme }) => theme.colors.dangerSoft};
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    opacity: 0.85;
   }
 `;
 

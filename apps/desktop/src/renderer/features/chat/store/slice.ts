@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { ChatImage, MessageUsage, SessionInfo, SessionMessage, SessionSettingsDTO, SessionStatsDTO } from "@shared/types";
 import { createId } from "@renderer/utils/id";
+import { connectWithKeySuccess } from "../../login/store/slice";
 import type { ChatMessage, State } from "../types/state";
 
 const initialState: State = {
@@ -93,24 +94,21 @@ export const chatSlice = createSlice({
         current.usage = action.payload;
       }
     },
-    toolStarted(state, action: PayloadAction<string>) {
+    toolStarted(state, action: PayloadAction<{ id: string; name: string }>) {
       const current = lastAssistant(state);
       if (current) {
         current.tools = [
           ...(current.tools ?? []),
-          { id: createId(), name: action.payload, status: "running" },
+          { id: action.payload.id, name: action.payload.name, status: "running" },
         ];
       }
     },
-    toolEnded(state, action: PayloadAction<{ name: string; isError: boolean }>) {
+    toolEnded(state, action: PayloadAction<{ id: string; isError: boolean }>) {
       const current = lastAssistant(state);
       if (!current?.tools) return;
-      for (let index = current.tools.length - 1; index >= 0; index--) {
-        const tool = current.tools[index];
-        if (tool.name === action.payload.name && tool.status === "running") {
-          tool.status = action.payload.isError ? "error" : "done";
-          break;
-        }
+      const tool = current.tools.find((item) => item.id === action.payload.id);
+      if (tool && tool.status === "running") {
+        tool.status = action.payload.isError ? "error" : "done";
       }
     },
     settled(state) {
@@ -213,6 +211,18 @@ export const chatSlice = createSlice({
     setActiveToolsSuccess(state, action: PayloadAction<string[]>) {
       state.activeTools = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    // Connecting a different provider from the composer disposes the main-side
+    // session, so the renderer must drop the now-orphaned conversation too.
+    builder.addCase(connectWithKeySuccess, (state) => {
+      state.messages = [];
+      state.activeSessionPath = undefined;
+      state.error = undefined;
+      state.streaming = false;
+      state.sessionStats = undefined;
+      state.sessionSettings = undefined;
+    });
   },
 });
 

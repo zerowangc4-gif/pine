@@ -3,12 +3,12 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { Dropdown, type DropdownOption } from "@renderer/components/Dropdown";
 import { Modal } from "@renderer/components/Modal";
-import { GearIcon, ShieldIcon, SparkleIcon } from "@renderer/components/icons";
+import { ModalButton, SwitchButton, SwitchKnob, TextInput } from "@renderer/components/ui";
+import { GearIcon, PlusIcon, ShieldIcon, SparkleIcon } from "@renderer/components/icons";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { formatCost, formatTokens } from "@renderer/utils/format";
-import type { ThinkingLevel } from "@shared/types";
+import type { SessionStatsDTO, ThinkingLevel } from "@shared/types";
 import { setThinkingLevelRequest, switchModelRequest } from "@renderer/features/login";
-import type { SessionStatsDTO } from "@shared/types";
 import {
   getSessionSettingsRequest,
   renameSessionRequest,
@@ -16,6 +16,7 @@ import {
 } from "../store";
 import { SkillsModal } from "./SkillsModal";
 import { PermissionsModal } from "./PermissionsModal";
+import { ConnectProviderModal } from "./ConnectProviderModal";
 
 export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
   const { t } = useTranslation();
@@ -29,9 +30,11 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
   const [sessionName, setSessionName] = useState("");
 
-  // Only providers that already have a usable API key are selectable here.
+  // Only providers with a configured key are listed here; the "+" button
+  // opens the connect modal to add keys for everything else.
   const modelOptions: DropdownOption[] = useMemo(
     () =>
       providers
@@ -52,6 +55,20 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
 
   const isDeep = thinkingLevel !== "low";
   const activeSession = sessions.find((session) => session.path === activeSessionPath);
+
+  // Full breakdown shown on hover; the chip itself stays compact.
+  const statsTitle =
+    (stats?.totalMessages ?? 0) > 0
+      ? [
+          t("chat.messagesCount", { count: stats?.totalMessages ?? 0 }),
+          t("chat.inputTokens", { count: formatTokens(stats?.inputTokens ?? 0) }),
+          t("chat.outputTokens", { count: formatTokens(stats?.outputTokens ?? 0) }),
+          t("chat.cacheTokens", {
+            count: formatTokens((stats?.cacheReadTokens ?? 0) + (stats?.cacheWriteTokens ?? 0)),
+          }),
+          t("chat.cost", { amount: formatCost(stats?.cost ?? 0) }),
+        ].join(" · ")
+      : undefined;
 
   function switchMode(level: ThinkingLevel) {
     dispatch(setThinkingLevelRequest(level));
@@ -85,6 +102,9 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
           }}
           placeholder={t("chat.model")}
         />
+        <GearButton title={t("chat.addConnection")} disabled={streaming} onClick={() => setConnectOpen(true)}>
+          <PlusIcon />
+        </GearButton>
         <ModeToggle>
           <ModeButton $active={!isDeep} disabled={streaming} onClick={() => switchMode("low")}>
             {t("chat.modeFast")}
@@ -108,21 +128,15 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
         </GearButton>
       </Left>
 
-      <Stats>
-        <StatItem>{t("chat.messagesCount", { count: stats?.totalMessages ?? 0 })}</StatItem>
-        <StatDivider />
-        <StatItem>{t("chat.inputTokens", { count: formatTokens(stats?.inputTokens ?? 0) })}</StatItem>
-        <StatDivider />
-        <StatItem>{t("chat.outputTokens", { count: formatTokens(stats?.outputTokens ?? 0) })}</StatItem>
-        <StatDivider />
-        <StatItem>
-          {t("chat.cacheTokens", {
-            count: formatTokens((stats?.cacheReadTokens ?? 0) + (stats?.cacheWriteTokens ?? 0)),
-          })}
-        </StatItem>
-        <StatDivider />
-        <StatItem>{t("chat.cost", { amount: formatCost(stats?.cost ?? 0) })}</StatItem>
-      </Stats>
+      {(stats?.totalMessages ?? 0) > 0 && (
+        <StatChip title={statsTitle}>
+          <span>{t("chat.inputTokens", { count: formatTokens(stats?.inputTokens ?? 0) })}</span>
+          <ChipDot>·</ChipDot>
+          <span>{t("chat.outputTokens", { count: formatTokens(stats?.outputTokens ?? 0) })}</span>
+          <ChipDot>·</ChipDot>
+          <ChipCost>{t("chat.cost", { amount: formatCost(stats?.cost ?? 0) })}</ChipCost>
+        </StatChip>
+      )}
 
       {settingsOpen && (
         <Modal
@@ -138,7 +152,7 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
           }
         >
           <SettingsLabel>{t("chat.sessionName")}</SettingsLabel>
-          <SettingsInput
+          <TextInput
             autoFocus
             value={sessionName}
             onChange={(event) => setSessionName(event.target.value)}
@@ -170,6 +184,8 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
       {skillsOpen && <SkillsModal onClose={() => setSkillsOpen(false)} />}
 
       {permissionsOpen && <PermissionsModal onClose={() => setPermissionsOpen(false)} />}
+
+      {connectOpen && <ConnectProviderModal onClose={() => setConnectOpen(false)} />}
     </Root>
   );
 }
@@ -248,23 +264,27 @@ const GearButton = styled.button`
   }
 `;
 
-const Stats = styled.div`
-  display: flex;
+const StatChip = styled.span`
+  display: inline-flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spaces["2.5"]};
+  gap: ${({ theme }) => theme.spaces["1.5"]};
   flex: none;
-`;
-
-const StatItem = styled.span`
+  padding: ${({ theme }) => `${theme.spaces["1"]} ${theme.spaces["2.5"]}`};
+  border-radius: ${({ theme }) => theme.radius.full};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.surface2};
   color: ${({ theme }) => theme.colors.textDim};
   font-size: 12px;
   white-space: nowrap;
 `;
 
-const StatDivider = styled.span`
-  width: 1px;
-  height: 14px;
-  background: ${({ theme }) => theme.colors.border};
+const ChipDot = styled.span`
+  color: ${({ theme }) => theme.colors.borderStrong};
+`;
+
+const ChipCost = styled.span`
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 600;
 `;
 
 const SettingsLabel = styled.div`
@@ -272,26 +292,6 @@ const SettingsLabel = styled.div`
   color: ${({ theme }) => theme.colors.textMuted};
   font-size: 13px;
   font-weight: 600;
-`;
-
-const SettingsInput = styled.input`
-  width: 100%;
-  padding: ${({ theme }) => `${theme.spaces["2.5"]} ${theme.spaces["3.5"]}`};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  outline: none;
-  background: ${({ theme }) => theme.colors.surface2};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 14px;
-
-  &::placeholder {
-    color: ${({ theme }) => theme.colors.textDim};
-  }
-
-  &:focus {
-    border-color: ${({ theme }) => theme.colors.accent};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.accentSoft};
-  }
 `;
 
 const SettingsHint = styled.p`
@@ -317,48 +317,4 @@ const ToggleInfo = styled.div`
   }
 `;
 
-const SwitchButton = styled.button<{ $on: boolean }>`
-  flex: none;
-  position: relative;
-  width: 42px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.full};
-  background: ${({ theme, $on }) => ($on ? theme.colors.accent : theme.colors.borderStrong)};
-  cursor: pointer;
-  transition: background ${({ theme }) => theme.transition.fast};
-`;
 
-const SwitchKnob = styled.span<{ $on: boolean }>`
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.colors.accentText};
-  transition: transform ${({ theme }) => theme.transition.fast};
-  transform: ${({ $on }) => ($on ? "translateX(18px)" : "none")};
-`;
-
-const ModalButton = styled.button<{ $primary?: boolean }>`
-  padding: ${({ theme }) => `${theme.spaces["2"]} ${theme.spaces["4"]}`};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme, $primary }) => ($primary ? "transparent" : theme.colors.border)};
-  background: ${({ theme, $primary }) => ($primary ? theme.gradients.accent : theme.colors.surface2)};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity ${({ theme }) => theme.transition.fast};
-
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-`;

@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { errorText } from "@renderer/utils/error";
 import { formatCost } from "@renderer/utils/format";
 import type { ChatImage } from "@shared/types";
+import { openFolderRequest } from "@renderer/features/workspace";
 import { ComposerBar } from "./ComposerBar";
 import { clearError, sendMessage } from "../store";
 import type { ChatMessage, ToolStep } from "../types/state";
@@ -43,6 +44,7 @@ export function ChatView() {
   const [dragging, setDragging] = useState(false);
   const [pasteMenu, setPasteMenu] = useState<{ x: number; y: number } | undefined>();
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
 
@@ -57,6 +59,14 @@ export function ChatView() {
       element.scrollTop = element.scrollHeight;
     }
   }, [messages, streaming]);
+
+  // Grow the single-line composer to fit its content, capped at 180px.
+  useEffect(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${Math.min(element.scrollHeight, 180)}px`;
+  }, [input]);
 
   function handleScroll() {
     const element = scrollRef.current;
@@ -160,6 +170,11 @@ export function ChatView() {
           <Welcome>
             <WelcomeTitle>{t("chat.welcomeTitle")}</WelcomeTitle>
             <WelcomeHint>{rootPath ? t("chat.welcomeHintReady") : t("chat.welcomeHint")}</WelcomeHint>
+            {!rootPath && (
+              <WelcomeAction onClick={() => dispatch(openFolderRequest(t("files.openFolder")))}>
+                {t("files.openFolder")}
+              </WelcomeAction>
+            )}
           </Welcome>
         ) : (
           messages.map((message) => <MessageRow key={message.id} message={message} />)
@@ -200,6 +215,7 @@ export function ChatView() {
           </AttachButton>
           <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={handleFileChange} />
           <Textarea
+            ref={textareaRef}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onPaste={handlePaste}
@@ -425,6 +441,24 @@ const WelcomeHint = styled.div`
   margin-top: ${({ theme }) => theme.spaces["2"]};
   color: ${({ theme }) => theme.colors.textDim};
   font-size: 13.5px;
+`;
+
+const WelcomeAction = styled.button`
+  margin-top: ${({ theme }) => theme.spaces["5"]};
+  padding: ${({ theme }) => `${theme.spaces["2.5"]} ${theme.spaces["5"]}`};
+  border: 1px solid ${({ theme }) => theme.colors.borderStrong};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surface2};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.transition.fast}, border-color ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.surfaceHover};
+    border-color: ${({ theme }) => theme.colors.accent};
+  }
 `;
 
 const ErrorBar = styled.div`
