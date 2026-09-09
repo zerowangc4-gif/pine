@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pi Coding Agent SDK 接口文档</title>
+<style>
+:root{
+  --bg:#f5f6f8;
+  --card:#ffffff;
+  --sidebar-bg:#12141b;
+  --sidebar-bg2:#1a1d27;
+  --sidebar-fg:#9aa1b0;
+  --sidebar-active:#ffffff;
+  --accent:#5b6cff;
+  --accent-soft:rgba(91,108,255,.12);
+  --border:#e6e8ec;
+  --text:#1f2328;
+  --muted:#5c6570;
+  --code-bg:#0e1117;
+  --code-fg:#e6edf3;
+  --code-head:#1c2129;
+  --tok-c:#8b949e;
+  --tok-s:#a5d6ff;
+  --tok-k:#ff7b72;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;font-size:15.5px;line-height:1.75}
+code,pre{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"JetBrains Mono","Courier New",monospace}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:304px;background:linear-gradient(180deg,var(--sidebar-bg),var(--sidebar-bg2));color:var(--sidebar-fg);display:flex;flex-direction:column;z-index:30;border-right:1px solid rgba(255,255,255,.06)}
+.sidebar-head{padding:22px 20px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:#fff;font-size:16px}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(91,108,255,.2)}
+.brand small{display:block;font-weight:400;color:var(--sidebar-fg);font-size:12px;margin-top:2px}
+.toc-filter{margin-top:14px;width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#fff;font-size:13px;outline:none}
+.toc-filter::placeholder{color:var(--sidebar-fg)}
+.toc{flex:1;overflow-y:auto;padding:14px 12px 40px}
+.toc ul{list-style:none;margin:0;padding:0}
+.toc li{margin:0}
+.toc a{display:block;color:var(--sidebar-fg);font-size:13.5px;padding:5px 10px;border-radius:6px;border-left:2px solid transparent}
+.toc a:hover{color:#fff;background:rgba(255,255,255,.05);text-decoration:none}
+.toc a.active{color:var(--sidebar-active);background:var(--accent-soft);border-left-color:var(--accent);font-weight:600}
+.toc-h2 > .toc-row a{font-weight:600;color:#d6dae3;font-size:14px}
+.toc-row{display:flex;align-items:center}
+.toc-row a{flex:1}
+.toc-chevron{width:22px;height:22px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:var(--sidebar-fg);background:none;border:none;cursor:pointer;font-size:11px;border-radius:5px;transition:transform .15s}
+.toc-chevron:hover{color:#fff;background:rgba(255,255,255,.08)}
+.toc-h2.collapsed > .toc-row .toc-chevron{transform:rotate(-90deg)}
+.toc-h2.collapsed > ul{display:none}
+.toc li li a{padding-left:26px}
+.toc li li li a{padding-left:40px}
+.toc-badge{flex:none;font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:1px solid rgba(91,108,255,.35);border-radius:999px;padding:0 7px;margin-right:8px}
+
+.main{margin-left:304px;padding:0 34px 80px}
+.content{max-width:900px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:48px 54px 64px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.content > h1{font-size:30px;line-height:1.3;margin:0 0 8px;letter-spacing:-.01em}
+.subtitle{color:var(--muted);margin:0 0 28px;font-size:15px}
+.meta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:34px}
+.meta span{font-size:12.5px;color:var(--muted);background:#f0f1f4;border:1px solid var(--border);padding:3px 10px;border-radius:999px}
+h2{font-size:23px;margin:52px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+h3{font-size:18.5px;margin:34px 0 12px}
+h4{font-size:16px;margin:26px 0 10px}
+h2:first-child{margin-top:0}
+.anchor{opacity:0;font-size:.75em;margin-left:8px;color:var(--muted);font-weight:400}
+h2:hover .anchor,h3:hover .anchor,h4:hover .anchor{opacity:.55}
+.anchor:hover{opacity:1;text-decoration:none}
+p{margin:12px 0}
+ul,ol{margin:12px 0;padding-left:24px}
+li{margin:5px 0}
+li::marker{color:var(--accent)}
+blockquote{margin:18px 0;padding:12px 18px;background:#f6f7fb;border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:var(--muted)}
+blockquote p{margin:4px 0}
+hr{border:none;border-top:1px solid var(--border);margin:34px 0}
+
+.codeblock{margin:18px 0;border-radius:10px;overflow:hidden;background:var(--code-bg);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.codeblock-head{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--code-head);border-bottom:1px solid rgba(255,255,255,.06)}
+.codeblock .lang{font-size:11.5px;font-weight:600;color:#8b95a5;text-transform:uppercase;letter-spacing:.06em}
+.copy-btn{font-size:12px;color:#c9d1d9;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:3px 10px;cursor:pointer}
+.copy-btn:hover{background:rgba(255,255,255,.12)}
+.copy-btn.copied{color:#7ee787;border-color:rgba(126,231,135,.4)}
+.codeblock pre{margin:0;padding:16px 18px;overflow-x:auto;color:var(--code-fg);font-size:13px;line-height:1.65}
+.codeblock code{background:none;padding:0}
+.tok-c{color:var(--tok-c);font-style:italic}
+.tok-s{color:var(--tok-s)}
+.tok-k{color:var(--tok-k)}
+
+p code,li code,td code,th code,blockquote code,h2 code,h3 code,h4 code{background:#eef0f6;color:#3943b7;border:1px solid #e2e5ef;border-radius:5px;padding:1px 6px;font-size:.86em}
+.table-wrap{margin:18px 0;overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+thead th{background:#f6f7fb;text-align:left;font-weight:600;white-space:nowrap}
+th,td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even) td{background:#fafbfd}
+td:first-child,th:first-child{white-space:nowrap}
+
+.menu-toggle{display:none;position:fixed;top:14px;left:14px;z-index:60;background:var(--sidebar-bg);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:16px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:25}
+
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);transition:transform .2s;width:290px}
+  .sidebar.open{transform:translateX(0)}
+  .overlay.show{display:block}
+  .menu-toggle{display:block}
+  .main{margin-left:0;padding:64px 14px 60px}
+  .content{padding:26px 20px 44px}
+}
+</style>
+</head>
+<body>
+<button class="menu-toggle" id="menuToggle" type="button">☰</button>
+<div class="overlay" id="overlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="brand"><span class="dot"></span>Pi SDK<small>@earendil-works/pi-coding-agent</small></div>
+    <input class="toc-filter" id="tocFilter" type="search" placeholder="筛选目录…">
+  </div>
+  <nav class="toc" id="toc"><ul><li class="toc-h2"><div class="toc-row"><a href="#1-架构与入口">1. 架构与入口</a></div></li>
+<li class="toc-h2"><div class="toc-row"><a href="#2-快速开始">2. 快速开始</a><span class="toc-badge">示例</span></div></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#3-重点不加载-pi-默认配置文件">3. 重点：不加载 Pi 默认配置文件</a></div><ul><li><a href="#31-默认会加载什么">3.1 默认会加载什么</a></li><li><a href="#32-逐项关闭方案">3.2 逐项关闭方案</a></li><li><a href="#33-方式-adefaultresourceloader-开关推荐简单">3.3 方式 A：DefaultResourceLoader + 开关（推荐，简单）</a></li><li><a href="#34-方式-b自定义-resourceloader零发现最彻底">3.4 方式 B：自定义 ResourceLoader（零发现，最彻底）</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#4-createagentsession-完整入参">4. createAgentSession 完整入参</a></div><ul><li><a href="#41-函数签名">4.1 函数签名</a></li><li><a href="#42-createagentsessionoptions">4.2 CreateAgentSessionOptions</a></li><li><a href="#43-返回值-createagentsessionresult">4.3 返回值 CreateAgentSessionResult</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#5-agentsession-完整接口">5. AgentSession 完整接口</a></div><ul><li><a href="#51-只读属性getter">5.1 只读属性（getter）</a></li><li><div class="toc-row"><a href="#52-发送与排队">5.2 发送与排队</a></div><ul><li><a href="#prompttext-options">prompt(text, options?)</a></li><li><a href="#steertext-images-options">steer(text, images?, options?)</a></li><li><a href="#followuptext-images-options">followUp(text, images?, options?)</a></li><li><a href="#sendusermessagecontent-options">sendUserMessage(content, options?)</a></li><li><a href="#sendcustommessagemessage-options">sendCustomMessage(message, options?)</a></li><li><a href="#队列清理与查询">队列清理与查询</a></li></ul></li><li><a href="#53-生命周期">5.3 生命周期</a></li><li><a href="#54-模型控制">5.4 模型控制</a></li><li><a href="#55-压缩-重试-队列模式">5.5 压缩 / 重试 / 队列模式</a></li><li><a href="#56-bash-执行">5.6 Bash 执行</a></li><li><a href="#57-会话树-分支-统计-导出">5.7 会话树 / 分支 / 统计 / 导出</a></li><li><a href="#58-工具查询-设置">5.8 工具查询 / 设置</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#6-模型与鉴权modelruntime">6. 模型与鉴权：ModelRuntime</a></div><ul><li><a href="#61-创建">6.1 创建</a></li><li><a href="#62-模型查询">6.2 模型查询</a></li><li><a href="#63-鉴权">6.3 鉴权</a></li><li><a href="#64-底层模型调用直接调用模型">6.4 底层模型调用（直接调用模型）</a></li><li><a href="#65-目录刷新">6.5 目录刷新</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#7-会话持久化sessionmanager">7. 会话持久化：SessionManager</a></div><ul><li><a href="#71-静态工厂">7.1 静态工厂</a></li><li><a href="#72-实例查询">7.2 实例查询</a></li><li><a href="#73-写入-分支">7.3 写入 / 分支</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#8-设置settingsmanager">8. 设置：SettingsManager</a></div><ul><li><a href="#81-静态工厂">8.1 静态工厂</a></li><li><a href="#82-关键方法">8.2 关键方法</a></li><li><a href="#83-常用-getter-setter">8.3 常用 getter / setter</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#9-资源加载resourceloader">9. 资源加载：ResourceLoader</a></div><ul><li><a href="#91-resourceloader-接口完整">9.1 ResourceLoader 接口（完整）</a></li><li><a href="#92-defaultresourceloader-构造选项">9.2 DefaultResourceLoader 构造选项</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#10-事件流">10. 事件流</a></div><ul><li><a href="#101-流式文本-思考">10.1 流式文本 / 思考</a></li><li><a href="#102-消息生命周期">10.2 消息生命周期</a></li><li><a href="#103-agent-turn-生命周期">10.3 Agent / Turn 生命周期</a></li><li><a href="#104-工具执行">10.4 工具执行</a></li><li><a href="#105-队列-压缩-重试-其他">10.5 队列 / 压缩 / 重试 / 其他</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#11-工具与自定义工具">11. 工具与自定义工具</a></div><ul><li><a href="#111-内置工具名">11.1 内置工具名</a></li><li><a href="#112-自定义工具-definetool">11.2 自定义工具 defineTool</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#12-扩展-skills-上下文文件-prompt-模板">12. 扩展 / Skills / 上下文文件 / Prompt 模板</a></div><ul><li><a href="#121-内联扩展">12.1 内联扩展</a></li><li><a href="#122-skills">12.2 Skills</a></li><li><a href="#123-上下文文件agentsmd">12.3 上下文文件（AGENTS.md）</a></li><li><a href="#124-prompt-模板斜杠命令">12.4 Prompt 模板（斜杠命令）</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><button class="toc-chevron" type="button" aria-label="折叠">▾</button><a href="#13-会话运行时agentsessionruntime">13. 会话运行时：AgentSessionRuntime</a></div><ul><li><a href="#131-agentsessionruntime-属性">13.1 AgentSessionRuntime 属性</a></li><li><a href="#132-方法">13.2 方法</a></li></ul></li>
+<li class="toc-h2"><div class="toc-row"><a href="#14-完整桌面端集成示例">14. 完整桌面端集成示例</a><span class="toc-badge">示例</span></div></li>
+<li class="toc-h2"><div class="toc-row"><a href="#附常用导出速查">附：常用导出速查</a></div></li></ul></nav>
+</aside>
+<main class="main">
+  <div class="content">
+    <h1>Pi Coding Agent SDK 接口文档</h1>
+    <p class="subtitle">面向桌面端 / 自定义 UI 集成者的 SDK 接口参考。覆盖全部核心接口，重点说明如何完全不加载 Pi 的默认配置。</p>
+    <div class="meta"><span>包名 @earendil-works/pi-coding-agent</span><span>参考 examples/sdk/</span><span>源码已核对</span></div>
+    
+<blockquote><p>面向桌面端 / 自定义 UI 集成者。本文档覆盖 SDK 模式的全部核心接口，重点说明<strong>如何完全不加载 Pi 的默认配置文件</strong>，并逐一确认每个方法的入参与返回值。</p><p></p><p>包名：<code>@earendil-works/pi-coding-agent</code></p><p>参考示例：<code>packages/coding-agent/examples/sdk/</code></p></blockquote>
+<hr>
+<h2 id="1-架构与入口">1. 架构与入口<a class="anchor" href="#1-架构与入口" aria-label="链接">#</a></h2>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">import</span> {
+  createAgentSession,        <span class="tok-c">// 工厂：创建单个会话</span>
+  AgentSessionRuntime,       <span class="tok-c">// 会话运行时：支持 new/fork/switch/import</span>
+  createAgentSessionRuntime, <span class="tok-c">// 运行时工厂</span>
+  ModelRuntime,              <span class="tok-c">// 模型目录 + 凭证存储</span>
+  SessionManager,            <span class="tok-c">// 会话持久化（文件 / 内存）</span>
+  SettingsManager,           <span class="tok-c">// 设置（文件 / 内存）</span>
+  DefaultResourceLoader,     <span class="tok-c">// 资源加载（扩展、skills、prompt、主题、上下文、系统提示词）</span>
+  defineTool,                <span class="tok-c">// 定义自定义工具</span>
+} <span class="tok-k">from</span> &quot;@earendil-works/pi-coding-agent&quot;;</code></pre></div>
+<p>调用关系：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">text</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-text">createAgentSession(options)
+        │
+        ├── ModelRuntime      ← 模型目录 + API Key / OAuth 凭证
+        ├── SettingsManager   ← 压缩/重试/思考等级等设置
+        ├── SessionManager    ← 会话历史读写
+        ├── ResourceLoader    ← 系统提示词 / 工具 / 扩展 / skills / 上下文
+        └── AgentSession      ← 最终产物：prompt / 事件 / 状态</code></pre></div>
+<p>桌面端只需要关心两件事：</p>
+<ol><li><strong>发消息</strong>：<code>session.prompt(text)</code>，并通过 <code>session.subscribe(...)</code> 订阅流式事件。</li><li><strong>不加载默认配置</strong>：显式注入内存态 / 自定义路径的依赖（见第 3 节）。</li></ol>
+<hr>
+<h2 id="2-快速开始">2. 快速开始<a class="anchor" href="#2-快速开始" aria-label="链接">#</a></h2>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">import</span> {
+  createAgentSession,
+  ModelRuntime,
+  SessionManager,
+  SettingsManager,
+  DefaultResourceLoader,
+} <span class="tok-k">from</span> &quot;@earendil-works/pi-coding-agent&quot;;
+
+<span class="tok-c">// 1. 模型运行时：必须显式创建</span>
+<span class="tok-k">const</span> modelRuntime = <span class="tok-k">await</span> ModelRuntime.create();
+
+<span class="tok-c">// 2. 完全内存态 + 无磁盘资源发现（见第 3 节）</span>
+<span class="tok-k">const</span> settingsManager = SettingsManager.inMemory({ retry: { enabled: <span class="tok-k">false</span> } });
+<span class="tok-k">const</span> resourceLoader = <span class="tok-k">new</span> DefaultResourceLoader({
+  cwd: process.cwd(),
+  agentDir: &quot;/my/app/agent&quot;,           <span class="tok-c">// 不存在的目录也没关系，因为下面全部关闭了发现</span>
+  settingsManager,                     <span class="tok-c">// 复用内存设置，避免 reload 读 settings.json</span>
+  noExtensions: <span class="tok-k">true</span>,
+  noSkills: <span class="tok-k">true</span>,
+  noPromptTemplates: <span class="tok-k">true</span>,
+  noThemes: <span class="tok-k">true</span>,
+  noContextFiles: <span class="tok-k">true</span>,
+  systemPrompt: &quot;You are a helpful assistant.&quot;,
+  appendSystemPrompt: [],
+});
+<span class="tok-k">await</span> resourceLoader.reload();
+
+<span class="tok-k">const</span> { session } = <span class="tok-k">await</span> createAgentSession({
+  cwd: process.cwd(),
+  agentDir: &quot;/my/app/agent&quot;,
+  modelRuntime,
+  settingsManager,
+  resourceLoader,
+  sessionManager: SessionManager.inMemory(process.cwd()),
+});
+
+<span class="tok-c">// 3. 订阅流式输出</span>
+session.subscribe((event) =&gt; {
+  <span class="tok-k">if</span> (event.<span class="tok-k">type</span> === &quot;message_update&quot; &amp;&amp; event.assistantMessageEvent.<span class="tok-k">type</span> === &quot;text_delta&quot;) {
+    process.stdout.write(event.assistantMessageEvent.delta);
+  }
+});
+
+<span class="tok-c">// 4. 调用模型</span>
+<span class="tok-k">await</span> session.prompt(&quot;列出当前目录下的文件&quot;);</code></pre></div>
+<hr>
+<h2 id="3-重点不加载-pi-默认配置文件">3. 重点：不加载 Pi 默认配置文件<a class="anchor" href="#3-重点不加载-pi-默认配置文件" aria-label="链接">#</a></h2>
+<h3 id="31-默认会加载什么">3.1 默认会加载什么<a class="anchor" href="#31-默认会加载什么" aria-label="链接">#</a></h3>
+<p>Pi 默认从以下位置读取配置。<strong>SDK 模式下如果什么都不传，这些默认行为都会发生</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>默认位置</th><th>内容</th><th>默认行为</th></tr></thead><tbody><tr><td><code>~/.pi/agent/settings.json</code> + <code>&lt;cwd&gt;/.pi/settings.json</code></td><td>全局 + 项目设置</td><td>合并读取</td></tr><tr><td><code>~/.pi/agent/auth.json</code></td><td>API Key / OAuth 凭证</td><td>读取</td></tr><tr><td><code>~/.pi/agent/models.json</code></td><td>自定义模型</td><td>读取</td></tr><tr><td><code>~/.pi/agent/models-store.json</code></td><td>模型目录缓存</td><td>读取/写入</td></tr><tr><td><code>~/.pi/agent/SYSTEM.md</code>、<code>&lt;cwd&gt;/.pi/SYSTEM.md</code></td><td>系统提示词</td><td>读取</td></tr><tr><td><code>~/.pi/agent/APPEND_SYSTEM.md</code>、<code>&lt;cwd&gt;/.pi/APPEND_SYSTEM.md</code></td><td>追加提示词</td><td>读取</td></tr><tr><td><code>~/.pi/agent/AGENTS.md</code>、祖先目录 <code>AGENTS.md</code></td><td>上下文文件</td><td>向上遍历读取</td></tr><tr><td><code>~/.pi/agent/extensions/</code>、<code>&lt;cwd&gt;/.pi/extensions/</code></td><td>扩展</td><td>发现并加载</td></tr><tr><td><code>~/.pi/agent/skills/</code>、<code>&lt;cwd&gt;/.pi/skills/</code> 等</td><td>Skills</td><td>发现</td></tr><tr><td><code>~/.pi/agent/prompts/</code>、<code>&lt;cwd&gt;/.pi/prompts/</code></td><td>Prompt 模板</td><td>发现</td></tr><tr><td><code>~/.pi/agent/themes/</code>、<code>&lt;cwd&gt;/.pi/themes/</code></td><td>主题</td><td>发现</td></tr><tr><td><code>~/.pi/agent/sessions/</code></td><td>会话历史文件</td><td>创建/写入</td></tr></tbody></table></div>
+<h3 id="32-逐项关闭方案">3.2 逐项关闭方案<a class="anchor" href="#32-逐项关闭方案" aria-label="链接">#</a></h3>
+<div class="table-wrap"><table><thead><tr><th>默认文件/目录</th><th>关闭方式</th></tr></thead><tbody><tr><td><code>settings.json</code>（全局 + 项目）</td><td><code>SettingsManager.inMemory({...})</code>，不传文件管理器</td></tr><tr><td><code>auth.json</code></td><td><code>ModelRuntime.create({ credentials: new InMemoryCredentialStore() })</code>，再用 <code>setRuntimeApiKey</code></td></tr><tr><td><code>models.json</code></td><td><code>ModelRuntime.create({ modelsPath: null })</code></td></tr><tr><td><code>models-store.json</code></td><td><code>ModelRuntime.create({ modelsPath: null })</code>（此时目录缓存自动内存）</td></tr><tr><td><code>SYSTEM.md</code></td><td><code>DefaultResourceLoader({ systemPrompt: &quot;...&quot; })</code></td></tr><tr><td><code>APPEND_SYSTEM.md</code></td><td><code>DefaultResourceLoader({ appendSystemPrompt: [] })</code></td></tr><tr><td><code>AGENTS.md</code> 上下文</td><td><code>DefaultResourceLoader({ noContextFiles: true })</code></td></tr><tr><td>扩展</td><td><code>DefaultResourceLoader({ noExtensions: true })</code></td></tr><tr><td>Skills</td><td><code>DefaultResourceLoader({ noSkills: true })</code></td></tr><tr><td>Prompt 模板</td><td><code>DefaultResourceLoader({ noPromptTemplates: true })</code></td></tr><tr><td>主题</td><td><code>DefaultResourceLoader({ noThemes: true })</code></td></tr><tr><td>会话文件</td><td><code>SessionManager.inMemory(cwd)</code></td></tr></tbody></table></div>
+<h3 id="33-方式-adefaultresourceloader-开关推荐简单">3.3 方式 A：DefaultResourceLoader + 开关（推荐，简单）<a class="anchor" href="#33-方式-adefaultresourceloader-开关推荐简单" aria-label="链接">#</a></h3>
+<p>用开关关掉所有发现，只保留显式传入的内容：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">import</span> {
+  createAgentSession,
+  DefaultResourceLoader,
+  ModelRuntime,
+  SessionManager,
+  SettingsManager,
+} <span class="tok-k">from</span> &quot;@earendil-works/pi-coding-agent&quot;;
+<span class="tok-k">import</span> { InMemoryCredentialStore } <span class="tok-k">from</span> &quot;@earendil-works/pi-ai&quot;;
+
+<span class="tok-c">// 模型：内存凭证 + 不读 models.json（modelsPath: null 时目录缓存自动内存）</span>
+<span class="tok-k">const</span> modelRuntime = <span class="tok-k">await</span> ModelRuntime.create({
+  credentials: <span class="tok-k">new</span> InMemoryCredentialStore(),
+  modelsPath: <span class="tok-k">null</span>,
+});
+<span class="tok-c">// 运行时注入 API Key（不落盘）</span>
+<span class="tok-k">await</span> modelRuntime.setRuntimeApiKey(&quot;anthropic&quot;, process.env.MY_KEY!);
+
+<span class="tok-k">const</span> settingsManager = SettingsManager.inMemory({
+  compaction: { enabled: <span class="tok-k">false</span> },
+  retry: { enabled: <span class="tok-k">false</span> },
+});
+
+<span class="tok-k">const</span> loader = <span class="tok-k">new</span> DefaultResourceLoader({
+  cwd: process.cwd(),
+  agentDir: &quot;/my/app/agent&quot;,   <span class="tok-c">// 目录可任意指定，因为已关闭全部发现</span>
+  settingsManager,             <span class="tok-c">// 关键：复用内存设置，避免 reload() 读 settings.json</span>
+  noExtensions: <span class="tok-k">true</span>,
+  noSkills: <span class="tok-k">true</span>,
+  noPromptTemplates: <span class="tok-k">true</span>,
+  noThemes: <span class="tok-k">true</span>,
+  noContextFiles: <span class="tok-k">true</span>,
+  systemPrompt: &quot;You are a helpful assistant.&quot;,
+  appendSystemPrompt: [],
+});
+<span class="tok-k">await</span> loader.reload();
+
+<span class="tok-k">const</span> { session } = <span class="tok-k">await</span> createAgentSession({
+  cwd: process.cwd(),
+  agentDir: &quot;/my/app/agent&quot;,
+  modelRuntime,
+  settingsManager,
+  resourceLoader: loader,
+  sessionManager: SessionManager.inMemory(process.cwd()),
+});</code></pre></div>
+<blockquote><p>注意：<code>DefaultResourceLoader</code> 构造时若<strong>不传</strong> <code>settingsManager</code>，会内部 <code>SettingsManager.create(cwd, agentDir)</code> 去读磁盘上的 <code>settings.json</code>。所以“零配置”场景必须显式传入内存 <code>settingsManager</code>。</p></blockquote>
+<h3 id="34-方式-b自定义-resourceloader零发现最彻底">3.4 方式 B：自定义 ResourceLoader（零发现，最彻底）<a class="anchor" href="#34-方式-b自定义-resourceloader零发现最彻底" aria-label="链接">#</a></h3>
+<p>实现 <code>ResourceLoader</code> 接口，完全不走文件系统发现。这是 <code>examples/sdk/12-full-control.ts</code> 的做法，适合桌面端想要 100% 掌控、连 <code>DefaultResourceLoader</code> 的内部逻辑都不信任的场景。</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">import</span> {
+  createAgentSession,
+  createExtensionRuntime,
+  ModelRuntime,
+  <span class="tok-k">type</span> ResourceLoader,
+  SessionManager,
+  SettingsManager,
+} <span class="tok-k">from</span> &quot;@earendil-works/pi-coding-agent&quot;;
+<span class="tok-k">import</span> { InMemoryCredentialStore } <span class="tok-k">from</span> &quot;@earendil-works/pi-ai&quot;;
+
+<span class="tok-k">const</span> modelRuntime = <span class="tok-k">await</span> ModelRuntime.create({
+  credentials: <span class="tok-k">new</span> InMemoryCredentialStore(),
+  modelsPath: <span class="tok-k">null</span>,
+});
+<span class="tok-k">await</span> modelRuntime.setRuntimeApiKey(&quot;anthropic&quot;, process.env.MY_KEY!);
+
+<span class="tok-k">const</span> resourceLoader: ResourceLoader = {
+  getExtensions: () =&gt; ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),
+  getSkills: () =&gt; ({ skills: [], diagnostics: [] }),
+  getPrompts: () =&gt; ({ prompts: [], diagnostics: [] }),
+  getThemes: () =&gt; ({ themes: [], diagnostics: [] }),
+  getAgentsFiles: () =&gt; ({ agentsFiles: [] }),
+  getSystemPrompt: () =&gt; &quot;You are a minimal assistant. Be concise.&quot;,
+  getSystemPromptSource: () =&gt; <span class="tok-k">undefined</span>,
+  getAppendSystemPrompt: () =&gt; [],
+  getAppendSystemPromptSources: () =&gt; [],
+  extendResources: () =&gt; {},
+  reload: <span class="tok-k">async</span> () =&gt; {},
+};
+
+<span class="tok-k">const</span> { session } = <span class="tok-k">await</span> createAgentSession({
+  cwd: process.cwd(),
+  agentDir: &quot;/my/app/agent&quot;,
+  modelRuntime,
+  resourceLoader,
+  sessionManager: SessionManager.inMemory(process.cwd()),
+  settingsManager: SettingsManager.inMemory(),
+});</code></pre></div>
+<blockquote><p><code>ResourceLoader</code> 接口成员（全部必填，见第 9 节）就是上述 10 个方法。自定义实现后，<code>cwd</code> / <code>agentDir</code> 不再参与任何资源发现。</p></blockquote>
+<hr>
+<h2 id="4-createagentsession-完整入参">4. createAgentSession 完整入参<a class="anchor" href="#4-createagentsession-完整入参" aria-label="链接">#</a></h2>
+<h3 id="41-函数签名">4.1 函数签名<a class="anchor" href="#41-函数签名" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">export</span> <span class="tok-k">async</span> <span class="tok-k">function</span> createAgentSession(
+  options?: CreateAgentSessionOptions,
+): Promise&lt;CreateAgentSessionResult&gt;;</code></pre></div>
+<h3 id="42-createagentsessionoptions">4.2 <code>CreateAgentSessionOptions</code><a class="anchor" href="#42-createagentsessionoptions" aria-label="链接">#</a></h3>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr></thead><tbody><tr><td><code>cwd</code></td><td><code>string</code></td><td><code>process.cwd()</code></td><td>工作目录（自定义工具、会话命名等使用）</td></tr><tr><td><code>agentDir</code></td><td><code>string</code></td><td><code>~/.pi/agent</code></td><td>全局配置目录。仅当 <code>modelRuntime</code>/<code>resourceLoader</code>/<code>settingsManager</code> 未注入时参与默认创建</td></tr><tr><td><code>modelRuntime</code></td><td><code>ModelRuntime</code></td><td>使用 <code>agentDir/auth.json</code> + <code>models.json</code> 创建</td><td>模型目录 + 凭证运行时。<strong>桌面端建议显式创建</strong></td></tr><tr><td><code>model</code></td><td><code>Model&lt;any&gt;</code></td><td>从设置/首个可用模型推导</td><td>指定模型</td></tr><tr><td><code>thinkingLevel</code></td><td><code>ThinkingLevel</code></td><td>从设置推导，否则 <code>&quot;medium&quot;</code></td><td><code>&quot;off&quot; | &quot;minimal&quot; | &quot;low&quot; | &quot;medium&quot; | &quot;high&quot; | &quot;xhigh&quot; | &quot;max&quot;</code>，会按模型能力收敛</td></tr><tr><td><code>scopedModels</code></td><td><code>Array&lt;{ model; thinkingLevel? }&gt;</code></td><td><code>[]</code></td><td>模型循环列表（Ctrl+P 等价物），配合 <code>session.cycleModel()</code></td></tr><tr><td><code>noTools</code></td><td><code>&quot;all&quot; | &quot;builtin&quot;</code></td><td>无</td><td><code>&quot;all&quot;</code> 关闭全部工具；<code>&quot;builtin&quot;</code> 关闭默认内置工具但保留扩展/自定义工具</td></tr><tr><td><code>tools</code></td><td><code>string[]</code></td><td>设置里的 <code>defaultTools</code>，否则 <code>[&quot;read&quot;,&quot;bash&quot;,&quot;edit&quot;,&quot;write&quot;]</code></td><td>工具白名单（跨内置/扩展/自定义）</td></tr><tr><td><code>excludeTools</code></td><td><code>string[]</code></td><td>无</td><td>工具黑名单，在 <code>tools</code> 之后生效</td></tr><tr><td><code>customTools</code></td><td><code>ToolDefinition[]</code></td><td><code>[]</code></td><td>自定义工具定义（<code>defineTool</code> 产物）</td></tr><tr><td><code>resourceLoader</code></td><td><code>ResourceLoader</code></td><td><code>DefaultResourceLoader</code></td><td>资源加载器。桌面端不加载默认配置时注入自定义实现</td></tr><tr><td><code>sessionManager</code></td><td><code>SessionManager</code></td><td><code>SessionManager.create(cwd)</code></td><td>会话持久化。用 <code>inMemory</code> 关闭落盘</td></tr><tr><td><code>settingsManager</code></td><td><code>SettingsManager</code></td><td><code>SettingsManager.create(cwd, agentDir)</code></td><td>设置管理器。用 <code>inMemory</code> 关闭读盘</td></tr><tr><td><code>sessionStartEvent</code></td><td><code>SessionStartEvent</code></td><td><code>{ type:&quot;session_start&quot;, reason:&quot;startup&quot; }</code></td><td>扩展启动事件元数据</td></tr></tbody></table></div>
+<h3 id="43-返回值-createagentsessionresult">4.3 返回值 <code>CreateAgentSessionResult</code><a class="anchor" href="#43-返回值-createagentsessionresult" aria-label="链接">#</a></h3>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td><code>session</code></td><td><code>AgentSession</code></td><td>会话实例（核心对象）</td></tr><tr><td><code>extensionsResult</code></td><td><code>LoadExtensionsResult</code></td><td>扩展加载结果（<code>{ extensions, errors, runtime }</code>）</td></tr><tr><td><code>modelFallbackMessage</code></td><td><code>string | undefined</code></td><td>恢复会话时模型无法还原的警告；<code>undefined</code> 表示正常</td></tr></tbody></table></div>
+<hr>
+<h2 id="5-agentsession-完整接口">5. AgentSession 完整接口<a class="anchor" href="#5-agentsession-完整接口" aria-label="链接">#</a></h2>
+<h3 id="51-只读属性getter">5.1 只读属性（getter）<a class="anchor" href="#51-只读属性getter" aria-label="链接">#</a></h3>
+<div class="table-wrap"><table><thead><tr><th>属性</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td><code>agent</code></td><td><code>Agent</code></td><td>底层 agent 实例（来自 <code>@earendil-works/pi-agent-core</code>）</td></tr><tr><td><code>sessionManager</code></td><td><code>SessionManager</code></td><td>会话管理器</td></tr><tr><td><code>settingsManager</code></td><td><code>SettingsManager</code></td><td>设置管理器</td></tr><tr><td><code>modelRuntime</code></td><td><code>ModelRuntime</code></td><td>模型运行时</td></tr><tr><td><code>resourceLoader</code></td><td><code>ResourceLoader</code></td><td>资源加载器</td></tr><tr><td><code>state</code></td><td><code>AgentState</code></td><td>完整 agent 状态（<code>messages</code>/<code>model</code>/<code>thinkingLevel</code>/<code>systemPrompt</code>/<code>tools</code>/<code>streamingMessage</code>/<code>errorMessage</code>）</td></tr><tr><td><code>model</code></td><td><code>Model&lt;any&gt; | undefined</code></td><td>当前模型</td></tr><tr><td><code>thinkingLevel</code></td><td><code>ThinkingLevel</code></td><td>当前思考等级</td></tr><tr><td><code>isStreaming</code></td><td><code>boolean</code></td><td>是否正在运行</td></tr><tr><td><code>isIdle</code></td><td><code>boolean</code></td><td>是否空闲</td></tr><tr><td><code>systemPrompt</code></td><td><code>string</code></td><td>当前生效系统提示词（含每轮扩展修改）</td></tr><tr><td><code>messages</code></td><td><code>AgentMessage[]</code></td><td>全部消息（含自定义类型）</td></tr><tr><td><code>isCompacting</code></td><td><code>boolean</code></td><td>是否正在压缩/分支摘要</td></tr><tr><td><code>isRetrying</code></td><td><code>boolean</code></td><td>是否正在自动重试</td></tr><tr><td><code>autoCompactionEnabled</code></td><td><code>boolean</code></td><td>自动压缩开关</td></tr><tr><td><code>autoRetryEnabled</code></td><td><code>boolean</code></td><td>自动重试开关</td></tr><tr><td><code>retryAttempt</code></td><td><code>number</code></td><td>当前重试次数</td></tr><tr><td><code>steeringMode</code></td><td><code>&quot;all&quot; | &quot;one-at-a-time&quot;</code></td><td>steering 队列模式</td></tr><tr><td><code>followUpMode</code></td><td><code>&quot;all&quot; | &quot;one-at-a-time&quot;</code></td><td>followUp 队列模式</td></tr><tr><td><code>sessionFile</code></td><td><code>string | undefined</code></td><td>会话文件路径；内存会话为 <code>undefined</code></td></tr><tr><td><code>sessionId</code></td><td><code>string</code></td><td>会话 ID</td></tr><tr><td><code>sessionName</code></td><td><code>string | undefined</code></td><td>会话显示名</td></tr><tr><td><code>scopedModels</code></td><td><code>ReadonlyArray&lt;{ model; thinkingLevel? }&gt;</code></td><td>模型循环列表</td></tr><tr><td><code>promptTemplates</code></td><td><code>ReadonlyArray&lt;PromptTemplate&gt;</code></td><td>文件型 prompt 模板</td></tr><tr><td><code>pendingMessageCount</code></td><td><code>number</code></td><td>排队消息数量</td></tr><tr><td><code>isBashRunning</code></td><td><code>boolean</code></td><td>是否有 bash 正在执行</td></tr><tr><td><code>hasPendingBashMessages</code></td><td><code>boolean</code></td><td>是否有待落盘的 bash 消息</td></tr><tr><td><code>extensionRunner</code></td><td><code>ExtensionRunner</code></td><td>扩展运行时</td></tr></tbody></table></div>
+<h3 id="52-发送与排队">5.2 发送与排队<a class="anchor" href="#52-发送与排队" aria-label="链接">#</a></h3>
+<h4 id="prompttext-options"><code>prompt(text, options?)</code><a class="anchor" href="#prompttext-options" aria-label="链接">#</a></h4>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> prompt(text: string, options?: PromptOptions): Promise&lt;<span class="tok-k">void</span>&gt;</code></pre></div>
+<p><code>PromptOptions</code>：</p>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>类型</th><th>默认</th><th>说明</th></tr></thead><tbody><tr><td><code>expandPromptTemplates</code></td><td><code>boolean</code></td><td><code>true</code></td><td>是否处理扩展命令、skill 命令、prompt 模板</td></tr><tr><td><code>images</code></td><td><code>ImageContent[]</code></td><td>无</td><td>图片附件</td></tr><tr><td><code>streamingBehavior</code></td><td><code>&quot;steer&quot; | &quot;followUp&quot;</code></td><td>无</td><td>流式中必须指定：<code>steer</code> 打断当前工具调用后插入；<code>followUp</code> 等本轮结束</td></tr><tr><td><code>source</code></td><td><code>InputSource</code></td><td><code>&quot;interactive&quot;</code></td><td>输入来源</td></tr><tr><td><code>preflightResult</code></td><td><code>(success: boolean) =&gt; void</code></td><td>无</td><td>预检回调：<code>true</code>=已接受/排队/处理，<code>false</code>=预检拒绝</td></tr></tbody></table></div>
+<p>行为要点：</p>
+<ul><li><strong>流式中不带 <code>streamingBehavior</code> 会抛错</strong>。</li><li>扩展命令（<code>/xxx</code>）立即执行，不进入 LLM 流。</li><li><code>prompt()</code> 在整轮完成后才 resolve（含重试）。</li></ul>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">await</span> session.prompt(&quot;这是什么图片？&quot;, {
+  images: [{ <span class="tok-k">type</span>: &quot;image&quot;, source: { <span class="tok-k">type</span>: &quot;base64&quot;, mediaType: &quot;image/png&quot;, data: &quot;...&quot; } }],
+});</code></pre></div>
+<h4 id="steertext-images-options"><code>steer(text, images?, options?)</code><a class="anchor" href="#steertext-images-options" aria-label="链接">#</a></h4>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> steer(text: string, images?: ImageContent[], options?: { source?: InputSource }): Promise&lt;<span class="tok-k">void</span>&gt;</code></pre></div>
+<p>排队一条 steering 消息：当前助手回合执行完工具调用后、下一次 LLM 调用前投递。展开 skill/prompt 模板；对扩展命令抛错。</p>
+<h4 id="followuptext-images-options"><code>followUp(text, images?, options?)</code><a class="anchor" href="#followuptext-images-options" aria-label="链接">#</a></h4>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> followUp(text: string, images?: ImageContent[], options?: { source?: InputSource }): Promise&lt;<span class="tok-k">void</span>&gt;</code></pre></div>
+<p>排队一条 follow-up 消息：仅当 agent 没有更多工具调用或 steering 消息时才投递。</p>
+<h4 id="sendusermessagecontent-options"><code>sendUserMessage(content, options?)</code><a class="anchor" href="#sendusermessagecontent-options" aria-label="链接">#</a></h4>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> sendUserMessage(
+  content: string | (TextContent | ImageContent)[],
+  options?: { deliverAs?: &quot;steer&quot; | &quot;followUp&quot;; expandPromptTemplates?: boolean },
+): Promise&lt;<span class="tok-k">void</span>&gt;</code></pre></div>
+<p>发送用户消息并触发一轮。<code>expandPromptTemplates</code> 默认 <code>false</code>（与 <code>prompt()</code> 相反）。</p>
+<h4 id="sendcustommessagemessage-options"><code>sendCustomMessage(message, options?)</code><a class="anchor" href="#sendcustommessagemessage-options" aria-label="链接">#</a></h4>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> sendCustomMessage&lt;T = unknown&gt;(
+  message: Pick&lt;CustomMessage&lt;T&gt;, &quot;customType&quot; | &quot;content&quot; | &quot;display&quot; | &quot;details&quot;&gt;,
+  options?: { triggerTurn?: boolean; deliverAs?: &quot;steer&quot; | &quot;followUp&quot; | &quot;nextTurn&quot; },
+): Promise&lt;<span class="tok-k">void</span>&gt;</code></pre></div>
+<p>写入自定义消息。常用于扩展/UI 注入特殊渲染内容。</p>
+<h4 id="队列清理与查询">队列清理与查询<a class="anchor" href="#队列清理与查询" aria-label="链接">#</a></h4>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">clearQueue(): { steering: string[]; followUp: string[] }
+getSteeringMessages(): <span class="tok-k">readonly</span> string[]
+getFollowUpMessages(): <span class="tok-k">readonly</span> string[]</code></pre></div>
+<h3 id="53-生命周期">5.3 生命周期<a class="anchor" href="#53-生命周期" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">subscribe(listener: (event: AgentSessionEvent) =&gt; <span class="tok-k">void</span>): () =&gt; <span class="tok-k">void</span>  <span class="tok-c">// 返回取消订阅函数</span>
+dispose(): <span class="tok-k">void</span>                                                        <span class="tok-c">// 完全销毁，释放资源</span>
+abort(): Promise&lt;<span class="tok-k">void</span>&gt;                                                 <span class="tok-c">// 中止当前操作并等待空闲</span>
+waitForIdle(): Promise&lt;<span class="tok-k">void</span>&gt;                                           <span class="tok-c">// 等待空闲</span>
+reload(options?: { beforeSessionStart?: () =&gt; <span class="tok-k">void</span> | Promise&lt;<span class="tok-k">void</span>&gt; }): Promise&lt;<span class="tok-k">void</span>&gt;  <span class="tok-c">// 重载设置/扩展/资源</span>
+bindExtensions(bindings: ExtensionBindings): Promise&lt;<span class="tok-k">void</span>&gt;             <span class="tok-c">// 绑定扩展 UI/模式/错误处理</span></code></pre></div>
+<h3 id="54-模型控制">5.4 模型控制<a class="anchor" href="#54-模型控制" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">setModel(model: Model&lt;any&gt;, options?: { persist?: boolean }): Promise&lt;<span class="tok-k">void</span>&gt;
+  <span class="tok-c">// 切换模型。校验凭证。persist=true 才写全局默认。无凭证抛错。</span>
+
+cycleModel(direction?: &quot;forward&quot; | &quot;backward&quot;, options?: { persist?: boolean }): Promise&lt;ModelCycleResult | <span class="tok-k">undefined</span>&gt;
+  <span class="tok-c">// 循环模型。优先 scopedModels，否则所有可用模型。只有一个模型时返回 undefined。</span>
+  <span class="tok-c">// ModelCycleResult = { model, thinkingLevel, isScoped }</span>
+
+setThinkingLevel(level: ThinkingLevel, options?: { persist?: boolean }): <span class="tok-k">void</span>
+cycleThinkingLevel(options?: { persist?: boolean }): ThinkingLevel | <span class="tok-k">undefined</span>
+getAvailableThinkingLevels(): ThinkingLevel[]
+supportsThinking(): boolean
+setScopedModels(scopedModels: Array&lt;{ model; thinkingLevel? }&gt;): <span class="tok-k">void</span></code></pre></div>
+<h3 id="55-压缩-重试-队列模式">5.5 压缩 / 重试 / 队列模式<a class="anchor" href="#55-压缩-重试-队列模式" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">compact(customInstructions?: string): Promise&lt;CompactionResult&gt;
+  <span class="tok-c">// 手动压缩上下文。CompactionResult = { summary, firstKeptEntryId, tokensBefore, estimatedTokensAfter, usage?, details? }</span>
+
+abortCompaction(): <span class="tok-k">void</span>
+abortBranchSummary(): <span class="tok-k">void</span>
+setAutoCompactionEnabled(enabled: boolean): <span class="tok-k">void</span>
+
+abortRetry(): <span class="tok-k">void</span>
+setAutoRetryEnabled(enabled: boolean): <span class="tok-k">void</span>
+
+setSteeringMode(mode: &quot;all&quot; | &quot;one-at-a-time&quot;): <span class="tok-k">void</span>
+setFollowUpMode(mode: &quot;all&quot; | &quot;one-at-a-time&quot;): <span class="tok-k">void</span></code></pre></div>
+<h3 id="56-bash-执行">5.6 Bash 执行<a class="anchor" href="#56-bash-执行" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> executeBash(
+  command: string,
+  onChunk?: (chunk: string) =&gt; <span class="tok-k">void</span>,
+  options?: { excludeFromContext?: boolean; id?: string; operations?: BashOperations },
+): Promise&lt;BashResult&gt;
+  <span class="tok-c">// BashResult = { output, exitCode, cancelled, truncated, fullOutputPath? }</span>
+
+recordBashResult(command: string, result: BashResult, options?: { excludeFromContext?: boolean }): <span class="tok-k">void</span>
+abortBash(): <span class="tok-k">void</span></code></pre></div>
+<h3 id="57-会话树-分支-统计-导出">5.7 会话树 / 分支 / 统计 / 导出<a class="anchor" href="#57-会话树-分支-统计-导出" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">setSessionName(name: string): <span class="tok-k">void</span>
+
+<span class="tok-k">async</span> navigateTree(
+  targetId: string,
+  options?: { summarize?: boolean; customInstructions?: string; replaceInstructions?: boolean; label?: string },
+): Promise&lt;{ editorText?: string; cancelled: boolean; aborted?: boolean; summaryEntry?: BranchSummaryEntry }&gt;
+
+getUserMessagesForForking(): Array&lt;{ entryId: string; text: string }&gt;
+
+getSessionStats(): SessionStats
+  <span class="tok-c">// { sessionFile, sessionId, userMessages, assistantMessages, toolCalls, toolResults, totalMessages,</span>
+  <span class="tok-c">//   tokens:{input,output,cacheRead,cacheWrite,total}, cost, contextUsage? }</span>
+
+getContextUsage(): ContextUsage | <span class="tok-k">undefined</span>
+  <span class="tok-c">// { tokens, contextWindow, percent }</span>
+
+<span class="tok-k">async</span> exportToHtml(outputPath?: string, options?: { themeName?: string }): Promise&lt;string&gt;
+exportToJsonl(outputPath?: string): string
+getLastAssistantText(): string | <span class="tok-k">undefined</span></code></pre></div>
+<h3 id="58-工具查询-设置">5.8 工具查询 / 设置<a class="anchor" href="#58-工具查询-设置" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">getActiveToolNames(): string[]
+getAllTools(): ToolInfo[]                          <span class="tok-c">// { name, description, parameters, promptGuidelines, sourceInfo }</span>
+getToolDefinition(name: string): ToolDefinition | <span class="tok-k">undefined</span>
+setActiveToolsByName(toolNames: string[]): <span class="tok-k">void</span>    <span class="tok-c">// 未知名称被忽略，下一轮生效</span>
+hasExtensionHandlers(eventType: string): boolean
+createReplacedSessionContext(): ReplacedSessionContext</code></pre></div>
+<hr>
+<h2 id="6-模型与鉴权modelruntime">6. 模型与鉴权：ModelRuntime<a class="anchor" href="#6-模型与鉴权modelruntime" aria-label="链接">#</a></h2>
+<h3 id="61-创建">6.1 创建<a class="anchor" href="#61-创建" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">static</span> <span class="tok-k">async</span> create(options?: CreateModelRuntimeOptions): Promise&lt;ModelRuntime&gt;</code></pre></div>
+<p><code>CreateModelRuntimeOptions</code>：</p>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>类型</th><th>默认</th><th>说明</th></tr></thead><tbody><tr><td><code>credentials</code></td><td><code>CredentialStore</code></td><td><code>authPath</code> 指向的文件</td><td>凭证存储。用 <code>InMemoryCredentialStore</code> 关闭落盘</td></tr><tr><td><code>authPath</code></td><td><code>string</code></td><td><code>~/.pi/agent/auth.json</code></td><td>凭证文件路径</td></tr><tr><td><code>modelsPath</code></td><td><code>string | null</code></td><td><code>~/.pi/agent/models.json</code></td><td>自定义模型文件。<code>null</code> = 不读</td></tr><tr><td><code>modelsStore</code></td><td><code>ModelsStore</code></td><td>文件或内存</td><td>模型目录缓存存储</td></tr><tr><td><code>modelsStorePath</code></td><td><code>string</code></td><td><code>models.json</code> 同目录</td><td>目录缓存文件路径</td></tr><tr><td><code>allowModelNetwork</code></td><td><code>boolean</code></td><td><code>false</code></td><td>是否在 create 时联网刷新目录</td></tr><tr><td><code>modelRefreshTimeoutMs</code></td><td><code>number</code></td><td>无</td><td>create 时联网刷新的超时</td></tr><tr><td><code>catalogBaseUrl</code></td><td><code>string</code></td><td>无</td><td>目录服务地址</td></tr><tr><td><code>signal</code></td><td><code>AbortSignal</code></td><td>无</td><td>取消初始恢复/可用性检查</td></tr><tr><td><code>refreshOnCreate</code></td><td><code>boolean</code></td><td><code>true</code></td><td>是否在 create 时做本地目录刷新</td></tr></tbody></table></div>
+<blockquote><p>桌面端推荐的最小零配置写法：<code>credentials</code>（内存）+ <code>modelsPath: null</code>（目录缓存自动内存），然后用 <code>setRuntimeApiKey</code> 注入密钥。</p></blockquote>
+<h3 id="62-模型查询">6.2 模型查询<a class="anchor" href="#62-模型查询" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">getProviders(): <span class="tok-k">readonly</span> Provider[]
+getProvider(providerId: string): Provider | <span class="tok-k">undefined</span>
+getModels(providerId?: string): <span class="tok-k">readonly</span> Model&lt;Api&gt;[]          <span class="tok-c">// 全部注册模型（不校验凭证）</span>
+getModel(providerId: string, modelId: string): Model&lt;Api&gt; | <span class="tok-k">undefined</span>
+  <span class="tok-c">// 返回 undefined 表示不存在。推荐用这个选模型（包含 models.json 自定义模型）。</span>
+
+<span class="tok-k">async</span> getAvailable(providerId?: string, options?: AuthOperationOptions): Promise&lt;<span class="tok-k">readonly</span> Model&lt;Api&gt;[]&gt;
+  <span class="tok-c">// 仅返回已配置有效凭证的模型</span>
+
+getAvailableSnapshot(): <span class="tok-k">readonly</span> Model&lt;Api&gt;[]                   <span class="tok-c">// 同步快照（不触发刷新）</span>
+getError(): string | <span class="tok-k">undefined</span>                                  <span class="tok-c">// 聚合错误信息</span></code></pre></div>
+<h3 id="63-鉴权">6.3 鉴权<a class="anchor" href="#63-鉴权" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> checkAuth(providerId: string, options?: AuthOperationOptions): Promise&lt;AuthCheck | <span class="tok-k">undefined</span>&gt;
+hasConfiguredAuth(providerId: string): boolean
+isUsingOAuth(providerId: string): boolean
+isUsingSubscription(providerId: string): boolean
+
+<span class="tok-k">async</span> getAuth(providerId: string, overrides?: ModelRuntimeAuthOverrides): Promise&lt;AuthResult | <span class="tok-k">undefined</span>&gt;
+<span class="tok-k">async</span> getAuth(model: Model&lt;Api&gt;, overrides?: ModelRuntimeAuthOverrides): Promise&lt;AuthResult | <span class="tok-k">undefined</span>&gt;
+
+<span class="tok-k">async</span> setRuntimeApiKey(providerId: string, apiKey: string, options?: AuthOperationOptions): Promise&lt;<span class="tok-k">void</span>&gt;
+  <span class="tok-c">// 运行时注入 API Key，不落盘</span>
+<span class="tok-k">async</span> removeRuntimeApiKey(providerId: string, options?: AuthOperationOptions): Promise&lt;<span class="tok-k">void</span>&gt;
+
+<span class="tok-k">async</span> listCredentials(options?: AuthOperationOptions): Promise&lt;<span class="tok-k">readonly</span> CredentialInfo[]&gt;
+getProviderAuthStatus(providerId: string): AuthStatus
+  <span class="tok-c">// { configured: boolean; source: &quot;runtime&quot; | &quot;stored&quot; | &quot;environment&quot; | ... }</span>
+
+<span class="tok-k">async</span> login(providerId: string, <span class="tok-k">type</span>: AuthType, interaction: AuthInteraction): Promise&lt;Credential&gt;
+<span class="tok-k">async</span> logout(providerId: string, options?: AuthOperationOptions): Promise&lt;<span class="tok-k">void</span>&gt;</code></pre></div>
+<p>鉴权优先级：<strong>运行时 override &gt; auth.json &gt; 环境变量 &gt; models.json 回退</strong>。</p>
+<h3 id="64-底层模型调用直接调用模型">6.4 底层模型调用（直接调用模型）<a class="anchor" href="#64-底层模型调用直接调用模型" aria-label="链接">#</a></h3>
+<p>除了通过 <code>session.prompt()</code> 走 agent，也可以直接用 <code>ModelRuntime</code> 调用底层模型：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-c">// 流式</span>
+modelRuntime.streamSimple(model, context, options?): AssistantMessageEventStream
+<span class="tok-c">// 单次完整返回</span>
+modelRuntime.completeSimple(model, context, options?): Promise&lt;AssistantMessage&gt;
+
+<span class="tok-c">// 更底层的 provider API（与 pi-ai 类型一致）</span>
+modelRuntime.stream&lt;TApi&gt;(model, context, options?): AssistantMessageEventStream
+modelRuntime.complete&lt;TApi&gt;(model, context, options?): Promise&lt;AssistantMessage&gt;</code></pre></div>
+<p>其中 <code>context</code> 形如：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">const</span> context = {
+  system: [{ <span class="tok-k">type</span>: &quot;text&quot;, text: &quot;You are helpful.&quot; }],
+  messages: [{ role: &quot;user&quot;, content: [{ <span class="tok-k">type</span>: &quot;text&quot;, text: &quot;你好&quot; }] }],
+};</code></pre></div>
+<blockquote><p>桌面端一般不需要直接调用这些；<code>session.prompt()</code> 已封装了凭证解析、重试、压缩、事件流。</p></blockquote>
+<h3 id="65-目录刷新">6.5 目录刷新<a class="anchor" href="#65-目录刷新" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> refresh(options?: ModelsRefreshOptions): Promise&lt;ModelsRefreshResult&gt;
+  <span class="tok-c">// { aborted: boolean; errors: Map&lt;string, Error&gt; }</span>
+
+registerProvider(providerId: string, config: ProviderConfigInput): <span class="tok-k">void</span>
+registerNativeProvider(provider: Provider): <span class="tok-k">void</span>
+unregisterProvider(providerId: string): <span class="tok-k">void</span></code></pre></div>
+<hr>
+<h2 id="7-会话持久化sessionmanager">7. 会话持久化：SessionManager<a class="anchor" href="#7-会话持久化sessionmanager" aria-label="链接">#</a></h2>
+<h3 id="71-静态工厂">7.1 静态工厂<a class="anchor" href="#71-静态工厂" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">static</span> create(cwd: string, sessionDir?: string, options?: NewSessionOptions): SessionManager
+  <span class="tok-c">// 新建持久化会话。sessionDir 缺省用默认编码目录。</span>
+
+<span class="tok-k">static</span> open(path: string, sessionDir?: string, cwdOverride?: string): SessionManager
+  <span class="tok-c">// 打开指定 .jsonl 文件</span>
+
+<span class="tok-k">static</span> continueRecent(cwd: string, sessionDir?: string): SessionManager
+  <span class="tok-c">// 继续最近会话，无则新建</span>
+
+<span class="tok-k">static</span> inMemory(cwd: string = process.cwd(), options?: NewSessionOptions, entries?: FileEntry[]): SessionManager
+  <span class="tok-c">// 纯内存，不落盘。桌面端无持久化需求时用这个。</span>
+  <span class="tok-c">// entries 可从数据库/外部存储恢复。</span>
+
+<span class="tok-k">static</span> forkFrom(sourcePath: string, targetCwd: string, sessionDir?: string, options?: NewSessionOptions): SessionManager
+
+<span class="tok-k">static</span> <span class="tok-k">async</span> list(cwd: string, sessionDir?: string, onProgress?: SessionListProgress): Promise&lt;SessionInfo[]&gt;
+<span class="tok-k">static</span> <span class="tok-k">async</span> listAll(sessionDirOrOnProgress?, onProgress?): Promise&lt;SessionInfo[]&gt;</code></pre></div>
+<h3 id="72-实例查询">7.2 实例查询<a class="anchor" href="#72-实例查询" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">getCwd(): string
+getSessionDir(): string
+getSessionId(): string
+getSessionFile(): string | <span class="tok-k">undefined</span>       <span class="tok-c">// 内存会话为 undefined</span>
+getSessionName(): string | <span class="tok-k">undefined</span>
+
+getLeafId(): string | <span class="tok-k">null</span>
+getLeafEntry(): SessionEntry | <span class="tok-k">undefined</span>
+getEntry(id: string): SessionEntry | <span class="tok-k">undefined</span>
+getChildren(parentId: string): SessionEntry[]
+getLabel(id: string): string | <span class="tok-k">undefined</span>
+getBranch(fromId?: string): SessionEntry[] <span class="tok-c">// 从根到当前叶子的路径</span>
+buildSessionContext(): SessionContext
+getHeader(): SessionHeader | <span class="tok-k">null</span>
+getEntries(): SessionEntry[]               <span class="tok-c">// 全部条目（不含 header）</span>
+getTree(): SessionTreeNode[]               <span class="tok-c">// 完整树</span></code></pre></div>
+<h3 id="73-写入-分支">7.3 写入 / 分支<a class="anchor" href="#73-写入-分支" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">appendMessage(message: Message | CustomMessage | BashExecutionMessage): string
+appendThinkingLevelChange(thinkingLevel: string): string
+appendModelChange(provider: string, modelId: string): string
+appendCompaction&lt;T&gt;(summary: string, firstKeptEntryId: string, tokensBefore: number, details?: T, fromExtension?: boolean, usage?: Usage): string
+appendCustomEntry(customType: string, data?: unknown): string
+appendSessionInfo(name: string): string
+appendCustomMessageEntry&lt;T&gt;(customType, content, display?, details?): string
+appendLabelChange(targetId: string, label: string | <span class="tok-k">undefined</span>): string
+
+branch(branchFromId: string): <span class="tok-k">void</span>          <span class="tok-c">// 叶子移动到更早条目</span>
+resetLeaf(): <span class="tok-k">void</span>
+branchWithSummary(leafId: string | <span class="tok-k">null</span>, summary: string, details?, fromExtension?, usage?): string
+createBranchedSession(leafId: string): string | <span class="tok-k">undefined</span>  <span class="tok-c">// 提取路径到新文件</span></code></pre></div>
+<hr>
+<h2 id="8-设置settingsmanager">8. 设置：SettingsManager<a class="anchor" href="#8-设置settingsmanager" aria-label="链接">#</a></h2>
+<h3 id="81-静态工厂">8.1 静态工厂<a class="anchor" href="#81-静态工厂" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">static</span> create(cwd?: string, agentDir?: string): SettingsManager
+  <span class="tok-c">// 从文件加载：全局 ~/.pi/agent/settings.json + 项目 &lt;cwd&gt;/.pi/settings.json</span>
+
+<span class="tok-k">static</span> inMemory(settings?: Partial&lt;Settings&gt;, options?: SettingsManagerCreateOptions): SettingsManager
+  <span class="tok-c">// 纯内存，零文件 I/O</span>
+
+<span class="tok-k">static</span> fromStorage(storage: SettingsStorage, options?: SettingsManagerCreateOptions): SettingsManager</code></pre></div>
+<h3 id="82-关键方法">8.2 关键方法<a class="anchor" href="#82-关键方法" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">applyOverrides(overrides: Partial&lt;Settings&gt;): <span class="tok-k">void</span>   <span class="tok-c">// 合并覆盖</span>
+<span class="tok-k">async</span> reload(): Promise&lt;<span class="tok-k">void</span>&gt;                        <span class="tok-c">// 重新从存储加载</span>
+<span class="tok-k">async</span> flush(): Promise&lt;<span class="tok-k">void</span>&gt;                         <span class="tok-c">// 等待持久化写入完成</span>
+drainErrors(): SettingsError[]                       <span class="tok-c">// 取走并清空设置 I/O 错误</span>
+getGlobalSettings(): Settings
+getProjectSettings(): Settings
+isProjectTrusted(): boolean
+setProjectTrusted(trusted: boolean): <span class="tok-k">void</span></code></pre></div>
+<h3 id="83-常用-getter-setter">8.3 常用 getter / setter<a class="anchor" href="#83-常用-getter-setter" aria-label="链接">#</a></h3>
+<p>模型与思考：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">getDefaultProvider(): string | <span class="tok-k">undefined</span>
+getDefaultModel(): string | <span class="tok-k">undefined</span>
+setDefaultProvider(provider: string): <span class="tok-k">void</span>
+setDefaultModel(modelId: string): <span class="tok-k">void</span>
+setDefaultModelAndProvider(provider: string, modelId: string): <span class="tok-k">void</span>
+getDefaultThinkingLevel(): ThinkingLevel | <span class="tok-k">undefined</span>
+setDefaultThinkingLevel(level: ThinkingLevel): <span class="tok-k">void</span>
+getModelThinkingLevel(provider: string, modelId: string): ThinkingLevel | <span class="tok-k">undefined</span>
+getAllModelThinkingLevels(): Record&lt;string, ThinkingLevel&gt;
+setModelThinkingLevel(provider: string, modelId: string, level: ThinkingLevel): <span class="tok-k">void</span>
+getEnabledModels(): string[]                       <span class="tok-c">// 用于模型循环的 pattern</span>
+setEnabledModels(patterns: string[]): <span class="tok-k">void</span>
+getDefaultTools(): string[] | <span class="tok-k">undefined</span></code></pre></div>
+<p>压缩 / 重试 / 队列：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">getCompactionEnabled(): boolean
+setCompactionEnabled(enabled: boolean): <span class="tok-k">void</span>
+getCompactionReserveTokens(): number
+getCompactionKeepRecentTokens(): number
+getCompactionSettings(): { enabled; reserveTokens; keepRecentTokens }
+getBranchSummarySettings(): { reserveTokens; skipPrompt }
+getRetryEnabled(): boolean
+setRetryEnabled(enabled: boolean): <span class="tok-k">void</span>
+getRetrySettings(): { enabled; maxRetries; baseDelayMs; maxAgentDelayMs }
+getSteeringMode(): &quot;all&quot; | &quot;one-at-a-time&quot;
+setSteeringMode(mode): <span class="tok-k">void</span>
+getFollowUpMode(): &quot;all&quot; | &quot;one-at-a-time&quot;
+setFollowUpMode(mode): <span class="tok-k">void</span></code></pre></div>
+<p>网络 / Shell / 其他：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">getHttpIdleTimeoutMs(): number
+setHttpIdleTimeoutMs(timeoutMs: number): <span class="tok-k">void</span>
+getWebSocketConnectTimeoutMs(): number | <span class="tok-k">undefined</span>
+getProviderRetrySettings(): { timeoutMs?; maxRetries?; maxRetryDelayMs }
+getShellPath(): string | <span class="tok-k">undefined</span>
+setShellPath(path: string | <span class="tok-k">undefined</span>): <span class="tok-k">void</span>
+getShellCommandPrefix(): string | <span class="tok-k">undefined</span>
+setShellCommandPrefix(prefix: string | <span class="tok-k">undefined</span>): <span class="tok-k">void</span>
+getTransport(): TransportSetting
+setTransport(transport: TransportSetting): <span class="tok-k">void</span>
+getTheme(): string | <span class="tok-k">undefined</span>
+setTheme(theme: string): <span class="tok-k">void</span>
+getSessionDir(): string | <span class="tok-k">undefined</span>
+getExternalEditorCommand(): string</code></pre></div>
+<blockquote><p><code>Settings</code> 完整字段见 <code>packages/coding-agent/src/core/settings-manager.ts</code> 的 <code>interface Settings</code>。</p></blockquote>
+<hr>
+<h2 id="9-资源加载resourceloader">9. 资源加载：ResourceLoader<a class="anchor" href="#9-资源加载resourceloader" aria-label="链接">#</a></h2>
+<h3 id="91-resourceloader-接口完整">9.1 <code>ResourceLoader</code> 接口（完整）<a class="anchor" href="#91-resourceloader-接口完整" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">export</span> <span class="tok-k">interface</span> ResourceLoader {
+  getExtensions(): LoadExtensionsResult;
+  getSkills(): { skills: Skill[]; diagnostics: ResourceDiagnostic[] };
+  getPrompts(): { prompts: PromptTemplate[]; diagnostics: ResourceDiagnostic[] };
+  getThemes(): { themes: Theme[]; diagnostics: ResourceDiagnostic[] };
+  getAgentsFiles(): { agentsFiles: Array&lt;{ path: string; content: string }&gt; };
+  getSystemPrompt(): string | <span class="tok-k">undefined</span>;
+  getSystemPromptSource(): { path: string } | <span class="tok-k">undefined</span>;
+  getAppendSystemPrompt(): string[];
+  getAppendSystemPromptSources(): Array&lt;{ path: string }&gt;;
+  extendResources(paths: ResourceExtensionPaths): <span class="tok-k">void</span>;
+  reload(options?: ResourceLoaderReloadOptions): Promise&lt;<span class="tok-k">void</span>&gt;;
+}</code></pre></div>
+<h3 id="92-defaultresourceloader-构造选项">9.2 <code>DefaultResourceLoader</code> 构造选项<a class="anchor" href="#92-defaultresourceloader-构造选项" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">new</span> DefaultResourceLoader(options: DefaultResourceLoaderOptions)</code></pre></div>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td><code>cwd</code></td><td><code>string</code>（必填）</td><td>工作目录</td></tr><tr><td><code>agentDir</code></td><td><code>string</code>（必填）</td><td>全局配置目录</td></tr><tr><td><code>settingsManager</code></td><td><code>SettingsManager</code></td><td>建议传内存实例，否则内部会 <code>SettingsManager.create</code> 读盘</td></tr><tr><td><code>eventBus</code></td><td><code>EventBus</code></td><td>扩展通信事件总线</td></tr><tr><td><code>additionalExtensionPaths</code></td><td><code>string[]</code></td><td>追加扩展路径</td></tr><tr><td><code>additionalSkillPaths</code></td><td><code>string[]</code></td><td>追加 skill 路径</td></tr><tr><td><code>additionalPromptTemplatePaths</code></td><td><code>string[]</code></td><td>追加 prompt 模板路径</td></tr><tr><td><code>additionalThemePaths</code></td><td><code>string[]</code></td><td>追加主题路径</td></tr><tr><td><code>extensionFactories</code></td><td><code>InlineExtension[]</code></td><td>内联扩展工厂</td></tr><tr><td><code>noExtensions</code></td><td><code>boolean</code></td><td>关闭扩展发现</td></tr><tr><td><code>noSkills</code></td><td><code>boolean</code></td><td>关闭 skill 发现</td></tr><tr><td><code>noPromptTemplates</code></td><td><code>boolean</code></td><td>关闭 prompt 模板发现</td></tr><tr><td><code>noThemes</code></td><td><code>boolean</code></td><td>关闭主题发现</td></tr><tr><td><code>noContextFiles</code></td><td><code>boolean</code></td><td>关闭 AGENTS.md 上下文</td></tr><tr><td><code>systemPrompt</code></td><td><code>string</code></td><td>直接指定系统提示词（跳过 SYSTEM.md 发现）</td></tr><tr><td><code>appendSystemPrompt</code></td><td><code>string[]</code></td><td>直接指定追加提示词（跳过 APPEND_SYSTEM.md）</td></tr><tr><td><code>extensionsOverride</code></td><td><code>(base) =&gt; LoadExtensionsResult</code></td><td>替换扩展加载结果</td></tr><tr><td><code>skillsOverride</code></td><td><code>(base) =&gt; { skills; diagnostics }</code></td><td>替换 skills</td></tr><tr><td><code>promptsOverride</code></td><td><code>(base) =&gt; { prompts; diagnostics }</code></td><td>替换 prompt 模板</td></tr><tr><td><code>themesOverride</code></td><td><code>(base) =&gt; { themes; diagnostics }</code></td><td>替换主题</td></tr><tr><td><code>agentsFilesOverride</code></td><td><code>(base) =&gt; { agentsFiles }</code></td><td>替换上下文文件</td></tr><tr><td><code>systemPromptOverride</code></td><td><code>(base) =&gt; string | undefined</code></td><td>改写系统提示词</td></tr><tr><td><code>appendSystemPromptOverride</code></td><td><code>(base: string[]) =&gt; string[]</code></td><td>改写追加提示词</td></tr></tbody></table></div>
+<p>调用 <code>await loader.reload()</code> 后才生效。查询方法：<code>getExtensions()</code> / <code>getSkills()</code> / <code>getPrompts()</code> / <code>getThemes()</code> / <code>getAgentsFiles()</code> / <code>getSystemPrompt()</code> / <code>getAppendSystemPrompt()</code>。</p>
+<hr>
+<h2 id="10-事件流">10. 事件流<a class="anchor" href="#10-事件流" aria-label="链接">#</a></h2>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">session.subscribe((event: AgentSessionEvent) =&gt; { ... });</code></pre></div>
+<h3 id="101-流式文本-思考">10.1 流式文本 / 思考<a class="anchor" href="#101-流式文本-思考" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">case</span> &quot;message_update&quot;:
+  <span class="tok-c">// event.assistantMessageEvent.type:</span>
+  <span class="tok-c">//   &quot;text_delta&quot;       → event.assistantMessageEvent.delta</span>
+  <span class="tok-c">//   &quot;thinking_delta&quot;   → event.assistantMessageEvent.delta</span>
+  <span class="tok-c">//   &quot;tool_call&quot; | &quot;tool_call_update&quot; | &quot;tool_result&quot; | &quot;usage&quot;</span></code></pre></div>
+<h3 id="102-消息生命周期">10.2 消息生命周期<a class="anchor" href="#102-消息生命周期" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">&quot;message_start&quot;          <span class="tok-c">// 新消息开始，event.message</span>
+&quot;message_end&quot;            <span class="tok-c">// 消息完成，event.message</span></code></pre></div>
+<h3 id="103-agent-turn-生命周期">10.3 Agent / Turn 生命周期<a class="anchor" href="#103-agent-turn-生命周期" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">&quot;agent_start&quot;            <span class="tok-c">// agent 开始</span>
+&quot;agent_end&quot;              <span class="tok-c">// agent 结束，event.messages / event.willRetry</span>
+&quot;agent_settled&quot;          <span class="tok-c">// 完全空闲</span>
+&quot;turn_start&quot;             <span class="tok-c">// 一轮开始（一次 LLM 响应 + 工具调用）</span>
+&quot;turn_end&quot;               <span class="tok-c">// 一轮结束，event.message / event.toolResults</span></code></pre></div>
+<h3 id="104-工具执行">10.4 工具执行<a class="anchor" href="#104-工具执行" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">&quot;tool_execution_start&quot;   <span class="tok-c">// event.toolName / event.toolCallId / event.args</span>
+&quot;tool_execution_update&quot;  <span class="tok-c">// event.partialResult</span>
+&quot;tool_execution_end&quot;     <span class="tok-c">// event.result / event.isError</span></code></pre></div>
+<h3 id="105-队列-压缩-重试-其他">10.5 队列 / 压缩 / 重试 / 其他<a class="anchor" href="#105-队列-压缩-重试-其他" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">&quot;queue_update&quot;           <span class="tok-c">// event.steering / event.followUp</span>
+&quot;compaction_start&quot;       <span class="tok-c">// event.reason: &quot;manual&quot; | &quot;threshold&quot; | &quot;overflow&quot;</span>
+&quot;compaction_end&quot;         <span class="tok-c">// event.result / event.aborted / event.willRetry</span>
+&quot;entry_appended&quot;         <span class="tok-c">// event.entry</span>
+&quot;session_info_changed&quot;   <span class="tok-c">// event.name</span>
+&quot;thinking_level_changed&quot; <span class="tok-c">// event.level</span>
+&quot;auto_retry_start&quot;       <span class="tok-c">// event.attempt / event.maxAttempts / event.delayMs / event.errorMessage</span>
+&quot;auto_retry_end&quot;         <span class="tok-c">// event.success / event.attempt / event.finalError</span>
+&quot;summarization_retry_scheduled&quot;
+&quot;summarization_retry_attempt_start&quot;   <span class="tok-c">// event.source</span>
+&quot;summarization_retry_finished&quot;
+&quot;bash_execution_update&quot;  <span class="tok-c">// event.id / event.delta</span></code></pre></div>
+<blockquote><p>完整事件类型见 <code>packages/coding-agent/src/core/agent-session.ts</code> 的 <code>AgentSessionEvent</code>。</p></blockquote>
+<hr>
+<h2 id="11-工具与自定义工具">11. 工具与自定义工具<a class="anchor" href="#11-工具与自定义工具" aria-label="链接">#</a></h2>
+<h3 id="111-内置工具名">11.1 内置工具名<a class="anchor" href="#111-内置工具名" aria-label="链接">#</a></h3>
+<p><code>read</code>、<code>bash</code>、<code>powershell</code>、<code>edit</code>、<code>write</code>、<code>grep</code>、<code>find</code>、<code>ls</code></p>
+<p>默认启用：<code>read</code>、<code>bash</code>、<code>edit</code>、<code>write</code>。</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-c">// 只读</span>
+<span class="tok-k">const</span> { session } = <span class="tok-k">await</span> createAgentSession({ tools: [&quot;read&quot;, &quot;grep&quot;, &quot;find&quot;, &quot;ls&quot;] });
+
+<span class="tok-c">// 禁用单个工具</span>
+<span class="tok-k">const</span> { session } = <span class="tok-k">await</span> createAgentSession({ excludeTools: [&quot;ask_question&quot;] });</code></pre></div>
+<h3 id="112-自定义工具-definetool">11.2 自定义工具 <code>defineTool</code><a class="anchor" href="#112-自定义工具-definetool" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">import</span> { Type } <span class="tok-k">from</span> &quot;typebox&quot;;
+<span class="tok-k">import</span> { createAgentSession, defineTool } <span class="tok-k">from</span> &quot;@earendil-works/pi-coding-agent&quot;;
+
+<span class="tok-k">const</span> myTool = defineTool({
+  name: &quot;my_tool&quot;,
+  label: &quot;My Tool&quot;,
+  description: &quot;Does something useful&quot;,
+  parameters: Type.Object({
+    input: Type.String({ description: &quot;Input value&quot; }),
+  }),
+  execute: <span class="tok-k">async</span> (_toolCallId, params) =&gt; ({
+    content: [{ <span class="tok-k">type</span>: &quot;text&quot;, text: <span class="tok-s">`Result: ${params.input}`</span> }],
+    details: {},
+  }),
+});
+
+<span class="tok-k">const</span> { session } = <span class="tok-k">await</span> createAgentSession({
+  customTools: [myTool],
+  tools: [&quot;read&quot;, &quot;bash&quot;, &quot;my_tool&quot;],   <span class="tok-c">// 白名单里要包含自定义工具名</span>
+});</code></pre></div>
+<p><code>ToolDefinition.execute</code> 返回：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript">{
+  content: Array&lt;{ <span class="tok-k">type</span>: &quot;text&quot;; text: string } | { <span class="tok-k">type</span>: &quot;image&quot;; ... }&gt;;
+  details: Record&lt;string, unknown&gt;;
+  isError?: boolean;
+  usage?: Usage;
+}</code></pre></div>
+<hr>
+<h2 id="12-扩展-skills-上下文文件-prompt-模板">12. 扩展 / Skills / 上下文文件 / Prompt 模板<a class="anchor" href="#12-扩展-skills-上下文文件-prompt-模板" aria-label="链接">#</a></h2>
+<h3 id="121-内联扩展">12.1 内联扩展<a class="anchor" href="#121-内联扩展" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">import</span> { createAgentSession, DefaultResourceLoader } <span class="tok-k">from</span> &quot;@earendil-works/pi-coding-agent&quot;;
+
+<span class="tok-k">const</span> loader = <span class="tok-k">new</span> DefaultResourceLoader({
+  cwd: process.cwd(),
+  agentDir: &quot;/my/app/agent&quot;,
+  noExtensions: <span class="tok-k">true</span>,     <span class="tok-c">// 关掉磁盘扩展发现，只保留内联</span>
+  extensionFactories: [
+    (pi) =&gt; {
+      pi.on(&quot;agent_start&quot;, () =&gt; console.log(&quot;started&quot;));
+      pi.on(&quot;tool_call&quot;, <span class="tok-k">async</span> (event) =&gt; {
+        <span class="tok-c">// return { block: true, reason: &quot;...&quot; } 可阻断工具</span>
+        <span class="tok-k">return</span> <span class="tok-k">undefined</span>;
+      });
+      pi.registerTool({ name: &quot;my_tool&quot;, <span class="tok-c">/* ... */</span> });
+      pi.registerCommand(&quot;mycommand&quot;, { description, handler });
+    },
+  ],
+});
+<span class="tok-k">await</span> loader.reload();</code></pre></div>
+<h3 id="122-skills">12.2 Skills<a class="anchor" href="#122-skills" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">const</span> customSkill: Skill = {
+  name: &quot;my-skill&quot;,
+  description: &quot;Custom instructions&quot;,
+  filePath: &quot;/virtual/SKILL.md&quot;,
+  baseDir: &quot;/virtual&quot;,
+  sourceInfo: createSyntheticSourceInfo(&quot;/virtual/SKILL.md&quot;, { source: &quot;sdk&quot; }),
+  disableModelInvocation: <span class="tok-k">false</span>,
+};
+
+<span class="tok-k">const</span> loader = <span class="tok-k">new</span> DefaultResourceLoader({
+  cwd, agentDir,
+  noSkills: <span class="tok-k">true</span>,
+  skillsOverride: (current) =&gt; ({
+    skills: [...current.skills, customSkill],
+    diagnostics: current.diagnostics,
+  }),
+});</code></pre></div>
+<h3 id="123-上下文文件agentsmd">12.3 上下文文件（AGENTS.md）<a class="anchor" href="#123-上下文文件agentsmd" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">const</span> loader = <span class="tok-k">new</span> DefaultResourceLoader({
+  cwd, agentDir,
+  noContextFiles: <span class="tok-k">true</span>,
+  agentsFilesOverride: (current) =&gt; ({
+    agentsFiles: [
+      ...current.agentsFiles,
+      { path: &quot;/virtual/AGENTS.md&quot;, content: &quot;# Guidelines\n\n- Be concise&quot; },
+    ],
+  }),
+});</code></pre></div>
+<h3 id="124-prompt-模板斜杠命令">12.4 Prompt 模板（斜杠命令）<a class="anchor" href="#124-prompt-模板斜杠命令" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">const</span> deployTemplate: PromptTemplate = {
+  name: &quot;deploy&quot;,
+  description: &quot;Deploy the application&quot;,
+  filePath: &quot;/virtual/prompts/deploy.md&quot;,
+  sourceInfo: createSyntheticSourceInfo(&quot;/virtual/prompts/deploy.md&quot;, { source: &quot;sdk&quot; }),
+  content: &quot;# Deploy\n\n1. Build\n2. Test\n3. Deploy&quot;,
+};
+
+<span class="tok-k">const</span> loader = <span class="tok-k">new</span> DefaultResourceLoader({
+  cwd, agentDir,
+  noPromptTemplates: <span class="tok-k">true</span>,
+  promptsOverride: (current) =&gt; ({
+    prompts: [...current.prompts, deployTemplate],
+    diagnostics: current.diagnostics,
+  }),
+});</code></pre></div>
+<hr>
+<h2 id="13-会话运行时agentsessionruntime">13. 会话运行时：AgentSessionRuntime<a class="anchor" href="#13-会话运行时agentsessionruntime" aria-label="链接">#</a></h2>
+<p>当需要<strong>替换当前会话</strong>（new / fork / switch / import）时使用。这也是内置交互、print、RPC 模式共用的层。</p>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">import</span> {
+  <span class="tok-k">type</span> CreateAgentSessionRuntimeFactory,
+  createAgentSessionFromServices,
+  createAgentSessionRuntime,
+  createAgentSessionServices,
+  getAgentDir,
+  SessionManager,
+} <span class="tok-k">from</span> &quot;@earendil-works/pi-coding-agent&quot;;
+
+<span class="tok-k">const</span> createRuntime: CreateAgentSessionRuntimeFactory = <span class="tok-k">async</span> ({ cwd, sessionManager, sessionStartEvent }) =&gt; {
+  <span class="tok-k">const</span> services = <span class="tok-k">await</span> createAgentSessionServices({ cwd });
+  <span class="tok-k">return</span> {
+    ...(<span class="tok-k">await</span> createAgentSessionFromServices({ services, sessionManager, sessionStartEvent })),
+    services,
+    diagnostics: services.diagnostics,
+  };
+};
+
+<span class="tok-k">const</span> runtime = <span class="tok-k">await</span> createAgentSessionRuntime(createRuntime, {
+  cwd: process.cwd(),
+  agentDir: getAgentDir(),
+  sessionManager: SessionManager.inMemory(process.cwd()),
+});</code></pre></div>
+<h3 id="131-agentsessionruntime-属性">13.1 <code>AgentSessionRuntime</code> 属性<a class="anchor" href="#131-agentsessionruntime-属性" aria-label="链接">#</a></h3>
+<div class="table-wrap"><table><thead><tr><th>属性</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td><code>session</code></td><td><code>AgentSession</code></td><td>当前会话（替换后变化）</td></tr><tr><td><code>services</code></td><td><code>AgentSessionServices</code></td><td>cwd 绑定服务</td></tr><tr><td><code>cwd</code></td><td><code>string</code></td><td>当前 cwd</td></tr><tr><td><code>diagnostics</code></td><td><code>readonly AgentSessionRuntimeDiagnostic[]</code></td><td>启动诊断</td></tr><tr><td><code>modelFallbackMessage</code></td><td><code>string | undefined</code></td><td>模型还原警告</td></tr></tbody></table></div>
+<h3 id="132-方法">13.2 方法<a class="anchor" href="#132-方法" aria-label="链接">#</a></h3>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">async</span> newSession(options?: { parentSession?; setup?; withSession? }): Promise&lt;{ cancelled: boolean }&gt;
+<span class="tok-k">async</span> switchSession(sessionPath: string, options?: { cwdOverride?; withSession?; projectTrustContextFactory? }): Promise&lt;{ cancelled: boolean }&gt;
+<span class="tok-k">async</span> fork(entryId: string, options?: { position?: &quot;before&quot; | &quot;at&quot;; withSession? }): Promise&lt;{ cancelled: boolean; selectedText?: string }&gt;
+<span class="tok-k">async</span> importFromJsonl(inputPath: string, cwdOverride?: string): Promise&lt;{ cancelled: boolean }&gt;
+<span class="tok-k">async</span> dispose(): Promise&lt;<span class="tok-k">void</span>&gt;
+
+setRebindSession(rebindSession?: (session: AgentSession) =&gt; Promise&lt;<span class="tok-k">void</span>&gt;): <span class="tok-k">void</span>
+setBeforeSessionInvalidate(callback?: () =&gt; <span class="tok-k">void</span>): <span class="tok-k">void</span></code></pre></div>
+<blockquote><p><strong>关键行为</strong>：<code>runtime.session</code> 在 new/fork/switch/import 后会变化；事件订阅绑定在具体 <code>AgentSession</code> 上，替换后必须重新 <code>runtime.session.subscribe(...)</code>；若使用扩展，替换后也要重新 <code>session.bindExtensions(...)</code>。</p></blockquote>
+<hr>
+<h2 id="14-完整桌面端集成示例">14. 完整桌面端集成示例<a class="anchor" href="#14-完整桌面端集成示例" aria-label="链接">#</a></h2>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-k">import</span> { InMemoryCredentialStore } <span class="tok-k">from</span> &quot;@earendil-works/pi-ai&quot;;
+<span class="tok-k">import</span> {
+  createAgentSession,
+  DefaultResourceLoader,
+  ModelRuntime,
+  SessionManager,
+  SettingsManager,
+} <span class="tok-k">from</span> &quot;@earendil-works/pi-coding-agent&quot;;
+
+<span class="tok-k">async</span> <span class="tok-k">function</span> createDesktopSession(opts: {
+  cwd: string;
+  provider: string;
+  apiKey: string;
+  modelId?: string;
+  thinkingLevel?: &quot;off&quot; | &quot;minimal&quot; | &quot;low&quot; | &quot;medium&quot; | &quot;high&quot; | &quot;xhigh&quot; | &quot;max&quot;;
+}) {
+  <span class="tok-c">// ── 1. 模型运行时：内存凭证，不读 auth.json / models.json ──</span>
+  <span class="tok-k">const</span> modelRuntime = <span class="tok-k">await</span> ModelRuntime.create({
+    credentials: <span class="tok-k">new</span> InMemoryCredentialStore(),
+    modelsPath: <span class="tok-k">null</span>,
+  });
+  <span class="tok-k">await</span> modelRuntime.setRuntimeApiKey(opts.provider, opts.apiKey);
+
+  <span class="tok-c">// ── 2. 选模型（可选；不传则由可用模型推导） ──</span>
+  <span class="tok-k">let</span> model;
+  <span class="tok-k">if</span> (opts.modelId) {
+    model = modelRuntime.getModel(opts.provider, opts.modelId);
+    <span class="tok-k">if</span> (!model) <span class="tok-k">throw</span> <span class="tok-k">new</span> Error(<span class="tok-s">`Model not found: ${opts.provider}/${opts.modelId}`</span>);
+  }
+
+  <span class="tok-c">// ── 3. 设置：纯内存，不读 settings.json ──</span>
+  <span class="tok-k">const</span> settingsManager = SettingsManager.inMemory({
+    compaction: { enabled: <span class="tok-k">false</span> },
+    retry: { enabled: <span class="tok-k">true</span>, maxRetries: 2 },
+  });
+
+  <span class="tok-c">// ── 4. 资源：关闭所有磁盘发现 ──</span>
+  <span class="tok-k">const</span> loader = <span class="tok-k">new</span> DefaultResourceLoader({
+    cwd: opts.cwd,
+    agentDir: &quot;/my/app/agent&quot;,
+    settingsManager,
+    noExtensions: <span class="tok-k">true</span>,
+    noSkills: <span class="tok-k">true</span>,
+    noPromptTemplates: <span class="tok-k">true</span>,
+    noThemes: <span class="tok-k">true</span>,
+    noContextFiles: <span class="tok-k">true</span>,
+    systemPrompt: &quot;You are a helpful assistant.&quot;,
+    appendSystemPrompt: [],
+  });
+  <span class="tok-k">await</span> loader.reload();
+
+  <span class="tok-c">// ── 5. 会话：内存，不落盘 ──</span>
+  <span class="tok-k">const</span> { session } = <span class="tok-k">await</span> createAgentSession({
+    cwd: opts.cwd,
+    agentDir: &quot;/my/app/agent&quot;,
+    modelRuntime,
+    model,
+    thinkingLevel: opts.thinkingLevel,
+    settingsManager,
+    resourceLoader: loader,
+    sessionManager: SessionManager.inMemory(opts.cwd),
+  });
+
+  <span class="tok-c">// ── 6. 订阅事件（桌面端把 delta 转发到 UI） ──</span>
+  <span class="tok-k">const</span> unsubscribe = session.subscribe((event) =&gt; {
+    <span class="tok-k">switch</span> (event.<span class="tok-k">type</span>) {
+      <span class="tok-k">case</span> &quot;message_update&quot;:
+        <span class="tok-k">if</span> (event.assistantMessageEvent.<span class="tok-k">type</span> === &quot;text_delta&quot;) {
+          ui.appendText(event.assistantMessageEvent.delta);
+        }
+        <span class="tok-k">break</span>;
+      <span class="tok-k">case</span> &quot;tool_execution_start&quot;:
+        ui.showTool(event.toolName);
+        <span class="tok-k">break</span>;
+      <span class="tok-k">case</span> &quot;agent_settled&quot;:
+        ui.done();
+        <span class="tok-k">break</span>;
+    }
+  });
+
+  <span class="tok-k">return</span> { session, modelRuntime, unsubscribe };
+}
+
+<span class="tok-c">// ── 使用 ──</span>
+<span class="tok-k">const</span> { session, unsubscribe } = <span class="tok-k">await</span> createDesktopSession({
+  cwd: &quot;/path/to/project&quot;,
+  provider: &quot;anthropic&quot;,
+  apiKey: process.env.MY_KEY!,
+  modelId: &quot;claude-opus-4-5&quot;,
+  thinkingLevel: &quot;medium&quot;,
+});
+
+<span class="tok-k">await</span> session.prompt(&quot;帮我重构这个文件&quot;);
+unsubscribe();
+session.dispose();</code></pre></div>
+<hr>
+<h2 id="附常用导出速查">附：常用导出速查<a class="anchor" href="#附常用导出速查" aria-label="链接">#</a></h2>
+<div class="codeblock"><div class="codeblock-head"><span class="lang">typescript</span><button class="copy-btn" type="button">复制</button></div><pre><code class="lang-typescript"><span class="tok-c">// 工厂</span>
+createAgentSession / createAgentSessionRuntime / AgentSessionRuntime
+
+<span class="tok-c">// 模型与鉴权</span>
+ModelRuntime / CredentialSynchronizationError / resolveCliModel / resolveModelScopeWithDiagnostics
+
+<span class="tok-c">// 资源</span>
+DefaultResourceLoader / <span class="tok-k">type</span> ResourceLoader / createEventBus
+
+<span class="tok-c">// 会话与设置</span>
+SessionManager / SettingsManager
+
+<span class="tok-c">// 工具</span>
+defineTool / createCodingTools / createReadOnlyTools
+createReadTool / createBashTool / createPowerShellTool / createEditTool / createWriteTool
+createGrepTool / createFindTool / createLsTool
+
+<span class="tok-c">// 类型</span>
+<span class="tok-k">type</span> CreateAgentSessionOptions / <span class="tok-k">type</span> CreateAgentSessionResult
+<span class="tok-k">type</span> AgentSession / <span class="tok-k">type</span> AgentSessionEvent / <span class="tok-k">type</span> PromptOptions
+<span class="tok-k">type</span> ExtensionFactory / <span class="tok-k">type</span> InlineExtension / <span class="tok-k">type</span> ExtensionAPI
+<span class="tok-k">type</span> ToolDefinition / <span class="tok-k">type</span> Skill / <span class="tok-k">type</span> PromptTemplate / <span class="tok-k">type</span> Tool</code></pre></div>
+  </div>
+</main>
+<script>
+(function(){
+  var sidebar=document.getElementById('sidebar');
+  var toggle=document.getElementById('menuToggle');
+  var overlay=document.getElementById('overlay');
+  function open(){sidebar.classList.add('open');overlay.classList.add('show');}
+  function close(){sidebar.classList.remove('open');overlay.classList.remove('show');}
+  toggle.addEventListener('click',function(){sidebar.classList.contains('open')?close():open();});
+  overlay.addEventListener('click',close);
+
+  // chevron collapse
+  document.querySelectorAll('.toc-chevron').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      var li=btn.closest('.toc-h2');
+      if(li)li.classList.toggle('collapsed');
+    });
+  });
+
+  // toc filter
+  var filter=document.getElementById('tocFilter');
+  filter.addEventListener('input',function(){
+    var q=filter.value.trim().toLowerCase();
+    document.querySelectorAll('.toc li').forEach(function(li){
+      var a=li.querySelector('a');
+      if(!a)return;
+      var show=!q||a.textContent.toLowerCase().indexOf(q)!==-1;
+      li.style.display=show?'':'none';
+      if(show){
+        // expand ancestors so matches are visible
+        var p=li.parentElement;
+        while(p&&p.tagName==='UL'){
+          var parentLi=p.parentElement;
+          if(parentLi&&parentLi.classList.contains('toc-h2'))parentLi.classList.remove('collapsed');
+          p=parentLi?parentLi.parentElement:null;
+        }
+      }
+    });
+  });
+
+  // scrollspy
+  var links=Array.prototype.slice.call(document.querySelectorAll('.toc a[href^="#"]'));
+  var map={};
+  links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+  var heads=Array.prototype.slice.call(document.querySelectorAll('h2[id],h3[id],h4[id]'));
+  var observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        links.forEach(function(a){a.classList.remove('active');});
+        var link=map[en.target.id];
+        if(link){
+          link.classList.add('active');
+          var li=link.closest('li');
+          while(li){
+            if(li.classList.contains('toc-h2'))li.classList.remove('collapsed');
+            li=li.parentElement?li.parentElement.closest('li'):null;
+          }
+        }
+      }
+    });
+  },{rootMargin:'0px 0px -70% 0px',threshold:0});
+  heads.forEach(function(h){observer.observe(h);});
+
+  // copy buttons
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var code=btn.closest('.codeblock').querySelector('code');
+      var text=code?code.textContent:'';
+      var done=function(){
+        btn.textContent='已复制';btn.classList.add('copied');
+        setTimeout(function(){btn.textContent='复制';btn.classList.remove('copied');},1400);
+      };
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done,function(){fallback();});
+      }else{fallback();}
+      function fallback(){
+        var ta=document.createElement('textarea');
+        ta.value=text;document.body.appendChild(ta);ta.select();
+        try{document.execCommand('copy');}catch(e){}
+        document.body.removeChild(ta);done();
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
