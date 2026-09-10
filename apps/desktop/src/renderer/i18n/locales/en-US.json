@@ -140,7 +140,8 @@
     "sessionNotFound": "Session not found",
     "sessionLoadFailed": "Failed to load the session",
     "apiKeyRequired": "Enter an API key or choose a provider that already has one",
-    "noActiveSession": "No active session"
+    "noActiveSession": "No active session",
+    "binaryFile": "This file is binary and cannot be opened as text"
   },
   "theme": {
     "light": "Switch to light theme",

@@ -337,7 +337,7 @@ main/                      主进程（Node）
   services/
     file.service.ts       FileService：文件树所有操作（intent 分发 + 异步 IO + 监听）
     pine-service.ts       PineService：runtime + 连接 + 工作目录 + 会话
-    resources.ts          项目资源加载（extensions / context files + 工具权限 gate）
+    resources.ts          项目资源加载（extensions / skills / context files + 工具权限 gate）
     messages.ts           会话消息提取
     index.ts              桶导出（barrel）
 preload/
@@ -529,6 +529,7 @@ fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refresh
       <p>会话创建时从<strong>项目目录</strong>加载（不走全局默认配置）：</p>
       <ul>
         <li>extensions：<code class="inline">&lt;root&gt;/.pi/extensions</code>、<code class="inline">&lt;root&gt;/.agents/extensions</code></li>
+        <li>skills：<code class="inline">&lt;root&gt;/.agents/skills</code></li>
         <li>context files：项目 <code class="inline">AGENTS.md</code> / <code class="inline">SYSTEM.md</code></li>
         <li>工具权限 gate：由 <code class="inline">services/tool-permission-gate.ts</code> 作为内联 extension 注入。</li>
       </ul>

@@ -24,6 +24,9 @@ import {
   refreshTreeRequest,
   renameEntryRequest,
   renameEntrySuccess,
+  revertFileFailure,
+  revertFileRequest,
+  revertFileSuccess,
   saveFileFailure,
   saveFileRequest,
   saveFileSuccess,
@@ -203,6 +206,30 @@ function* refreshTreeSaga(): SagaIterator {
   }
 }
 
+function* revertFileSaga(action: ReturnType<typeof revertFileRequest>): SagaIterator {
+  const state: State = yield select((root: RootState) => root.workspace);
+  const file = state.openFiles.find((item) => item.path === action.payload);
+  if (!file || file.content === file.savedContent) {
+    return;
+  }
+  try {
+    // Reject an agent edit by writing the last user-saved baseline back to
+    // disk. Without this the buffer only flips back in memory and the next
+    // refresh pulls the agent version straight back in.
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({ intent: "writeFile", path: file.path, content: file.savedContent }),
+    );
+    const { result } = expectFileResponse(response, "writeFile");
+    if (result.ok) {
+      yield put(revertFileSuccess(file.path));
+    } else {
+      yield put(revertFileFailure({ path: file.path, error: result.error ?? "error.operationFailed" }));
+    }
+  } catch (error) {
+    yield put(revertFileFailure({ path: file.path, error: toErrorMessage(error) }));
+  }
+}
+
 function* saveFileSaga(action: ReturnType<typeof saveFileRequest>): SagaIterator {
   const state: State = yield select((root: RootState) => root.workspace);
   const file = state.openFiles.find((item) => item.path === action.payload);
@@ -261,4 +288,5 @@ export function* workspaceSaga(): SagaIterator {
   yield takeLatest(refreshTreeRequest.type, refreshTreeSaga);
   yield takeLatest(openFileRequest.type, openFileSaga);
   yield takeLatest(saveFileRequest.type, saveFileSaga);
+  yield takeLatest(revertFileRequest.type, revertFileSaga);
 }

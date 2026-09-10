@@ -27,7 +27,7 @@ export function ToolPermissionModal() {
 
   function respond(allowed: boolean) {
     void window.pi.respondToolPermission(request!.requestId, allowed);
-    dispatch(toolPermissionResolved());
+    dispatch(toolPermissionResolved(request!.requestId));
   }
 
   return (

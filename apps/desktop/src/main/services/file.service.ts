@@ -80,7 +80,7 @@ export class FileService {
   // ── reads ────────────────────────────────────────────────────────────
 
   private async readDir(dirPath: string): Promise<FileResponse> {
-    const dir = this.resolveWithinRoot(dirPath);
+    const dir = await this.resolveWithinRoot(dirPath);
     const entries = await fs.readdir(dir, { withFileTypes: true });
     return {
       intent: "readDir",
@@ -100,9 +100,12 @@ export class FileService {
   }
 
   private async readFile(filePath: string): Promise<FileResponse> {
-    const resolved = this.resolveWithinRoot(filePath);
-    const content = await fs.readFile(resolved, "utf8");
-    return { intent: "readFile", content };
+    const resolved = await this.resolveWithinRoot(filePath);
+    const buffer = await fs.readFile(resolved);
+    if (this.isBinary(buffer)) {
+      throw new Error(AppError.binaryFile);
+    }
+    return { intent: "readFile", content: buffer.toString("utf8") };
   }
 
   // ── writes & mutations ───────────────────────────────────────────────
@@ -116,13 +119,13 @@ export class FileService {
 
   private async runCreateEntry(dirPath: string, name: string, kind: EntryKind): Promise<FileResult> {
     try {
-      const dir = this.resolveWithinRoot(dirPath);
+      const dir = await this.resolveWithinRoot(dirPath);
       const trimmed = name.trim();
       if (!trimmed) {
         return { ok: false, error: AppError.nameRequired };
       }
 
-      const target = this.resolveWithinRoot(path.join(dir, trimmed));
+      const target = await this.resolveWithinRoot(path.join(dir, trimmed));
       if (await this.pathExists(target)) {
         return { ok: false, error: AppError.nameExists };
       }
@@ -140,7 +143,7 @@ export class FileService {
 
   private async writeFile(filePath: string, content: string): Promise<FileResponse> {
     try {
-      const resolved = this.resolveWithinRoot(filePath);
+      const resolved = await this.resolveWithinRoot(filePath);
       await fs.writeFile(resolved, content, "utf8");
       return { intent: "writeFile", result: { ok: true, path: resolved } };
     } catch (error) {
@@ -150,7 +153,7 @@ export class FileService {
 
   private async rename(target: string, name: string): Promise<FileResponse> {
     try {
-      const resolved = this.resolveWithinRoot(target);
+      const resolved = await this.resolveWithinRoot(target);
       if (resolved === path.resolve(this.deps.getWorkspaceRoot() ?? "")) {
         return { intent: "rename", result: { ok: false, error: AppError.operationFailed } };
       }
@@ -160,7 +163,7 @@ export class FileService {
         return { intent: "rename", result: { ok: false, error: AppError.nameRequired } };
       }
 
-      const nextPath = this.resolveWithinRoot(path.join(path.dirname(resolved), trimmed));
+      const nextPath = await this.resolveWithinRoot(path.join(path.dirname(resolved), trimmed));
       if (nextPath === resolved) {
         return { intent: "rename", result: { ok: true, path: resolved } };
       }
@@ -177,7 +180,7 @@ export class FileService {
 
   private async delete(target: string): Promise<FileResponse> {
     try {
-      const resolved = this.resolveWithinRoot(target);
+      const resolved = await this.resolveWithinRoot(target);
       if (resolved === path.resolve(this.deps.getWorkspaceRoot() ?? "")) {
         return { intent: "delete", result: { ok: false, error: AppError.cannotDeleteRoot } };
       }
@@ -189,8 +192,8 @@ export class FileService {
     }
   }
 
-  private reveal(target: string): FileResponse {
-    const resolved = this.resolveWithinRoot(target);
+  private async reveal(target: string): Promise<FileResponse> {
+    const resolved = await this.resolveWithinRoot(target);
     shell.showItemInFolder(resolved);
     return { intent: "reveal" };
   }
@@ -206,18 +209,55 @@ export class FileService {
     }
   }
 
-  private resolveWithinRoot(target: string): string {
+  /**
+   * Resolve a workspace path and reject any escape from the root. The check
+   * uses real paths so a symlink inside the workspace pointing outside (e.g.
+   * `root/link -> /etc`) cannot be used to read/write files on disk outside.
+   * The returned path keeps the caller's spelling (not the real path) so the
+   * renderer's path keys stay stable.
+   */
+  private async resolveWithinRoot(target: string): Promise<string> {
     const root = this.deps.getWorkspaceRoot();
     if (!root) {
       throw new Error(AppError.noFolder);
     }
+    const rootReal = await fs.realpath(root);
     const resolved = path.resolve(target);
-    const relative = path.relative(root, resolved);
-    const isWithin = relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-    if (!isWithin) {
+
+    try {
+      const real = await fs.realpath(resolved);
+      if (this.isWithinRoot(rootReal, real)) {
+        return resolved;
+      }
       throw new Error(AppError.pathOutsideRoot);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        // The target does not exist yet (create/rename); validate its parent.
+        const parentReal = await fs.realpath(path.dirname(resolved));
+        if (this.isWithinRoot(rootReal, parentReal)) {
+          return resolved;
+        }
+        throw new Error(AppError.pathOutsideRoot);
+      }
+      throw error;
     }
-    return resolved;
+  }
+
+  private isWithinRoot(root: string, target: string): boolean {
+    const relative = path.relative(root, target);
+    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  }
+
+  private isBinary(buffer: Buffer): boolean {
+    if (buffer.includes(0)) {
+      return true;
+    }
+    try {
+      new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+      return false;
+    } catch {
+      return true;
+    }
   }
 
   // ── workspace watching ───────────────────────────────────────────────

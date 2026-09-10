@@ -37,6 +37,7 @@ interface PiMockControls {
   requestPermission(request: { requestId: string; toolName: string; summary: string }): void;
   emitChatEvent(event: Record<string, unknown>): void;
   getLastPermissionResponse(): { requestId: string; allowed: boolean } | null;
+  getLastActiveTools(): string[];
 }
 
 /** Read the mock's copy-text record after a copy action. */
@@ -73,6 +74,11 @@ export function getLastPermissionResponse(
   page: Page,
 ): Promise<{ requestId: string; allowed: boolean } | null> {
   return page.evaluate(() => (window as unknown as { __pi: PiMockControls }).__pi.getLastPermissionResponse());
+}
+
+/** Read the last tools array the mock recorded from `setActiveTools`. */
+export function getLastActiveTools(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as { __pi: PiMockControls }).__pi.getLastActiveTools());
 }
 
 /**

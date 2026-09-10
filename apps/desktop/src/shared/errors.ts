@@ -20,4 +20,5 @@ export const AppError = {
   sessionLoadFailed: "error.sessionLoadFailed",
   apiKeyRequired: "error.apiKeyRequired",
   noActiveSession: "error.noActiveSession",
+  binaryFile: "error.binaryFile",
 } as const;

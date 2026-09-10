@@ -123,19 +123,10 @@ export class PineService {
         return { ok: false, error: AppError.connectFailed };
       }
 
-      const reply = await runtime.completeSimple(
-        model,
-        {
-          systemPrompt: "You are a connectivity check. Reply with exactly: OK",
-          messages: [{ role: "user", content: "ping", timestamp: Date.now() }],
-        },
-        { signal: AbortSignal.timeout(30_000) },
-      );
-
-      if (reply.stopReason === "error" || reply.stopReason === "aborted") {
-        return { ok: false, error: reply.errorMessage ?? AppError.connectFailed };
-      }
-
+      // No connectivity probe here: a real model request on every login costs
+      // tokens and is hostile to expensive/local models. Credential and model
+      // validity are checked locally; the first real prompt surfaces any
+      // network/auth error through the normal chat error path.
       this.connection = {
         provider: input.provider,
         model: input.model,
@@ -212,7 +203,10 @@ export class PineService {
    * agent; the permission gate prompts before a disabled tool actually runs.
    */
   setActiveTools(tools: string[]): void {
-    this.activeTools = tools.length > 0 ? [...tools] : [...BUILTIN_TOOLS];
+    // An empty list means "prompt before every non-readonly tool"; it must not
+    // silently fall back to the full built-in set, otherwise the UI would show
+    // every tool off while the main process lets them all run without asking.
+    this.activeTools = [...tools];
   }
 
   isToolAllowed(toolName: string): boolean {
@@ -249,9 +243,16 @@ export class PineService {
   }
 
   private clearPendingPermissions(): void {
-    for (const requestId of this.pendingPermissions.keys()) {
+    if (this.pendingPermissions.size === 0) {
+      return;
+    }
+    const requestIds = [...this.pendingPermissions.keys()];
+    for (const requestId of requestIds) {
       this.resolveToolPermission(requestId, false);
     }
+    // The renderer keeps a mirrored queue; tell it to drop every stale prompt
+    // so an aborted/disposed session can't "resurrect" an answered request.
+    this.send({ type: "tool_permission_cleared" });
   }
 
   // ── workspace ──────────────────────────────────────────────────────────
@@ -594,10 +595,9 @@ function toSharedSessionInfo(info: SdkSessionInfo): SessionInfo {
 }
 
 /**
- * Build the chat-visible detail for a tool step. The chat is the review
- * surface, so shell commands are shown verbatim here (unlike the permission
- * panel) and file-modifying tools carry a diff so the user can see exactly
- * what changed without opening the editor.
+ * Build the chat-visible detail for a tool step. File-modifying tools carry a
+ * diff so the user can review exactly what changed. Shell command content is
+ * never included: it can contain credentials and must not linger in the UI.
  */
 function describeToolCall(
   toolName: string,
@@ -606,10 +606,9 @@ function describeToolCall(
   const input = (args ?? {}) as Record<string, unknown>;
   const filePath = typeof input.path === "string" ? input.path : "";
   const pattern = typeof input.pattern === "string" ? input.pattern : "";
-  const command = typeof input.command === "string" ? input.command : "";
 
   if (toolName === "bash" || toolName === "powershell") {
-    return { summary: command };
+    return {};
   }
   if (toolName === "edit") {
     const edits = Array.isArray(input.edits) ? (input.edits as ToolPermissionDiffHunk[]) : [];

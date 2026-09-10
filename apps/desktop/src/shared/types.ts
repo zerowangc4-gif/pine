@@ -191,6 +191,7 @@ export type ChatEvent =
   | { type: "session_stats"; stats: SessionStatsDTO }
   | { type: "message_usage"; usage: MessageUsage }
   | { type: "tool_permission_request"; request: ToolPermissionRequest }
+  | { type: "tool_permission_cleared" }
   | { type: "error"; message: string };
 
 /**

@@ -50,10 +50,13 @@
   let activePath = init.activePath;
   let sessions = Array.isArray(init.sessions) ? init.sessions : [];
   const messagesByPath = init.messagesByPath || {};
+  const dirEntries = Array.isArray(init.dirEntries) ? init.dirEntries : [];
+  const fileContent = typeof init.fileContent === "string" ? init.fileContent : "";
 
   let activeModel = init.activeModel || { provider: "anthropic", model: "claude-sonnet-4-5", thinkingLevel: "high" };
   let activeTools =
     init.activeTools || ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
+  let lastActiveTools = [...activeTools];
   let autoCompaction = Boolean(init.autoCompaction);
   let nextReply = typeof init.nextReply === "string" ? init.nextReply : "Hello from the mock agent.";
   let holdStreaming = Boolean(init.holdStreaming);
@@ -120,12 +123,12 @@
         case "openFolder":
           return { intent: "openFolder", path: "/workspace/demo" };
         case "readDir":
-          return { intent: "readDir", entries: [] };
+          return { intent: "readDir", entries: dirEntries.map((entry) => ({ ...entry })) };
         case "createFile":
         case "createFolder":
           return { intent: request.intent, result: { ok: true, path: "/workspace/demo/new" } };
         case "readFile":
-          return { intent: "readFile", content: "" };
+          return { intent: "readFile", content: fileContent };
         case "writeFile":
           return { intent: "writeFile", result: { ok: true, path: request.path } };
         case "rename":
@@ -207,6 +210,7 @@
 
     setActiveTools: async (tools) => {
       activeTools = [...tools];
+      lastActiveTools = [...tools];
     },
 
     // System helpers
@@ -271,6 +275,7 @@
     requestPermission: (request) => emit({ type: "tool_permission_request", request }),
     emitChatEvent: (event) => emit(event),
     getLastPermissionResponse: () => lastPermissionResponse,
+    getLastActiveTools: () => [...lastActiveTools],
     seedSessions: (nextSessions, nextMessagesByPath) => {
       sessions = nextSessions.map((session) => ({ ...session }));
       for (const [key, messages] of Object.entries(nextMessagesByPath || {})) {

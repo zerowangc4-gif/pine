@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { editFile, revertFile, saveFileRequest } from "../store";
+import { editFile, revertFileRequest, saveFileRequest } from "../store";
 import { DiffView } from "./DiffView";
 
 interface CursorPosition {
@@ -95,7 +95,7 @@ export function EditorView() {
           </DiffButton>
         )}
         {hasDiff && (
-          <RevertButton onClick={() => dispatch(revertFile(openFile.path))}>
+          <RevertButton onClick={() => dispatch(revertFileRequest(openFile.path))}>
             {t("editor.revert")}
           </RevertButton>
         )}

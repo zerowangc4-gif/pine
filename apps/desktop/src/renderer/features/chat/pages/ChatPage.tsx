@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { ChatIcon, LanguageSwitcher, LogoutIcon, MaximizeIcon, PanelLeftIcon, ThemeSwitcher } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
+import { errorText } from "@renderer/utils";
 import { setSidebarWidth, toggleSidebar } from "@renderer/store/layoutSlice";
 import {
   EditorView,
@@ -11,8 +12,9 @@ import {
   setActivePath,
 } from "@renderer/features/workspace";
 import { disconnectRequest, getActiveModelRequest, loadProviders } from "@renderer/features/login";
-import { ChatView, SessionsPanel } from "../components";
+import { ChatView, SessionsPanel, ToolPermissionModal } from "../components";
 import {
+  clearError,
   getActiveToolsRequest,
   getSessionStatsRequest,
   listSessionsRequest,
@@ -23,6 +25,7 @@ export function ChatPage() {
   const dispatch = useAppDispatch();
   const { openFiles, activePath } = useAppSelector((state) => state.workspace);
   const { sidebarWidth, sidebarVisible } = useAppSelector((state) => state.layout);
+  const { streaming, error } = useAppSelector((state) => state.chat);
 
   useEffect(() => {
     dispatch(listSessionsRequest());
@@ -95,11 +98,21 @@ export function ChatPage() {
           </HeaderIconButton>
           <ThemeSwitcher />
           <LanguageSwitcher />
+          {streaming && (
+            <HeaderStopButton onClick={() => void window.pi.abort()}>{t("chat.stop")}</HeaderStopButton>
+          )}
           <HeaderIconButton title={t("layout.disconnect")} onClick={() => dispatch(disconnectRequest())}>
             <LogoutIcon />
           </HeaderIconButton>
         </TabBar>
         <Content>{activePath ? <EditorView /> : <ChatView />}</Content>
+        {error && (
+          <ChatErrorBar>
+            <ChatErrorText>{errorText(error)}</ChatErrorText>
+            <ChatErrorClose onClick={() => dispatch(clearError())}>×</ChatErrorClose>
+          </ChatErrorBar>
+        )}
+        <ToolPermissionModal />
       </Main>
     </Layout>
   );
@@ -246,6 +259,52 @@ const HeaderIconButton = styled.button`
     background: ${({ theme }) => theme.colors.surfaceHover};
     color: ${({ theme }) => theme.colors.text};
   }
+`;
+
+const HeaderStopButton = styled.button`
+  flex: none;
+  height: 30px;
+  padding: 0 ${({ theme }) => theme.spaces["3"]};
+  border-radius: ${({ theme }) => theme.radius.sm};
+  border: 1px solid ${({ theme }) => theme.colors.danger};
+  background: ${({ theme }) => theme.colors.dangerSoft};
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    opacity: 0.85;
+  }
+`;
+
+const ChatErrorBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spaces["2.5"]};
+  margin: 0 ${({ theme }) => theme.spaces["7"]} ${({ theme }) => theme.spaces["3"]};
+  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3.5"]};
+  border-radius: ${({ theme }) => theme.radius.md};
+  border: 1px solid ${({ theme }) => theme.colors.danger};
+  background: ${({ theme }) => theme.colors.dangerSoft};
+`;
+
+const ChatErrorText = styled.span`
+  flex: 1;
+  min-width: 0;
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: 13px;
+`;
+
+const ChatErrorClose = styled.button`
+  flex: none;
+  border: none;
+  background: transparent;
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
 `;
 
 const Content = styled.div`

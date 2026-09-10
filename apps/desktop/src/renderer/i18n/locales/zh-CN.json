@@ -140,7 +140,8 @@
     "sessionNotFound": "会话不存在",
     "sessionLoadFailed": "会话加载失败",
     "apiKeyRequired": "请输入 API Key，或选择已配置密钥的提供商",
-    "noActiveSession": "当前没有活动会话"
+    "noActiveSession": "当前没有活动会话",
+    "binaryFile": "这是二进制文件，无法以文本方式打开"
   },
   "theme": {
     "light": "切换到浅色主题",

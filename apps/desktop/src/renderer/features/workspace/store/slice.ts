@@ -125,8 +125,14 @@ export const workspaceSlice = createSlice({
       const { path, content } = action.payload;
       const existing = state.openFiles.find((file) => file.path === path);
       if (existing) {
-        existing.content = content;
-        existing.savedContent = content;
+        // Re-opening a dirty tab must not discard unsaved edits. A clean tab is
+        // refreshed from disk (accepting its current state as the baseline); a
+        // dirty tab keeps its buffer and saved baseline untouched.
+        if (existing.content === existing.savedContent) {
+          existing.content = content;
+          existing.savedContent = content;
+          existing.previousContent = undefined;
+        }
         existing.loading = false;
       } else {
         state.openFiles.push({
@@ -176,12 +182,16 @@ export const workspaceSlice = createSlice({
         file.content = action.payload.content;
       }
     },
-    revertFile(state, action: PayloadAction<string>) {
+    revertFileRequest(_state, _action: PayloadAction<string>) {},
+    revertFileSuccess(state, action: PayloadAction<string>) {
       const file = state.openFiles.find((item) => item.path === action.payload);
       if (file) {
         file.content = file.savedContent;
         file.previousContent = undefined;
       }
+    },
+    revertFileFailure(state, action: PayloadAction<{ path: string; error: string }>) {
+      state.error = action.payload.error;
     },
     saveFileRequest(_state, _action: PayloadAction<string>) {},
     saveFileSuccess(state, action: PayloadAction<{ path: string; content: string }>) {
@@ -226,7 +236,9 @@ export const {
   closeFile,
   setActivePath,
   editFile,
-  revertFile,
+  revertFileRequest,
+  revertFileSuccess,
+  revertFileFailure,
   saveFileRequest,
   saveFileSuccess,
   saveFileFailure,

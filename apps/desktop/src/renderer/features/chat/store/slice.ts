@@ -33,6 +33,7 @@ function resetConversation(state: State): void {
   state.streaming = false;
   state.sessionStats = undefined;
   state.sessionSettings = undefined;
+  state.pendingPermissions = [];
 }
 
 function lastAssistant(state: State): ChatMessage | undefined {
@@ -153,8 +154,13 @@ export const chatSlice = createSlice({
     toolPermissionRequested(state, action: PayloadAction<ToolPermissionRequest>) {
       state.pendingPermissions.push(action.payload);
     },
-    toolPermissionResolved(state) {
-      state.pendingPermissions.shift();
+    toolPermissionResolved(state, action: PayloadAction<string>) {
+      state.pendingPermissions = state.pendingPermissions.filter(
+        (item) => item.requestId !== action.payload,
+      );
+    },
+    toolPermissionsCleared(state) {
+      state.pendingPermissions = [];
     },
 
     listSessionsRequest(state) {
@@ -177,6 +183,7 @@ export const chatSlice = createSlice({
       state.activeSessionPath = action.payload.path;
       state.error = undefined;
       state.streaming = false;
+      state.pendingPermissions = [];
     },
     loadSessionFailure(state, action: PayloadAction<string>) {
       state.sessionError = action.payload;
@@ -191,6 +198,7 @@ export const chatSlice = createSlice({
         state.streaming = false;
         state.sessionStats = undefined;
         state.sessionSettings = undefined;
+        state.pendingPermissions = [];
       }
     },
     deleteSessionFailure(state, action: PayloadAction<string>) {
@@ -210,6 +218,7 @@ export const chatSlice = createSlice({
       state.streaming = false;
       state.sessionStats = undefined;
       state.sessionSettings = undefined;
+      state.pendingPermissions = [];
     },
 
     clearSessionError(state) {
@@ -269,6 +278,7 @@ export const {
   clearError,
   toolPermissionRequested,
   toolPermissionResolved,
+  toolPermissionsCleared,
   listSessionsRequest,
   listSessionsSuccess,
   listSessionsFailure,

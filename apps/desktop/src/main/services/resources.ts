@@ -4,7 +4,9 @@ import {
   createExtensionRuntime,
   discoverAndLoadExtensions,
   loadProjectContextFiles,
+  loadSkillsFromDir,
   type LoadExtensionsResult,
+  type LoadSkillsResult,
   type ResourceLoader,
 } from "../core";
 import { SYSTEM_PROMPT } from "../core";
@@ -18,7 +20,9 @@ export interface ProjectResourceLoader {
 /**
  * Build the resource loader for a workspace. Keeps the "zero default config"
  * guarantee: `agentDir` is the project root, so nothing under `~/.pi/agent` is
- * discovered. Extensions are loaded asynchronously before session creation.
+ * discovered. Extensions are loaded asynchronously before session creation;
+ * skills are scanned from the project's `.agents/skills` directory and follow
+ * the same project-local, versioned-by-the-repo model.
  *
  * The tool-permission gate is appended as an inline extension so the agent can
  * always attempt any built-in tool; the gate prompts the user before a tool
@@ -30,11 +34,15 @@ export function createProjectResourceLoader(root: string, gate: ToolPermissionGa
     errors: [],
     runtime: createExtensionRuntime(),
   };
+  const skillsResult: LoadSkillsResult = loadSkillsFromDir({
+    dir: path.join(root, ".agents", "skills"),
+    source: "project",
+  });
   const eventBus = createEventBus();
 
   const loader: ResourceLoader = {
     getExtensions: () => extensionsResult,
-    getSkills: () => ({ skills: [], diagnostics: [] }),
+    getSkills: () => skillsResult,
     getPrompts: () => ({ prompts: [], diagnostics: [] }),
     getThemes: () => ({ themes: [], diagnostics: [] }),
     getAgentsFiles: () => ({ agentsFiles: loadProjectContextFiles({ cwd: root, agentDir: root }) }),

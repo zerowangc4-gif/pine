@@ -40,6 +40,7 @@ import {
   thinkingDelta,
   toolEnded,
   toolPermissionRequested,
+  toolPermissionsCleared,
   toolStarted,
 } from "./slice";
 
@@ -217,6 +218,9 @@ function* watchChatEvents(): SagaIterator {
           break;
         case "tool_permission_request":
           yield put(toolPermissionRequested(event.request));
+          break;
+        case "tool_permission_cleared":
+          yield put(toolPermissionsCleared());
           break;
         case "error":
           yield put(chatError(event.message));

@@ -5,13 +5,11 @@ import remarkGfm from "remark-gfm";
 import styled from "styled-components";
 import { CheckIcon, CopyIcon, CrossIcon, FileDiff, ImageIcon, Spinner } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { errorText } from "@renderer/utils";
 import { formatCost } from "@renderer/utils";
 import type { ChatImage } from "@shared/types";
 import { openFolderRequest } from "@renderer/features/workspace";
 import { ComposerBar } from "./ComposerBar";
-import { ToolPermissionModal } from "./ToolPermissionModal";
-import { clearError, sendMessage } from "../store";
+import { sendMessage } from "../store";
 import type { ChatMessage, ToolStep } from "../types/state";
 
 function readImageFile(file: File): Promise<ChatImage> {
@@ -37,7 +35,7 @@ function imageFiles(list: FileList | null): File[] {
 export function ChatView() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { messages, streaming, error, sessionStats } = useAppSelector((state) => state.chat);
+  const { messages, streaming, sessionStats } = useAppSelector((state) => state.chat);
   const rootPath = useAppSelector((state) => state.workspace.rootPath);
   const { providers, selectedProvider, selectedModel } = useAppSelector((state) => state.login);
   const [input, setInput] = useState("");
@@ -182,13 +180,6 @@ export function ChatView() {
         )}
       </Messages>
 
-      {error && (
-        <ErrorBar>
-          <ErrorText>{errorText(error)}</ErrorText>
-          <ErrorClose onClick={() => dispatch(clearError())}>×</ErrorClose>
-        </ErrorBar>
-      )}
-
       <Composer>
         {images.length > 0 && (
           <ImageStrip>
@@ -245,7 +236,6 @@ export function ChatView() {
               >
                 {t("chat.steer")}
               </SteerButton>
-              <StopButton onClick={() => void window.pi.abort()}>{t("chat.stop")}</StopButton>
             </>
           ) : (
             <SendButton disabled={!canSend} onClick={() => handleSend()}>
@@ -266,8 +256,6 @@ export function ChatView() {
           </PasteMenuItem>
         </PasteMenu>
       )}
-
-      <ToolPermissionModal />
     </Root>
   );
 }
@@ -343,11 +331,7 @@ function AssistantRow({ message, label }: { message: ChatMessage; label: string 
                         : t("chat.toolError")}
                   </ToolStatus>
                 </ToolChip>
-                {tool.summary && (
-                  <ToolDetail $command={tool.name === "bash" || tool.name === "powershell"}>
-                    {tool.summary}
-                  </ToolDetail>
-                )}
+                {tool.summary && <ToolDetail>{tool.summary}</ToolDetail>}
                 {tool.diff && <FileDiff path={tool.diff.path} hunks={tool.diff.hunks} />}
               </ToolItem>
             ))}
@@ -490,33 +474,6 @@ const WelcomeAction = styled.button`
   }
 `;
 
-const ErrorBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spaces["2.5"]};
-  margin: 0 ${({ theme }) => theme.spaces["7"]} ${({ theme }) => theme.spaces["3"]};
-  padding: ${({ theme }) => theme.spaces["2.5"]} ${({ theme }) => theme.spaces["3.5"]};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme }) => theme.colors.danger};
-  background: ${({ theme }) => theme.colors.dangerSoft};
-`;
-
-const ErrorText = styled.span`
-  flex: 1;
-  color: ${({ theme }) => theme.colors.danger};
-  font-size: 13px;
-`;
-
-const ErrorClose = styled.button`
-  flex: none;
-  border: none;
-  background: transparent;
-  color: ${({ theme }) => theme.colors.danger};
-  font-size: 18px;
-  cursor: pointer;
-  line-height: 1;
-`;
-
 const Composer = styled.div`
   padding: ${({ theme }) => theme.spaces["3.5"]} ${({ theme }) => theme.spaces["7"]} ${({ theme }) => theme.spaces["5"]};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
@@ -649,23 +606,6 @@ const SendButton = styled.button`
   }
 `;
 
-const StopButton = styled.button`
-  flex: none;
-  padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["4"]};
-  border: 1px solid ${({ theme }) => theme.colors.danger};
-  border-radius: ${({ theme }) => theme.radius.md};
-  cursor: pointer;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.danger};
-  background: ${({ theme }) => theme.colors.dangerSoft};
-  transition: opacity ${({ theme }) => theme.transition.fast};
-
-  &:hover {
-    opacity: 0.85;
-  }
-`;
-
 const FollowUpButton = styled.button`
   flex: none;
   padding: ${({ theme }) => theme.spaces["2"]} ${({ theme }) => theme.spaces["3.5"]};
@@ -793,24 +733,11 @@ const ToolItem = styled.div`
   max-width: 100%;
 `;
 
-const ToolDetail = styled.div<{ $command?: boolean }>`
+const ToolDetail = styled.div`
   max-width: 100%;
   font-size: 12px;
   color: ${({ theme }) => theme.colors.textMuted};
-
-  ${({ theme, $command }) =>
-    $command
-      ? `
-    padding: ${theme.spaces["2"]} ${theme.spaces["3"]};
-    border: 1px solid ${theme.colors.border};
-    border-radius: ${theme.radius.sm};
-    background: ${theme.colors.codeBg};
-    color: ${theme.colors.codeText};
-    font-family: ${theme.font.mono};
-    white-space: pre-wrap;
-    word-break: break-all;
-  `
-      : ""}
+  word-break: break-word;
 `;
 
 const ToolChip = styled.span<{ $status: ToolStep["status"] }>`
