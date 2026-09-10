@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { Dropdown, type DropdownOption } from "@renderer/components/Dropdown";
-import { Modal } from "@renderer/components/Modal";
-import { ModalButton, SwitchButton, SwitchKnob, TextInput } from "@renderer/components/ui";
-import { GearIcon, PlusIcon, ShieldIcon, SparkleIcon } from "@renderer/components/icons";
+import { Dropdown, type DropdownOption } from "@renderer/components";
+import { Modal } from "@renderer/components";
+import { ModalButton, SwitchButton, SwitchKnob, TextInput } from "@renderer/components";
+import { GearIcon, PlusIcon, ShieldIcon } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { formatCost, formatTokens } from "@renderer/utils/format";
+import { formatCost, formatTokens } from "@renderer/utils";
 import type { SessionStatsDTO, ThinkingLevel } from "@shared/types";
 import { setThinkingLevelRequest, switchModelRequest } from "@renderer/features/login";
 import {
@@ -14,7 +14,6 @@ import {
   renameSessionRequest,
   setAutoCompactionRequest,
 } from "../store";
-import { SkillsModal } from "./SkillsModal";
 import { PermissionsModal } from "./PermissionsModal";
 import { ConnectProviderModal } from "./ConnectProviderModal";
 
@@ -28,7 +27,6 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
   const { sessions, activeSessionPath, sessionSettings } = useAppSelector((state) => state.chat);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [skillsOpen, setSkillsOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const [sessionName, setSessionName] = useState("");
@@ -120,9 +118,6 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
         >
           <GearIcon />
         </GearButton>
-        <GearButton title={t("skills.title")} onClick={() => setSkillsOpen(true)}>
-          <SparkleIcon />
-        </GearButton>
         <GearButton title={t("permissions.title")} onClick={() => setPermissionsOpen(true)}>
           <ShieldIcon />
         </GearButton>
@@ -180,8 +175,6 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
           </ToggleRow>
         </Modal>
       )}
-
-      {skillsOpen && <SkillsModal onClose={() => setSkillsOpen(false)} />}
 
       {permissionsOpen && <PermissionsModal onClose={() => setPermissionsOpen(false)} />}
 

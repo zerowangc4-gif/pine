@@ -7,7 +7,7 @@ import type {
   SessionSettingsDTO,
   SessionStatsDTO,
 } from "@shared/types";
-import type { PineService } from "../services/pine-service";
+import type { PineService } from "../services";
 
 export function registerSessionsIpc(service: PineService): void {
   ipcMain.handle(IPC_CHANNELS.sessionsList, (): Promise<SessionListResult> => service.listSessions());

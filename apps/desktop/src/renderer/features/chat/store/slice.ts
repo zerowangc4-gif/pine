@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { ChatImage, MessageUsage, SessionInfo, SessionMessage, SessionSettingsDTO, SessionStatsDTO } from "@shared/types";
-import { createId } from "@renderer/utils/id";
+import { createId } from "@renderer/utils";
 import { connectWithKeySuccess } from "../../login/store/slice";
 import type { ChatMessage, State } from "../types/state";
 

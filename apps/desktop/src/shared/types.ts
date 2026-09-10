@@ -66,12 +66,35 @@ export interface FileResult {
   error?: string;
 }
 
-/** A discovered project skill (for the skills manager UI). */
-export interface SkillInfo {
-  name: string;
-  description: string;
-  filePath: string;
-}
+/**
+ * One intent per filesystem operation the renderer can ask for. The renderer
+ * sends an intent + the parameters it needs, and the main process dispatches
+ * it inside FileService. Keeping the request as a discriminated union makes
+ * every parameter explicit and exhaustively checked.
+ */
+export type FileIntent = FileRequest["intent"];
+
+export type FileRequest =
+  | { intent: "openFolder"; title: string }
+  | { intent: "readDir"; path: string }
+  | { intent: "createFile"; dirPath: string; name: string }
+  | { intent: "createFolder"; dirPath: string; name: string }
+  | { intent: "readFile"; path: string }
+  | { intent: "writeFile"; path: string; content: string }
+  | { intent: "rename"; path: string; name: string }
+  | { intent: "delete"; path: string }
+  | { intent: "reveal"; path: string };
+
+export type FileResponse =
+  | { intent: "openFolder"; path: string | undefined }
+  | { intent: "readDir"; entries: DirEntry[] }
+  | { intent: "readFile"; content: string }
+  | { intent: "reveal" }
+  | { intent: "createFile"; result: FileResult }
+  | { intent: "createFolder"; result: FileResult }
+  | { intent: "writeFile"; result: FileResult }
+  | { intent: "rename"; result: FileResult }
+  | { intent: "delete"; result: FileResult };
 
 /** A saved conversation entry returned by the main process. */
 export interface SessionToolStep {
@@ -152,20 +175,8 @@ export interface Pi {
   listProviders(): Promise<ProviderInfo[]>;
   connect(input: ConnectInput): Promise<ConnectResult>;
 
-  // Workspace files
-  openFolder(title: string): Promise<string | undefined>;
-  readDir(dirPath: string): Promise<DirEntry[]>;
-  createFile(dirPath: string, name: string): Promise<FileResult>;
-  createFolder(dirPath: string, name: string): Promise<FileResult>;
-  renameEntry(path: string, name: string): Promise<FileResult>;
-  deleteEntry(path: string): Promise<FileResult>;
-  revealInExplorer(path: string): Promise<void>;
-  readFile(filePath: string): Promise<string>;
-  writeFile(filePath: string, content: string): Promise<FileResult>;
-
-  // Skills
-  listSkills(): Promise<SkillInfo[]>;
-  createSkill(name: string, description: string): Promise<FileResult>;
+  // Workspace files (single intent-based entry point; logic lives in FileService)
+  executeFile(request: FileRequest): Promise<FileResponse>;
 
   // Sessions
   listSessions(): Promise<SessionListResult>;

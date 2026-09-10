@@ -7,7 +7,7 @@ import type {
   ProviderInfo,
   ThinkingLevel,
 } from "@shared/types";
-import type { PineService } from "../services/pine-service";
+import type { PineService } from "../services";
 
 export function registerProviderIpc(service: PineService): void {
   ipcMain.handle(IPC_CHANNELS.providersList, (): Promise<ProviderInfo[]> => service.listProviders());

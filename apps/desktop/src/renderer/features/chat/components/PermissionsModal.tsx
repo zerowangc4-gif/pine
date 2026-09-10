@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { Modal } from "@renderer/components/Modal";
-import { ModalButton, SwitchButton, SwitchKnob } from "@renderer/components/ui";
-import { ShieldIcon } from "@renderer/components/icons";
+import { Modal } from "@renderer/components";
+import { ModalButton, SwitchButton, SwitchKnob } from "@renderer/components";
+import { ShieldIcon } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { setActiveToolsRequest } from "../store";
 

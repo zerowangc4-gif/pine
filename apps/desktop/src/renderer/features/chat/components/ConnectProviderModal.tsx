@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { Dropdown, type DropdownOption } from "@renderer/components/Dropdown";
-import { Modal } from "@renderer/components/Modal";
-import { ModalButton, TextInput } from "@renderer/components/ui";
-import { Spinner } from "@renderer/components/icons";
+import { Dropdown, type DropdownOption } from "@renderer/components";
+import { Modal } from "@renderer/components";
+import { ModalButton, TextInput } from "@renderer/components";
+import { Spinner } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { errorText } from "@renderer/utils/error";
+import { errorText } from "@renderer/utils";
 import { connectWithKeyRequest } from "@renderer/features/login";
 
 /**

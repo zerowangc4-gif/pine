@@ -57,17 +57,6 @@
     "edit": "Edit files",
     "write": "Write files"
   },
-  "skills": {
-    "title": "Skills",
-    "empty": "No skills in this project yet",
-    "new": "New Skill",
-    "create": "Create",
-    "name": "Name",
-    "namePlaceholder": "Skill name",
-    "description": "Description",
-    "descriptionPlaceholder": "Describe when and how this skill is used",
-    "hint": "Skills live in the project's .pi/skills folder and take effect in the next conversation"
-  },
   "chat": {
     "tab": "Chat",
     "welcomeTitle": "Start a conversation",

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { Modal } from "@renderer/components/Modal";
-import { ModalButton } from "@renderer/components/ui";
+import { Modal } from "@renderer/components";
+import { ModalButton } from "@renderer/components";
 import {
   ChevronRightIcon,
   CollapseAllIcon,
@@ -16,10 +16,10 @@ import {
   RevealIcon,
   Spinner,
   TrashIcon,
-} from "@renderer/components/icons";
+} from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { errorText } from "@renderer/utils/error";
-import { basename, relativePath } from "@renderer/utils/path";
+import { errorText } from "@renderer/utils";
+import { basename, relativePath } from "@renderer/utils";
 import {
   clearWorkspaceError,
   collapseAll,
@@ -225,7 +225,7 @@ export function FileExplorer() {
           )}
           <ContextItem
             onClick={() => {
-              void window.pi.revealInExplorer(menu.path);
+              void window.pi.executeFile({ intent: "reveal", path: menu.path });
               setMenu(undefined);
             }}
           >

@@ -1,4 +1,3 @@
 export * from "./store";
-export * from "./components/ChatView";
-export * from "./components/SessionsPanel";
+export * from "./components";
 export * from "./pages/ChatPage";

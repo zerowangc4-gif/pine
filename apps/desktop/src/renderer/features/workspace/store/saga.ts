@@ -1,9 +1,9 @@
 import type { SagaIterator } from "redux-saga";
 import { call, put, select, takeLatest } from "redux-saga/effects";
-import type { DirEntry, FileResult } from "@shared/types";
+import type { FileResponse } from "@shared/types";
 import { toErrorMessage } from "@shared/utils";
 import type { RootState } from "@renderer/store";
-import { dirname } from "@renderer/utils/path";
+import { dirname } from "@renderer/utils";
 import { listSessionsRequest, newSessionRequest } from "../../chat/store";
 import type { State } from "../types/state";
 import {
@@ -29,12 +29,30 @@ import {
   setError,
 } from "./slice";
 
+/**
+ * Narrows an intent-tagged {@link FileResponse} to the variant the caller
+ * asked for. The renderer always knows which intent it sent, so a mismatch
+ * here is a programming error worth surfacing.
+ */
+function expectFileResponse<T extends FileResponse["intent"]>(
+  response: FileResponse,
+  intent: T,
+): Extract<FileResponse, { intent: T }> {
+  if (response.intent !== intent) {
+    throw new Error(`Unexpected file response: ${response.intent}`);
+  }
+  return response as Extract<FileResponse, { intent: T }>;
+}
+
 function* openFolderSaga(action: ReturnType<typeof openFolderRequest>): SagaIterator {
   try {
-    const root: string | undefined = yield call(() => window.pi.openFolder(action.payload));
-    if (root) {
-      yield put(openFolderSuccess(root));
-      yield put(loadDirRequest(root));
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({ intent: "openFolder", title: action.payload }),
+    );
+    const { path } = expectFileResponse(response, "openFolder");
+    if (path) {
+      yield put(openFolderSuccess(path));
+      yield put(loadDirRequest(path));
       // A new workspace starts with a clean conversation; the saved sessions are
       // refreshed so the user can continue earlier work in this folder.
       yield put(newSessionRequest());
@@ -47,7 +65,10 @@ function* openFolderSaga(action: ReturnType<typeof openFolderRequest>): SagaIter
 
 function* loadDirSaga(action: ReturnType<typeof loadDirRequest>): SagaIterator {
   try {
-    const entries: DirEntry[] = yield call(() => window.pi.readDir(action.payload));
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({ intent: "readDir", path: action.payload }),
+    );
+    const { entries } = expectFileResponse(response, "readDir");
     yield put(loadDirSuccess({ path: action.payload, entries }));
   } catch (error) {
     yield put(loadDirFailure({ path: action.payload, error: toErrorMessage(error) }));
@@ -56,9 +77,14 @@ function* loadDirSaga(action: ReturnType<typeof loadDirRequest>): SagaIterator {
 
 function* createFileSaga(action: ReturnType<typeof createFileRequest>): SagaIterator {
   try {
-    const result: FileResult = yield call(() =>
-      window.pi.createFile(action.payload.dirPath, action.payload.name),
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({
+        intent: "createFile",
+        dirPath: action.payload.dirPath,
+        name: action.payload.name,
+      }),
     );
+    const { result } = expectFileResponse(response, "createFile");
     if (result.ok) {
       yield put(loadDirRequest(action.payload.dirPath));
     } else {
@@ -71,9 +97,14 @@ function* createFileSaga(action: ReturnType<typeof createFileRequest>): SagaIter
 
 function* createFolderSaga(action: ReturnType<typeof createFolderRequest>): SagaIterator {
   try {
-    const result: FileResult = yield call(() =>
-      window.pi.createFolder(action.payload.dirPath, action.payload.name),
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({
+        intent: "createFolder",
+        dirPath: action.payload.dirPath,
+        name: action.payload.name,
+      }),
     );
+    const { result } = expectFileResponse(response, "createFolder");
     if (result.ok) {
       yield put(loadDirRequest(action.payload.dirPath));
     } else {
@@ -86,7 +117,10 @@ function* createFolderSaga(action: ReturnType<typeof createFolderRequest>): Saga
 
 function* openFileSaga(action: ReturnType<typeof openFileRequest>): SagaIterator {
   try {
-    const content: string = yield call(() => window.pi.readFile(action.payload));
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({ intent: "readFile", path: action.payload }),
+    );
+    const { content } = expectFileResponse(response, "readFile");
     yield put(openFileSuccess({ path: action.payload, content }));
   } catch (error) {
     yield put(openFileFailure({ path: action.payload, error: toErrorMessage(error) }));
@@ -95,9 +129,10 @@ function* openFileSaga(action: ReturnType<typeof openFileRequest>): SagaIterator
 
 function* renameEntrySaga(action: ReturnType<typeof renameEntryRequest>): SagaIterator {
   try {
-    const result: FileResult = yield call(() =>
-      window.pi.renameEntry(action.payload.path, action.payload.name),
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({ intent: "rename", path: action.payload.path, name: action.payload.name }),
     );
+    const { result } = expectFileResponse(response, "rename");
     if (result.ok && result.path) {
       yield put(renameEntrySuccess({ oldPath: action.payload.path, newPath: result.path }));
       yield put(loadDirRequest(dirname(action.payload.path)));
@@ -111,7 +146,10 @@ function* renameEntrySaga(action: ReturnType<typeof renameEntryRequest>): SagaIt
 
 function* deleteEntrySaga(action: ReturnType<typeof deleteEntryRequest>): SagaIterator {
   try {
-    const result: FileResult = yield call(() => window.pi.deleteEntry(action.payload));
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({ intent: "delete", path: action.payload }),
+    );
+    const { result } = expectFileResponse(response, "delete");
     if (result.ok) {
       yield put(deleteEntrySuccess(action.payload));
     } else {
@@ -137,7 +175,10 @@ function* refreshTreeSaga(): SagaIterator {
 
   for (const dirPath of dirPaths) {
     try {
-      const entries: DirEntry[] = yield call(() => window.pi.readDir(dirPath));
+      const response: FileResponse = yield call(() =>
+        window.pi.executeFile({ intent: "readDir", path: dirPath }),
+      );
+      const { entries } = expectFileResponse(response, "readDir");
       yield put(loadDirSuccess({ path: dirPath, entries }));
     } catch {
       // The directory may have been removed on disk; skip it.
@@ -150,7 +191,10 @@ function* refreshTreeSaga(): SagaIterator {
       continue;
     }
     try {
-      const content: string = yield call(() => window.pi.readFile(file.path));
+      const response: FileResponse = yield call(() =>
+        window.pi.executeFile({ intent: "readFile", path: file.path }),
+      );
+      const { content } = expectFileResponse(response, "readFile");
       yield put(refreshFileSuccess({ path: file.path, content }));
     } catch {
       // The file may have been removed on disk; keep the tab as-is.
@@ -165,7 +209,10 @@ function* saveFileSaga(action: ReturnType<typeof saveFileRequest>): SagaIterator
     return;
   }
   try {
-    const result: FileResult = yield call(() => window.pi.writeFile(file.path, file.content));
+    const response: FileResponse = yield call(() =>
+      window.pi.executeFile({ intent: "writeFile", path: file.path, content: file.content }),
+    );
+    const { result } = expectFileResponse(response, "writeFile");
     if (result.ok) {
       yield put(saveFileSuccess({ path: file.path, content: file.content }));
     } else {

@@ -1,17 +1,14 @@
-import type { BrowserWindow } from "electron";
-import type { PineService } from "../services/pine-service";
+import type { FileService, PineService } from "../services";
 import { registerProviderIpc } from "./providers";
 import { registerChatIpc } from "./chat";
 import { registerFilesIpc } from "./files";
 import { registerSessionsIpc } from "./sessions";
-import { registerSkillsIpc } from "./skills";
 import { registerSystemIpc } from "./system";
 
-export function registerIpc(service: PineService, getWindow: () => BrowserWindow | undefined): void {
+export function registerIpc(service: PineService, fileService: FileService): void {
   registerProviderIpc(service);
   registerChatIpc(service);
-  registerFilesIpc(service, getWindow);
+  registerFilesIpc(fileService);
   registerSessionsIpc(service);
-  registerSkillsIpc(service);
   registerSystemIpc();
 }

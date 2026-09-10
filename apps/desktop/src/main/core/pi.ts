@@ -23,9 +23,8 @@
  * createExtensionRuntime  empty extension runtime (stub actions)
  * discoverAndLoadExtensions  load project .pi/extensions + .agents/extensions
  * loadProjectContextFiles    read project AGENTS.md / SYSTEM.md
- * loadSkillsFromDir          load project .pi/skills + .agents/skills
  * createEventBus             event bus for extension loading
- * LoadExtensionsResult / Skill  resource-loading result types
+ * LoadExtensionsResult  resource-loading result types
  */
 export {
   createAgentSession,
@@ -33,7 +32,6 @@ export {
   createExtensionRuntime,
   discoverAndLoadExtensions,
   loadProjectContextFiles,
-  loadSkillsFromDir,
   ModelRuntime,
   SessionManager,
   SettingsManager,
@@ -46,7 +44,6 @@ export type {
   ResourceLoader,
   SessionInfo,
   SessionStats,
-  Skill,
 } from "@earendil-works/pi-coding-agent";
 
 export { InMemoryCredentialStore } from "@earendil-works/pi-ai";
