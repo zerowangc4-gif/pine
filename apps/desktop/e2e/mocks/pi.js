@@ -269,6 +269,7 @@
     getSessions: () => sessions.map((session) => ({ ...session })),
     getActivePath: () => activePath,
     requestPermission: (request) => emit({ type: "tool_permission_request", request }),
+    emitChatEvent: (event) => emit(event),
     getLastPermissionResponse: () => lastPermissionResponse,
     seedSessions: (nextSessions, nextMessagesByPath) => {
       sessions = nextSessions.map((session) => ({ ...session }));

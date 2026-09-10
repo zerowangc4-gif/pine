@@ -4,27 +4,21 @@ import { Modal } from "@renderer/components";
 import { ModalButton, SwitchButton, SwitchKnob } from "@renderer/components";
 import { ShieldIcon } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { BUILTIN_TOOLS } from "@shared/types";
+import { BUILTIN_TOOLS, READONLY_TOOLS } from "@shared/types";
 import { setActiveToolsRequest } from "../store";
-
-/** i18n label key for every built-in tool, keyed by tool name. */
-const TOOL_LABELS: Record<string, string> = {
-  read: "permissions.read",
-  bash: "permissions.bash",
-  powershell: "permissions.powershell",
-  edit: "permissions.edit",
-  write: "permissions.write",
-  grep: "permissions.grep",
-  find: "permissions.find",
-  ls: "permissions.ls",
-};
+import { TOOL_LABELS } from "./toolLabels";
 
 /**
- * One toggle per built-in tool. When a tool is on it runs without asking;
- * when off, the agent can still attempt it but a permission modal appears
- * before execution (see `ToolPermissionModal`).
+ * One toggle per built-in tool. Read-only tools (read/grep/find/ls) never ask
+ * for permission, so their switch is locked on. Modifying tools run without
+ * asking while on; while off, the agent can still attempt them but a review
+ * modal appears first (see `ToolPermissionModal`).
  */
-const TOOL_KEYS = BUILTIN_TOOLS.map((name) => ({ name, label: TOOL_LABELS[name] }));
+const TOOL_KEYS = BUILTIN_TOOLS.map((name) => ({
+  name,
+  label: TOOL_LABELS[name],
+  readOnly: READONLY_TOOLS.includes(name),
+}));
 
 export function PermissionsModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
@@ -32,6 +26,9 @@ export function PermissionsModal({ onClose }: { onClose: () => void }) {
   const activeTools = useAppSelector((state) => state.chat.activeTools);
 
   function toggle(tool: string, enabled: boolean) {
+    if (READONLY_TOOLS.includes(tool)) {
+      return;
+    }
     const next = enabled
       ? Array.from(new Set([...activeTools, tool]))
       : activeTools.filter((name) => name !== tool);
@@ -47,12 +44,13 @@ export function PermissionsModal({ onClose }: { onClose: () => void }) {
       <Hint>{t("permissions.hint")}</Hint>
 
       {TOOL_KEYS.map((tool) => {
-        const enabled = activeTools.includes(tool.name);
+        const enabled = tool.readOnly || activeTools.includes(tool.name);
         return (
           <ToolRow key={tool.name}>
             <ShieldIcon size={13} />
             <ToolInfo>
               <ToolName>{t(tool.label)}</ToolName>
+              {tool.readOnly && <ToolMeta>{t("permissions.alwaysAllowed")}</ToolMeta>}
             </ToolInfo>
             <SwitchButton
               type="button"
@@ -60,6 +58,7 @@ export function PermissionsModal({ onClose }: { onClose: () => void }) {
               aria-checked={enabled}
               aria-label={t(tool.label)}
               $on={enabled}
+              disabled={tool.readOnly}
               onClick={() => toggle(tool.name, !enabled)}
             >
               <SwitchKnob $on={enabled} />
@@ -96,4 +95,10 @@ const ToolName = styled.div`
   color: ${({ theme }) => theme.colors.text};
   font-size: 13.5px;
   font-weight: 600;
+`;
+
+const ToolMeta = styled.div`
+  margin-top: ${({ theme }) => theme.spaces["0.5"]};
+  color: ${({ theme }) => theme.colors.textDim};
+  font-size: 11px;
 `;

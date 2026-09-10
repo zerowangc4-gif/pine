@@ -50,7 +50,7 @@
   },
   "permissions": {
     "title": "Permissions",
-    "hint": "Tools that are on run without asking. Tools that are off ask for your permission each time.",
+    "hint": "Tools that are on run without asking. Disabled modifying tools ask for your approval each time. Read-only tools (read/grep/find/ls) never need permission.",
     "read": "Read files",
     "bash": "Run shell commands",
     "powershell": "Run PowerShell commands",
@@ -61,8 +61,10 @@
     "ls": "List files",
     "allow": "Allow",
     "deny": "Deny",
+    "alwaysAllowed": "Always allowed",
     "toolRequestTitle": "Tool permission required",
-    "toolRequestBody": "The assistant wants to use {{tool}}: {{summary}}"
+    "toolRequestBody": "The assistant wants to use {{tool}}: {{summary}}",
+    "toolRequestBodyGeneric": "The assistant wants to use {{tool}}."
   },
   "chat": {
     "tab": "Chat",

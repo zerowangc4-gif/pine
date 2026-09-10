@@ -45,6 +45,11 @@ export const SwitchButton = styled.button<{ $on: boolean }>`
   background: ${({ theme, $on }) => ($on ? theme.colors.accent : theme.colors.borderStrong)};
   cursor: pointer;
   transition: background ${({ theme }) => theme.transition.fast};
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.75;
+  }
 `;
 
 export const SwitchKnob = styled.span<{ $on: boolean }>`

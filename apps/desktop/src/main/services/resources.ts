@@ -59,7 +59,7 @@ export function createProjectResourceLoader(root: string, gate: ToolPermissionGa
       } catch {
         // A broken extension must not block the session from starting.
       }
-      extensionsResult.extensions.push(createToolPermissionGateExtension(gate));
+      extensionsResult.extensions.push(createToolPermissionGateExtension(gate, root));
     },
   };
 }

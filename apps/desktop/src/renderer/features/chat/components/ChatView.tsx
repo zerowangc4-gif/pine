@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import styled from "styled-components";
-import { CheckIcon, CopyIcon, CrossIcon, ImageIcon, Spinner } from "@renderer/components";
+import { CheckIcon, CopyIcon, CrossIcon, FileDiff, ImageIcon, Spinner } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { errorText } from "@renderer/utils";
 import { formatCost } from "@renderer/utils";
@@ -323,25 +323,33 @@ function AssistantRow({ message, label }: { message: ChatMessage; label: string 
         {message.tools && message.tools.length > 0 && (
           <ToolList>
             {message.tools.map((tool) => (
-              <ToolChip key={tool.id} $status={tool.status}>
-                <ToolIcon $status={tool.status}>
-                  {tool.status === "running" ? (
-                    <Spinner $size={10} />
-                  ) : tool.status === "done" ? (
-                    <CheckIcon />
-                  ) : (
-                    <CrossIcon />
-                  )}
-                </ToolIcon>
-                {tool.name}
-                <ToolStatus>
-                  {tool.status === "running"
-                    ? t("chat.toolRunning")
-                    : tool.status === "done"
-                      ? t("chat.toolDone")
-                      : t("chat.toolError")}
-                </ToolStatus>
-              </ToolChip>
+              <ToolItem key={tool.id}>
+                <ToolChip $status={tool.status}>
+                  <ToolIcon $status={tool.status}>
+                    {tool.status === "running" ? (
+                      <Spinner $size={10} />
+                    ) : tool.status === "done" ? (
+                      <CheckIcon />
+                    ) : (
+                      <CrossIcon />
+                    )}
+                  </ToolIcon>
+                  {tool.name}
+                  <ToolStatus>
+                    {tool.status === "running"
+                      ? t("chat.toolRunning")
+                      : tool.status === "done"
+                        ? t("chat.toolDone")
+                        : t("chat.toolError")}
+                  </ToolStatus>
+                </ToolChip>
+                {tool.summary && (
+                  <ToolDetail $command={tool.name === "bash" || tool.name === "powershell"}>
+                    {tool.summary}
+                  </ToolDetail>
+                )}
+                {tool.diff && <FileDiff path={tool.diff.path} hunks={tool.diff.hunks} />}
+              </ToolItem>
             ))}
           </ToolList>
         )}
@@ -772,8 +780,37 @@ const AssistantBody = styled.div`
 
 const ToolList = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: ${({ theme }) => theme.spaces["2"]};
+`;
+
+const ToolItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: ${({ theme }) => theme.spaces["1.5"]};
+  max-width: 100%;
+`;
+
+const ToolDetail = styled.div<{ $command?: boolean }>`
+  max-width: 100%;
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.textMuted};
+
+  ${({ theme, $command }) =>
+    $command
+      ? `
+    padding: ${theme.spaces["2"]} ${theme.spaces["3"]};
+    border: 1px solid ${theme.colors.border};
+    border-radius: ${theme.radius.sm};
+    background: ${theme.colors.codeBg};
+    color: ${theme.colors.codeText};
+    font-family: ${theme.font.mono};
+    white-space: pre-wrap;
+    word-break: break-all;
+  `
+      : ""}
 `;
 
 const ToolChip = styled.span<{ $status: ToolStep["status"] }>`

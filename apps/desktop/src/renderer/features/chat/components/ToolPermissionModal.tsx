@@ -1,16 +1,18 @@
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { Modal } from "@renderer/components";
-import { ModalButton } from "@renderer/components";
-import { ShieldIcon } from "@renderer/components";
+import { FileDiff, Modal, ModalButton, ShieldIcon } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { toolPermissionResolved } from "../store";
-import type { ToolPermissionRequest } from "@shared/types";
+
+const SHELL_TOOLS = new Set(["bash", "powershell"]);
 
 /**
  * Blocking permission prompt shown when the agent tries to run a tool the user
  * has disabled. The agent run stays paused in the main process until Allow or
  * Deny is chosen.
+ *
+ * File-modifying tools (`edit`/`write`) show a reviewable diff; shell tools
+ * (`bash`/`powershell`) never render their command text in this panel.
  */
 export function ToolPermissionModal() {
   const { t } = useTranslation();
@@ -21,6 +23,8 @@ export function ToolPermissionModal() {
     return null;
   }
 
+  const label = request.toolName;
+
   function respond(allowed: boolean) {
     void window.pi.respondToolPermission(request!.requestId, allowed);
     dispatch(toolPermissionResolved());
@@ -29,6 +33,7 @@ export function ToolPermissionModal() {
   return (
     <Modal
       title={t("permissions.toolRequestTitle")}
+      wide={Boolean(request.diff)}
       onClose={() => respond(false)}
       footer={
         <>
@@ -43,20 +48,34 @@ export function ToolPermissionModal() {
         <IconWrap>
           <ShieldIcon size={18} />
         </IconWrap>
-        <Text>{renderBody(t, request)}</Text>
+        <BodyContent>
+          {request.diff ? (
+            <>
+              <Text>
+                {t("permissions.toolRequestBody", { tool: label, summary: request.diff.path })}
+              </Text>
+              <FileDiff hunks={request.diff.hunks} />
+            </>
+          ) : request.summary && !SHELL_TOOLS.has(request.toolName) ? (
+            <Text>{t("permissions.toolRequestBody", { tool: label, summary: request.summary })}</Text>
+          ) : (
+            <Text>{t("permissions.toolRequestBodyGeneric", { tool: label })}</Text>
+          )}
+        </BodyContent>
       </Body>
     </Modal>
   );
-}
-
-function renderBody(t: (key: string, options?: Record<string, string>) => string, request: ToolPermissionRequest): string {
-  return t("permissions.toolRequestBody", { tool: request.toolName, summary: request.summary });
 }
 
 const Body = styled.div`
   display: flex;
   align-items: flex-start;
   gap: ${({ theme }) => theme.spaces["3"]};
+`;
+
+const BodyContent = styled.div`
+  flex: 1;
+  min-width: 0;
 `;
 
 const IconWrap = styled.div`

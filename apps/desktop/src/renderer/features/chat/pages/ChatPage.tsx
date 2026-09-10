@@ -8,27 +8,14 @@ import {
   EditorView,
   FileExplorer,
   closeFile,
-  refreshTreeRequest,
   setActivePath,
 } from "@renderer/features/workspace";
 import { disconnectRequest, getActiveModelRequest, loadProviders } from "@renderer/features/login";
 import { ChatView, SessionsPanel } from "../components";
 import {
-  agentStarted,
-  assistantEnded,
-  assistantStarted,
-  chatError,
   getActiveToolsRequest,
   getSessionStatsRequest,
   listSessionsRequest,
-  messageUsageReceived,
-  sessionStatsReceived,
-  settled,
-  textDelta,
-  thinkingDelta,
-  toolEnded,
-  toolPermissionRequested,
-  toolStarted,
 } from "../store";
 
 export function ChatPage() {
@@ -43,64 +30,6 @@ export function ChatPage() {
     dispatch(getActiveModelRequest());
     dispatch(getSessionStatsRequest());
     dispatch(getActiveToolsRequest());
-  }, [dispatch]);
-
-  useEffect(() => {
-    window.pi.onFilesChanged(() => dispatch(refreshTreeRequest()));
-  }, [dispatch]);
-
-  // VSCode-like: refresh the explorer when the window regains focus, in case
-  // the file watcher missed changes made while the app was in the background.
-  useEffect(() => {
-    const onFocus = () => dispatch(refreshTreeRequest());
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [dispatch]);
-
-  useEffect(() => {
-    window.pi.onChatEvent((event) => {
-      switch (event.type) {
-        case "agent_start":
-          dispatch(agentStarted());
-          break;
-        case "assistant_start":
-          dispatch(assistantStarted());
-          break;
-        case "text_delta":
-          dispatch(textDelta(event.delta));
-          break;
-        case "thinking_delta":
-          dispatch(thinkingDelta(event.delta));
-          break;
-        case "assistant_end":
-          dispatch(assistantEnded());
-          break;
-        case "message_usage":
-          dispatch(messageUsageReceived(event.usage));
-          break;
-        case "tool_start":
-          dispatch(toolStarted({ id: event.toolId, name: event.toolName }));
-          break;
-        case "tool_end":
-          dispatch(toolEnded({ id: event.toolId, isError: event.isError }));
-          break;
-        case "settled":
-          dispatch(settled());
-          // The conversation was just persisted; refresh the session list and stats.
-          dispatch(listSessionsRequest());
-          dispatch(getSessionStatsRequest());
-          break;
-        case "session_stats":
-          dispatch(sessionStatsReceived(event.stats));
-          break;
-        case "tool_permission_request":
-          dispatch(toolPermissionRequested(event.request));
-          break;
-        case "error":
-          dispatch(chatError(event.message));
-          break;
-      }
-    });
   }, [dispatch]);
 
   return (

@@ -1,9 +1,11 @@
-import type { ChatImage, MessageUsage, SessionInfo, SessionSettingsDTO, SessionStatsDTO, ToolPermissionRequest } from "@shared/types";
+import type { ChatImage, MessageUsage, SessionInfo, SessionSettingsDTO, SessionStatsDTO, ToolPermissionDiff, ToolPermissionRequest } from "@shared/types";
 
 export interface ToolStep {
   id: string;
   name: string;
   status: "running" | "done" | "error";
+  summary?: string;
+  diff?: ToolPermissionDiff;
 }
 
 export interface ChatMessage {

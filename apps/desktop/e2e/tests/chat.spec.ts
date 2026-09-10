@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   connectToChat,
+  emitChatEvent,
   getLastCopied,
   getLastPermissionResponse,
   initMockPi,
@@ -48,6 +49,40 @@ test.describe("chat conversation", () => {
     await expect(page.getByRole("button", { name: "Connect" })).toBeVisible();
   });
 
+  test("shows an executed command and an edit diff in the chat", async ({ page }) => {
+    await initMockPi(page, { nextReply: "Done" });
+    await connectToChat(page);
+    await openWorkspace(page);
+
+    await page.getByPlaceholder("Type a message…").fill("Make the change");
+    await page.getByRole("button", { name: "Send" }).click();
+    await expect(page.getByText("Done")).toBeVisible();
+
+    await emitChatEvent(page, {
+      type: "tool_start",
+      toolId: "tool-1",
+      toolName: "bash",
+      summary: "ls -la src",
+    });
+    await emitChatEvent(page, { type: "tool_end", toolId: "tool-1", toolName: "bash", isError: false });
+
+    await emitChatEvent(page, {
+      type: "tool_start",
+      toolId: "tool-2",
+      toolName: "edit",
+      diff: {
+        path: "src/index.ts",
+        hunks: [{ oldText: "const a = 1;", newText: "const a = 2;" }],
+      },
+    });
+    await emitChatEvent(page, { type: "tool_end", toolId: "tool-2", toolName: "edit", isError: false });
+
+    await expect(page.getByText("ls -la src")).toBeVisible();
+    await expect(page.getByText("src/index.ts")).toBeVisible();
+    await expect(page.getByText("const a = 1;")).toBeVisible();
+    await expect(page.getByText("const a = 2;")).toBeVisible();
+  });
+
   test("shows a permission prompt for a disabled tool and honors the decision", async ({ page }) => {
     await initMockPi(page);
     await connectToChat(page);
@@ -55,7 +90,7 @@ test.describe("chat conversation", () => {
     await requestToolPermission(page, { requestId: "req-1", toolName: "bash", summary: "rm -rf build" });
 
     await expect(page.getByText("Tool permission required")).toBeVisible();
-    await expect(page.getByText("The assistant wants to use bash: rm -rf build")).toBeVisible();
+    await expect(page.getByText("The assistant wants to use bash.")).toBeVisible();
 
     await page.getByRole("button", { name: "Allow" }).click();
 

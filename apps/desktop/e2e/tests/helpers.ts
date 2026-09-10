@@ -35,6 +35,7 @@ interface PiMockControls {
   getSessions(): Record<string, unknown>[];
   getActivePath(): string | undefined;
   requestPermission(request: { requestId: string; toolName: string; summary: string }): void;
+  emitChatEvent(event: Record<string, unknown>): void;
   getLastPermissionResponse(): { requestId: string; allowed: boolean } | null;
 }
 
@@ -56,6 +57,14 @@ export function requestToolPermission(
   return page.evaluate(
     (payload) => (window as unknown as { __pi: PiMockControls }).__pi.requestPermission(payload),
     request,
+  );
+}
+
+/** Emit an arbitrary chat event, mirroring the main-process event stream. */
+export function emitChatEvent(page: Page, event: Record<string, unknown>): Promise<void> {
+  return page.evaluate(
+    (payload) => (window as unknown as { __pi: PiMockControls }).__pi.emitChatEvent(payload),
+    event,
   );
 }
 

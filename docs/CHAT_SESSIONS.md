@@ -33,6 +33,7 @@
 | 2.3 | 流式回复 | ✅ | `agent_start → assistant_start → text_delta → assistant_end → settled` |
 | 2.4 | 思考过程展示 | ✅ | `thinking_delta`；「思考中」可折叠展开 |
 | 2.5 | 工具调用状态 | ✅ | `tool_start / tool_end`；running / done / error 三种状态 chip |
+| 2.5a | 工具调用详情 | ✅ | 聊天窗口内展示：bash/powershell 显示命令原文；edit/write 显示 diff；read/grep/find/ls 显示路径/搜索词 |
 | 2.6 | 中止生成 | ✅ | 流式期间的「停止」按钮；`abort()` |
 | 2.7 | 追问（Follow up） | ✅ | 流式期间等待当前回复后继续；`session.followUp` |
 | 2.8 | 打断（Steer） | ✅ | 流式期间立即处理新输入；`session.steer` |
@@ -47,8 +48,8 @@
 | 3.1 | 切换模型 | ✅ | 底部栏模型下拉；`switchModel(provider, model)` |
 | 3.2 | 快速 / 深度思考模式 | ✅ | 底部栏 `modeFast` / `modeDeep`；`setThinkingLevel` |
 | 3.3 | 连接新服务商 | ✅ | `ConnectProviderModal`；会话内补 API key |
-| 3.4 | 工具权限开关 | ✅ | `PermissionsModal`；read / bash / powershell / edit / write / grep / find / ls 均可开关 |
-| 3.5 | 禁用工具运行时申请权限 | ✅ | 禁用工具后，助手每次尝试使用该工具时弹 `ToolPermissionModal`（允许 / 拒绝），不再直接「不可用」 |
+| 3.4 | 工具权限开关 | ✅ | `PermissionsModal`；bash / powershell / edit / write 可开关，read / grep / find / ls 只读工具始终允许 |
+| 3.5 | 禁用工具运行时申请权限 | ✅ | 禁用工具后，助手每次尝试使用该工具时弹 `ToolPermissionModal`（允许 / 拒绝）；edit/write 展示 diff 预览，bash/powershell 不展示命令内容 |
 | 3.6 | 自动压缩上下文 | ✅ | 会话设置弹窗开关；`setAutoCompaction` |
 
 ## 4. 统计与计费（Stats & cost）

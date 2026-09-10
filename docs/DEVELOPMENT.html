@@ -599,9 +599,9 @@ fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refresh
             <tr><td>Provider / 模型列表、连接、切换、思考层级</td><td><code class="inline">services/pine-service.ts</code> · <code class="inline">ipc/providers.ts</code></td><td><code class="inline">features/login/</code></td></tr>
             <tr><td>文件树、增删改、自动刷新</td><td><code class="inline">services/file.service.ts</code> · <code class="inline">ipc/files.ts</code></td><td><code class="inline">features/workspace/</code></td></tr>
             <tr><td>编辑器 + 行号 + 保存 + diff</td><td>—</td><td><code class="inline">features/workspace/components/</code></td></tr>
-            <tr><td>聊天收发、流式事件、图片、每轮花费</td><td><code class="inline">pine-service.ts</code> · <code class="inline">services/messages.ts</code> · <code class="inline">ipc/chat.ts</code></td><td><code class="inline">features/chat/components/ChatView.tsx</code> · <code class="inline">ComposerBar.tsx</code></td></tr>
+            <tr><td>聊天收发、流式事件、图片、每轮花费、工具步骤详情（命令 / diff）</td><td><code class="inline">pine-service.ts</code> · <code class="inline">services/messages.ts</code> · <code class="inline">ipc/chat.ts</code></td><td><code class="inline">features/chat/components/ChatView.tsx</code> · <code class="inline">ComposerBar.tsx</code> · <code class="inline">FileDiff.tsx</code></td></tr>
             <tr><td>会话列表 / 续接 / 删除 / 重命名 / 设置</td><td><code class="inline">ipc/sessions.ts</code></td><td><code class="inline">SessionsPanel.tsx</code> · <code class="inline">ComposerBar.tsx</code></td></tr>
-            <tr><td>工具权限（八种内置工具开关 + 禁用时逐次审批）</td><td><code class="inline">pine-service.ts</code> · <code class="inline">tool-permission-gate.ts</code> · <code class="inline">ipc/chat.ts</code></td><td><code class="inline">PermissionsModal.tsx</code> · <code class="inline">ToolPermissionModal.tsx</code></td></tr>
+            <tr><td>工具权限（只读工具始终允许；修改类弹窗带 diff；shell 不展示命令）</td><td><code class="inline">pine-service.ts</code> · <code class="inline">tool-permission-gate.ts</code> · <code class="inline">ipc/chat.ts</code></td><td><code class="inline">PermissionsModal.tsx</code> · <code class="inline">ToolPermissionModal.tsx</code></td></tr>
             <tr><td>换 provider 就地补 key</td><td><code class="inline">pine-service.ts</code>（connect 复用）</td><td><code class="inline">ConnectProviderModal.tsx</code></td></tr>
             <tr><td>Extensions + 上下文文件</td><td><code class="inline">services/resources.ts</code></td><td>—</td></tr>
             <tr><td>剪贴板（复制文本 / 读图）</td><td><code class="inline">ipc/system.ts</code></td><td><code class="inline">ChatView.tsx</code></td></tr>
@@ -655,7 +655,8 @@ fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refresh
         <li><strong>编辑器</strong>：行号与文本同步、Tab=2 空格、Ctrl/Cmd+S 保存；文件被外部修改后出现「查看改动」diff（<code class="inline">diff</code> 包）。</li>
         <li><strong>模型切换</strong>：在聊天输入框下方（Cursor 风格），同 provider 分组；快速/深度二档对应 <code class="inline">thinkingLevel</code> low/high。</li>
         <li><strong>会话</strong>：自动持久化、按工作目录过滤、可续 / 删 / 重命名 / 自动压缩。</li>
-        <li><strong>工具权限</strong>：八种内置工具（read / bash / powershell / edit / write / grep / find / ls）内存开关；开启的直接运行，关闭的每次使用前弹窗逐次审批。</li>
+        <li><strong>工具权限</strong>：八种内置工具（read / bash / powershell / edit / write / grep / find / ls）内存开关；开启的直接运行，关闭的每次使用前弹窗逐次审批。只读工具（read / grep / find / ls）永不弹窗；<code class="inline">edit</code>/<code class="inline">write</code> 弹窗展示 diff 预览；<code class="inline">bash</code>/<code class="inline">powershell</code> 弹窗不展示命令内容。
+        <li><strong>聊天工具详情</strong>：聊天窗口是主审阅面——bash/powershell 显示命令原文，edit/write 显示行 diff（复用 <code class="inline">FileDiff</code>），read/grep/find/ls 显示目标路径/搜索词。</li>
         <li><strong>主题 / 布局 / 语言</strong>：仅 Redux 内存，不写 localStorage。</li>
       </ul>
 

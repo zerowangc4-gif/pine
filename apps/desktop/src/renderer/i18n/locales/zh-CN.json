@@ -50,7 +50,7 @@
   },
   "permissions": {
     "title": "权限",
-    "hint": "开启的工具直接运行；关闭的工具每次使用前会弹窗向你申请权限。",
+    "hint": "开启的工具直接运行；关闭的修改类工具每次使用前会弹窗确认。读取类工具（read/grep/find/ls）无需权限。",
     "read": "读取文件",
     "bash": "执行 shell 命令",
     "powershell": "执行 PowerShell 命令",
@@ -61,8 +61,10 @@
     "ls": "列出文件",
     "allow": "允许",
     "deny": "拒绝",
+    "alwaysAllowed": "始终允许",
     "toolRequestTitle": "需要工具权限",
-    "toolRequestBody": "助手想使用工具 {{tool}}：{{summary}}"
+    "toolRequestBody": "助手想使用 {{tool}}：{{summary}}",
+    "toolRequestBodyGeneric": "助手想使用 {{tool}}。"
   },
   "chat": {
     "tab": "聊天",

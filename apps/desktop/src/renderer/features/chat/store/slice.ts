@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { BUILTIN_TOOLS } from "@shared/types";
-import type { ChatImage, MessageUsage, SessionInfo, SessionMessage, SessionSettingsDTO, SessionStatsDTO, ToolPermissionRequest } from "@shared/types";
+import type { ChatImage, MessageUsage, SessionInfo, SessionMessage, SessionSettingsDTO, SessionStatsDTO, ToolPermissionDiff, ToolPermissionRequest } from "@shared/types";
 import { createId } from "@renderer/utils";
 import { connectWithKeySuccess, disconnectSuccess } from "../../login/store/slice";
 import type { ChatMessage, State } from "../types/state";
@@ -105,12 +105,21 @@ export const chatSlice = createSlice({
         current.usage = action.payload;
       }
     },
-    toolStarted(state, action: PayloadAction<{ id: string; name: string }>) {
+    toolStarted(
+      state,
+      action: PayloadAction<{ id: string; name: string; summary?: string; diff?: ToolPermissionDiff }>,
+    ) {
       const current = lastAssistant(state);
       if (current) {
         current.tools = [
           ...(current.tools ?? []),
-          { id: action.payload.id, name: action.payload.name, status: "running" },
+          {
+            id: action.payload.id,
+            name: action.payload.name,
+            summary: action.payload.summary,
+            diff: action.payload.diff,
+            status: "running",
+          },
         ];
       }
     },

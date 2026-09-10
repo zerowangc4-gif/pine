@@ -13,7 +13,7 @@ import {
 } from "../core";
 import { AppError } from "@shared/errors";
 import { toErrorMessage } from "@shared/utils";
-import { BUILTIN_TOOLS } from "@shared/types";
+import { BUILTIN_TOOLS, READONLY_TOOLS } from "@shared/types";
 import type {
   ActiveModelInfo,
   ChatEvent,
@@ -28,10 +28,12 @@ import type {
   SessionSettingsDTO,
   SessionStatsDTO,
   ThinkingLevel,
+  ToolPermissionDiff,
+  ToolPermissionDiffHunk,
 } from "@shared/types";
 import { extractSessionMessages } from "./messages";
 import { createProjectResourceLoader } from "./resources";
-import type { ToolPermissionGate } from "./tool-permission-gate";
+import type { ToolPermissionGate, ToolPermissionRequestPayload } from "./tool-permission-gate";
 
 interface Connection {
   provider: string;
@@ -214,21 +216,21 @@ export class PineService {
   }
 
   isToolAllowed(toolName: string): boolean {
-    return this.activeTools.includes(toolName);
+    return READONLY_TOOLS.includes(toolName) || this.activeTools.includes(toolName);
   }
 
   /**
    * Ask the renderer whether a tool may run. Resolves when the user answers,
    * when the prompt times out, or when the session is disposed/aborted.
    */
-  requestToolPermission(toolName: string, summary: string): Promise<boolean> {
+  requestToolPermission(payload: ToolPermissionRequestPayload): Promise<boolean> {
     const requestId = crypto.randomUUID();
     return new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => {
         this.resolveToolPermission(requestId, false);
       }, PERMISSION_TIMEOUT_MS);
       this.pendingPermissions.set(requestId, { resolve, timer });
-      this.send({ type: "tool_permission_request", request: { requestId, toolName, summary } });
+      this.send({ type: "tool_permission_request", request: { requestId, ...payload } });
     });
   }
 
@@ -436,7 +438,7 @@ export class PineService {
   private async createResources(): Promise<ResourceLoader> {
     const gate: ToolPermissionGate = {
       isAllowed: (toolName) => this.isToolAllowed(toolName),
-      request: (toolName, summary) => this.requestToolPermission(toolName, summary),
+      request: (payload) => this.requestToolPermission(payload),
     };
     const resources = createProjectResourceLoader(this.workspaceRoot!, gate);
     await resources.loadExtensions();
@@ -555,9 +557,11 @@ export class PineService {
         // agent_settled.
         this.scheduleStatsPush();
         break;
-      case "tool_execution_start":
-        this.send({ type: "tool_start", toolId: event.toolCallId, toolName: event.toolName });
+      case "tool_execution_start": {
+        const { summary, diff } = describeToolCall(event.toolName, event.args);
+        this.send({ type: "tool_start", toolId: event.toolCallId, toolName: event.toolName, summary, diff });
         break;
+      }
       case "tool_execution_end":
         this.send({ type: "tool_end", toolId: event.toolCallId, toolName: event.toolName, isError: event.isError });
         break;
@@ -587,5 +591,41 @@ function toSharedSessionInfo(info: SdkSessionInfo): SessionInfo {
     messageCount: info.messageCount,
     firstMessage: info.firstMessage,
   };
+}
+
+/**
+ * Build the chat-visible detail for a tool step. The chat is the review
+ * surface, so shell commands are shown verbatim here (unlike the permission
+ * panel) and file-modifying tools carry a diff so the user can see exactly
+ * what changed without opening the editor.
+ */
+function describeToolCall(
+  toolName: string,
+  args: unknown,
+): { summary?: string; diff?: ToolPermissionDiff } {
+  const input = (args ?? {}) as Record<string, unknown>;
+  const filePath = typeof input.path === "string" ? input.path : "";
+  const pattern = typeof input.pattern === "string" ? input.pattern : "";
+  const command = typeof input.command === "string" ? input.command : "";
+
+  if (toolName === "bash" || toolName === "powershell") {
+    return { summary: command };
+  }
+  if (toolName === "edit") {
+    const edits = Array.isArray(input.edits) ? (input.edits as ToolPermissionDiffHunk[]) : [];
+    return {
+      diff: filePath && edits.length > 0 ? { path: filePath, hunks: edits } : undefined,
+    };
+  }
+  if (toolName === "write") {
+    const content = typeof input.content === "string" ? input.content : "";
+    return {
+      diff: filePath ? { path: filePath, hunks: [{ oldText: "", newText: content }] } : undefined,
+    };
+  }
+  if (toolName === "grep" || toolName === "find") {
+    return { summary: pattern };
+  }
+  return { summary: filePath || toolName };
 }
 

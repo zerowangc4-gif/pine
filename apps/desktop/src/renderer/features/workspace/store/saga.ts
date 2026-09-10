@@ -1,5 +1,6 @@
 import type { SagaIterator } from "redux-saga";
-import { call, put, select, takeLatest } from "redux-saga/effects";
+import { buffers, eventChannel, type EventChannel } from "redux-saga";
+import { call, fork, put, select, take, takeLatest } from "redux-saga/effects";
 import type { FileResponse } from "@shared/types";
 import { toErrorMessage } from "@shared/utils";
 import type { RootState } from "@renderer/store";
@@ -223,7 +224,34 @@ function* saveFileSaga(action: ReturnType<typeof saveFileRequest>): SagaIterator
   }
 }
 
+function createFilesChangedChannel(): EventChannel<boolean> {
+  return eventChannel((emit) => {
+    const refresh = () => emit(true);
+    window.pi.onFilesChanged(refresh);
+    // VSCode-like: also refresh when the window regains focus, in case the
+    // file watcher missed changes made while the app was in the background.
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+    };
+  }, buffers.expanding(8));
+}
+
+/** Single place where filesystem-change signals trigger a workspace refresh. */
+function* watchFilesChanged(): SagaIterator {
+  const channel = createFilesChangedChannel();
+  try {
+    while (true) {
+      yield take(channel);
+      yield put(refreshTreeRequest());
+    }
+  } finally {
+    channel.close();
+  }
+}
+
 export function* workspaceSaga(): SagaIterator {
+  yield fork(watchFilesChanged);
   yield takeLatest(openFolderRequest.type, openFolderSaga);
   yield takeLatest(loadDirRequest.type, loadDirSaga);
   yield takeLatest(createFileRequest.type, createFileSaga);

@@ -20,6 +20,9 @@ export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhi
 /** Every built-in agent tool, in permissions-UI order. */
 export const BUILTIN_TOOLS: string[] = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
 
+/** Tools that only inspect the workspace; they never require a permission prompt. */
+export const READONLY_TOOLS: string[] = ["read", "grep", "find", "ls"];
+
 export interface ActiveModelInfo {
   provider?: string;
   model?: string;
@@ -99,11 +102,24 @@ export type FileResponse =
   | { intent: "rename"; result: FileResult }
   | { intent: "delete"; result: FileResult };
 
+/** One old/new text pair rendered as a line diff in the permission modal. */
+export interface ToolPermissionDiffHunk {
+  oldText: string;
+  newText: string;
+}
+
+/** A reviewable diff of the file change a tool call is about to apply. */
+export interface ToolPermissionDiff {
+  path: string;
+  hunks: ToolPermissionDiffHunk[];
+}
+
 /** A runtime request for the user to allow or block a disabled tool. */
 export interface ToolPermissionRequest {
   requestId: string;
   toolName: string;
   summary: string;
+  diff?: ToolPermissionDiff;
 }
 
 /** A saved conversation entry returned by the main process. */
@@ -169,7 +185,7 @@ export type ChatEvent =
   | { type: "text_delta"; delta: string }
   | { type: "thinking_delta"; delta: string }
   | { type: "assistant_end" }
-  | { type: "tool_start"; toolId: string; toolName: string }
+  | { type: "tool_start"; toolId: string; toolName: string; summary?: string; diff?: ToolPermissionDiff }
   | { type: "tool_end"; toolId: string; toolName: string; isError: boolean }
   | { type: "settled" }
   | { type: "session_stats"; stats: SessionStatsDTO }
