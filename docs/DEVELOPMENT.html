@@ -406,7 +406,10 @@ const { session } = await createAgentSession({
   modelRuntime: runtime,
   resourceLoader,            // createProjectResourceLoader() 产物
   sessionManager: SessionManager.create(root, sessionsDir),
-  settingsManager: SettingsManager.inMemory({ compaction: { enabled: false } }),
+  settingsManager: SettingsManager.inMemory({
+    compaction: { enabled: false },
+    retry: { enabled: true, maxRetries: 2 },
+  }),
   tools: BUILTIN_TOOLS,      // 内置工具全部保持可用；默认关闭/被禁用的工具由 tool-permission-gate 拦截并逐次弹窗审批
 });
 </code></pre>
@@ -530,7 +533,7 @@ fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refresh
       <h3>7.4 Extensions / 上下文文件</h3>
       <p>会话创建时从<strong>项目目录</strong>加载（不走全局默认配置）：</p>
       <ul>
-        <li>extensions：<code class="inline">&lt;root&gt;/.pi/extensions</code>、<code class="inline">&lt;root&gt;/.agents/extensions</code></li>
+        <li>extensions：<code class="inline">&lt;root&gt;/.agents/extensions</code></li>
         <li>skills：<code class="inline">&lt;root&gt;/.agents/skills</code></li>
         <li>context files：项目 <code class="inline">AGENTS.md</code> / <code class="inline">SYSTEM.md</code></li>
         <li>工具权限 gate：由 <code class="inline">services/tool-permission-gate.ts</code> 作为内联 extension 注入。</li>

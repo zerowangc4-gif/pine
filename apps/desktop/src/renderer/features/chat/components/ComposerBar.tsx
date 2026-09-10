@@ -52,7 +52,7 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
   const selectedModelValue =
     selectedProvider && selectedModel ? `${selectedProvider}::${selectedModel}` : undefined;
 
-  const isDeep = thinkingLevel !== "low";
+  const isDeep = thinkingLevel === "high";
   const activeSession = sessions.find((session) => session.path === activeSessionPath);
 
   // Full breakdown shown on hover; the chip itself stays compact.

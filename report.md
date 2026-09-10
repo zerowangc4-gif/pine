@@ -2,6 +2,13 @@
 
 > 审查日期：2025-09-10　|　对象：`E:\agents\pine`（Electron 桌面编码代理，封装 `@earendil-works/pi-coding-agent`）
 > 验证基线：`pnpm typecheck` ✅　`pnpm lint` ✅（均无错误）
+>
+> **⚠️ 状态更新（后续提交已修复大部分缺陷）**：以下「已确认的 bug」中，
+> #1（缺 `common.close`）、#2（连接切换会话残留）、#3（session 目录未 ignore）、
+> #4（agent 改动静默覆盖）、#5（`chatSend` pending 整个 run）、#6（Windows 路径大小写）、
+> #7（同名工具结束错配）均已修复；断连/登出入口也已落地。
+> 剩余待办只有留存类：重启后恢复最近工作区/继续上次会话、diff 审查闭环（accept/reject）升级为工作流核心。
+> 具体现状以代码与 `docs/DEVELOPMENT.html` 为准，本报告仅保留历史记录价值。
 
 ---
 

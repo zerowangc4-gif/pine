@@ -13,8 +13,11 @@ e2e/
   tests/
     helpers.ts           # mock 注入 / 连接 / 断言辅助函数
     login.spec.ts        # 登录门：渲染、连接、进入聊天页
-    sessions.spec.ts     # 会话：列出 / 加载 / 删除 / 新建 / 重命名 / 导出
-    chat.spec.ts         # 对话：发送 / 流式 / 复制 / 停止 / 断开
+    connection.spec.ts   # 连接：切换模型 / 快速·深度思考 / 会话内补 key
+    files.spec.ts        # 工作区：打开文件夹 / 打开·编辑·保存 / 增删改 / 外部改动 diff
+    sessions.spec.ts     # 会话：列出 / 加载 / 删除 / 新建 / 重命名 / 导出 / 自动压缩持久化
+    chat.spec.ts         # 对话：发送 / 流式 / 复制 / 停止 / 断开 / 工具详情 / 权限弹窗
+    ui.spec.ts           # 应用外壳：主题 / 语言 / 侧栏 / Markdown / 图片 / 追问·打断
 ```
 
 ## 运行

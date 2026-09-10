@@ -32,6 +32,15 @@ test.describe("app chrome", () => {
     await page.getByTitle("Show sidebar").click();
     await expect(page.getByText("Sessions", { exact: true })).toBeVisible();
   });
+
+  test("closes a modal with Escape", async ({ page }) => {
+    await page.getByTitle("Permissions").click();
+    await expect(page.getByRole("switch", { name: "Run shell commands" })).toBeVisible();
+
+    await page.keyboard.press("Escape");
+
+    await expect(page.getByRole("switch", { name: "Run shell commands" })).toHaveCount(0);
+  });
 });
 
 test.describe("chat presentation", () => {

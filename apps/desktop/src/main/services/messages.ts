@@ -50,13 +50,16 @@ function messageThinking(content: unknown): string {
     .join("\n");
 }
 
-function messageTools(content: unknown): SessionToolStep[] {
+function messageTools(
+  content: unknown,
+  toolErrors: ReadonlyMap<string, boolean>,
+): SessionToolStep[] {
   return contentBlocks<ToolCallBlock>(content, "toolCall").map((block) => {
     const { summary, diff } = describeToolCall(block.name, block.arguments);
     return {
       id: block.id,
       name: block.name,
-      status: "done",
+      status: toolErrors.get(block.id) ? "error" : "done",
       summary,
       diff,
     };
@@ -73,8 +76,25 @@ function messageImages(content: unknown): ChatImage[] {
 /** Convert the current session branch into renderer-friendly messages. */
 export function extractSessionMessages(session: AgentSession): SessionMessage[] {
   const manager = session.sessionManager;
+  const branch = manager.getBranch();
+
+  // Tool results are persisted as separate `toolResult` messages, not as part
+  // of the assistant message that requested them. Collect the error flag by
+  // tool-call id first so reloading a session keeps failed tools marked as
+  // failed instead of flattening every step to "done".
+  const toolErrors = new Map<string, boolean>();
+  for (const entry of branch) {
+    if (entry.type !== "message") {
+      continue;
+    }
+    const message = entry.message;
+    if (message.role === "toolResult") {
+      toolErrors.set(message.toolCallId, message.isError);
+    }
+  }
+
   const messages: SessionMessage[] = [];
-  for (const entry of manager.getBranch()) {
+  for (const entry of branch) {
     if (entry.type !== "message") {
       continue;
     }
@@ -88,7 +108,7 @@ export function extractSessionMessages(session: AgentSession): SessionMessage[] 
         images: images.length > 0 ? images : undefined,
       });
     } else if (message.role === "assistant") {
-      const tools = messageTools(message.content);
+      const tools = messageTools(message.content, toolErrors);
       const thinking = messageThinking(message.content);
       const usage: MessageUsage | undefined = message.usage
         ? {
