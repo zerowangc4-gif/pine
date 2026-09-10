@@ -38,6 +38,8 @@ interface PiMockControls {
   emitChatEvent(event: Record<string, unknown>): void;
   getLastPermissionResponse(): { requestId: string; allowed: boolean } | null;
   getLastActiveTools(): string[];
+  getActiveModel(): { provider: string; model: string; thinkingLevel: string };
+  refreshFile(content: string): void;
 }
 
 /** Read the mock's copy-text record after a copy action. */
@@ -79,6 +81,21 @@ export function getLastPermissionResponse(
 /** Read the last tools array the mock recorded from `setActiveTools`. */
 export function getLastActiveTools(page: Page): Promise<string[]> {
   return page.evaluate(() => (window as unknown as { __pi: PiMockControls }).__pi.getLastActiveTools());
+}
+
+/** Read the active model/thinking level the mock recorded. */
+export function getActiveModel(
+  page: Page,
+): Promise<{ provider: string; model: string; thinkingLevel: string }> {
+  return page.evaluate(() => (window as unknown as { __pi: PiMockControls }).__pi.getActiveModel());
+}
+
+/** Simulate an external (agent) edit: swap file content and fire `onFilesChanged`. */
+export function refreshFile(page: Page, content: string): Promise<void> {
+  return page.evaluate(
+    (next) => (window as unknown as { __pi: PiMockControls }).__pi.refreshFile(next),
+    content,
+  );
 }
 
 /**

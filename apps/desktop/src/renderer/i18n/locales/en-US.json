@@ -64,6 +64,7 @@
     "alwaysAllowed": "Always allowed",
     "toolRequestTitle": "Tool permission required",
     "toolRequestBody": "The assistant wants to use {{tool}}: {{summary}}",
+    "toolRequestShell": "The assistant wants to run {{tool}}. Review the command:",
     "toolRequestBodyGeneric": "The assistant wants to use {{tool}}."
   },
   "chat": {
@@ -93,6 +94,9 @@
     "saved": "Saved",
     "assistant": "Assistant",
     "copyMessage": "Copy message",
+    "copyCommand": "Copy command",
+    "expandCommand": "Expand command",
+    "collapseCommand": "Collapse command",
     "sessions": "Sessions",
     "newSession": "New Session",
     "noSessions": "No saved sessions yet",
@@ -124,6 +128,7 @@
     "encoding": "UTF-8",
     "diff": "Diff",
     "exitDiff": "Exit diff",
+    "externalChange": "External change",
     "revert": "Revert"
   },
   "error": {
@@ -138,7 +143,6 @@
     "streaming": "A response is already generating",
     "cannotDeleteRoot": "The workspace root cannot be deleted",
     "sessionNotFound": "Session not found",
-    "sessionLoadFailed": "Failed to load the session",
     "apiKeyRequired": "Enter an API key or choose a provider that already has one",
     "noActiveSession": "No active session",
     "binaryFile": "This file is binary and cannot be opened as text"

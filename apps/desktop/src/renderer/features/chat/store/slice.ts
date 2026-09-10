@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { BUILTIN_TOOLS } from "@shared/types";
+import { DEFAULT_ACTIVE_TOOLS } from "@shared/types";
 import type { ChatImage, MessageUsage, SessionInfo, SessionMessage, SessionSettingsDTO, SessionStatsDTO, ToolPermissionDiff, ToolPermissionRequest } from "@shared/types";
 import { createId } from "@renderer/utils";
 import { connectWithKeySuccess, disconnectSuccess } from "../../login/store/slice";
@@ -10,7 +10,7 @@ const initialState: State = {
   streaming: false,
   sessions: [],
   sessionsLoading: false,
-  activeTools: [...BUILTIN_TOOLS],
+  activeTools: [...DEFAULT_ACTIVE_TOOLS],
   pendingPermissions: [],
 };
 
@@ -20,7 +20,13 @@ function toChatMessage(message: SessionMessage): ChatMessage {
     role: message.role,
     text: message.text,
     thinking: message.thinking,
-    tools: message.tools?.map((tool) => ({ id: tool.id, name: tool.name, status: tool.status })),
+    tools: message.tools?.map((tool) => ({
+      id: tool.id,
+      name: tool.name,
+      status: tool.status,
+      summary: tool.summary,
+      diff: tool.diff,
+    })),
     images: message.images,
     usage: message.usage,
   };

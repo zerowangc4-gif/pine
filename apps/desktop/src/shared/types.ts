@@ -23,6 +23,18 @@ export const BUILTIN_TOOLS: string[] = ["read", "bash", "powershell", "edit", "w
 /** Tools that only inspect the workspace; they never require a permission prompt. */
 export const READONLY_TOOLS: string[] = ["read", "grep", "find", "ls"];
 
+/** Tools that execute shell commands. Off by default and always shown in review prompts. */
+export const SHELL_TOOLS: string[] = ["bash", "powershell"];
+
+/**
+ * Tools that run without asking on first launch. Shell tools are excluded:
+ * running arbitrary commands silently is exactly what Pine must never do, so
+ * the user has to approve the very first `bash`/`powershell` call.
+ */
+export const DEFAULT_ACTIVE_TOOLS: string[] = BUILTIN_TOOLS.filter(
+  (tool) => !SHELL_TOOLS.includes(tool),
+);
+
 export interface ActiveModelInfo {
   provider?: string;
   model?: string;
@@ -78,8 +90,6 @@ export interface FileResult {
  * it inside FileService. Keeping the request as a discriminated union makes
  * every parameter explicit and exhaustively checked.
  */
-export type FileIntent = FileRequest["intent"];
-
 export type FileRequest =
   | { intent: "openFolder"; title: string }
   | { intent: "readDir"; path: string }
@@ -127,6 +137,8 @@ export interface SessionToolStep {
   id: string;
   name: string;
   status: "done" | "error";
+  summary?: string;
+  diff?: ToolPermissionDiff;
 }
 
 /** Token/cost usage for a single assistant message. */
@@ -192,6 +204,7 @@ export type ChatEvent =
   | { type: "message_usage"; usage: MessageUsage }
   | { type: "tool_permission_request"; request: ToolPermissionRequest }
   | { type: "tool_permission_cleared" }
+  | { type: "tool_permission_resolved"; requestId: string }
   | { type: "error"; message: string };
 
 /**

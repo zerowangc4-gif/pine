@@ -1,5 +1,6 @@
 import type { ChatImage, MessageUsage, SessionMessage, SessionToolStep } from "@shared/types";
 import type { AgentSession } from "../core";
+import { describeToolCall } from "./tool-call-description";
 
 interface TextBlock {
   type: "text";
@@ -15,6 +16,7 @@ interface ToolCallBlock {
   type: "toolCall";
   id: string;
   name: string;
+  arguments?: Record<string, unknown>;
 }
 
 interface ImageBlock {
@@ -49,11 +51,16 @@ function messageThinking(content: unknown): string {
 }
 
 function messageTools(content: unknown): SessionToolStep[] {
-  return contentBlocks<ToolCallBlock>(content, "toolCall").map((block) => ({
-    id: block.id,
-    name: block.name,
-    status: "done",
-  }));
+  return contentBlocks<ToolCallBlock>(content, "toolCall").map((block) => {
+    const { summary, diff } = describeToolCall(block.name, block.arguments);
+    return {
+      id: block.id,
+      name: block.name,
+      status: "done",
+      summary,
+      diff,
+    };
+  });
 }
 
 function messageImages(content: unknown): ChatImage[] {

@@ -64,6 +64,7 @@
     "alwaysAllowed": "始终允许",
     "toolRequestTitle": "需要工具权限",
     "toolRequestBody": "助手想使用 {{tool}}：{{summary}}",
+    "toolRequestShell": "助手想运行 {{tool}}，请审核以下命令：",
     "toolRequestBodyGeneric": "助手想使用 {{tool}}。"
   },
   "chat": {
@@ -93,6 +94,9 @@
     "saved": "已保存",
     "assistant": "助手",
     "copyMessage": "复制消息",
+    "copyCommand": "复制命令",
+    "expandCommand": "展开命令",
+    "collapseCommand": "收起命令",
     "sessions": "会话",
     "newSession": "新建会话",
     "noSessions": "还没有保存的会话",
@@ -124,6 +128,7 @@
     "encoding": "UTF-8",
     "diff": "查看改动",
     "exitDiff": "退出改动",
+    "externalChange": "外部修改",
     "revert": "还原"
   },
   "error": {
@@ -138,7 +143,6 @@
     "streaming": "正在生成中，请稍候",
     "cannotDeleteRoot": "无法删除工作目录根目录",
     "sessionNotFound": "会话不存在",
-    "sessionLoadFailed": "会话加载失败",
     "apiKeyRequired": "请输入 API Key，或选择已配置密钥的提供商",
     "noActiveSession": "当前没有活动会话",
     "binaryFile": "这是二进制文件，无法以文本方式打开"

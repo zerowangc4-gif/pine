@@ -5,6 +5,7 @@ import { AppError } from "@shared/errors";
 import { IPC_CHANNELS } from "@shared/ipc";
 import type { FileRequest, FileResponse, FileResult } from "@shared/types";
 import { toErrorMessage } from "@shared/utils";
+import { isPathWithin } from "./path-utils";
 
 type EntryKind = "file" | "folder";
 
@@ -226,7 +227,7 @@ export class FileService {
 
     try {
       const real = await fs.realpath(resolved);
-      if (this.isWithinRoot(rootReal, real)) {
+      if (isPathWithin(rootReal, real)) {
         return resolved;
       }
       throw new Error(AppError.pathOutsideRoot);
@@ -234,7 +235,7 @@ export class FileService {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         // The target does not exist yet (create/rename); validate its parent.
         const parentReal = await fs.realpath(path.dirname(resolved));
-        if (this.isWithinRoot(rootReal, parentReal)) {
+        if (isPathWithin(rootReal, parentReal)) {
           return resolved;
         }
         throw new Error(AppError.pathOutsideRoot);
@@ -243,10 +244,6 @@ export class FileService {
     }
   }
 
-  private isWithinRoot(root: string, target: string): boolean {
-    const relative = path.relative(root, target);
-    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-  }
 
   private isBinary(buffer: Buffer): boolean {
     if (buffer.includes(0)) {

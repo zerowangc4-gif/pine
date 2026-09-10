@@ -28,6 +28,13 @@
           reasoning: true,
           acceptsImages: true,
         },
+        {
+          id: "claude-opus-4-5",
+          name: "Claude Opus 4.5",
+          contextWindow: 200000,
+          reasoning: true,
+          acceptsImages: true,
+        },
       ],
     },
     {
@@ -50,18 +57,20 @@
   let activePath = init.activePath;
   let sessions = Array.isArray(init.sessions) ? init.sessions : [];
   const messagesByPath = init.messagesByPath || {};
-  const dirEntries = Array.isArray(init.dirEntries) ? init.dirEntries : [];
-  const fileContent = typeof init.fileContent === "string" ? init.fileContent : "";
+  let dirEntries = Array.isArray(init.dirEntries) ? init.dirEntries.map((entry) => ({ ...entry })) : [];
+  let fileContent = typeof init.fileContent === "string" ? init.fileContent : "";
 
   let activeModel = init.activeModel || { provider: "anthropic", model: "claude-sonnet-4-5", thinkingLevel: "high" };
   let activeTools =
-    init.activeTools || ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
+    init.activeTools || ["read", "edit", "write", "grep", "find", "ls"];
   let lastActiveTools = [...activeTools];
-  let autoCompaction = Boolean(init.autoCompaction);
+  // Per-session auto-compaction flags, mirroring PineService's sidecar file.
+  const autoCompactionByPath = init.autoCompactionByPath || {};
   let nextReply = typeof init.nextReply === "string" ? init.nextReply : "Hello from the mock agent.";
   let holdStreaming = Boolean(init.holdStreaming);
 
   const chatListeners = [];
+  let filesChangedCallback = null;
   let lastCopied = "";
   let exported = false;
   let streaming = false;
@@ -104,6 +113,15 @@
     emit({ type: "session_stats", stats: currentStats() });
   }
 
+  function joinPath(dir, name) {
+    return `${dir.replace(/\/$/, "")}/${name}`;
+  }
+
+  function dirname(target) {
+    const index = target.lastIndexOf("/");
+    return index > 0 ? target.slice(0, index) : "/";
+  }
+
   const pi = {
     // Model & auth
     listProviders: async () => providers.map((provider) => ({ ...provider, models: [...provider.models] })),
@@ -124,22 +142,41 @@
           return { intent: "openFolder", path: "/workspace/demo" };
         case "readDir":
           return { intent: "readDir", entries: dirEntries.map((entry) => ({ ...entry })) };
-        case "createFile":
-        case "createFolder":
-          return { intent: request.intent, result: { ok: true, path: "/workspace/demo/new" } };
+        case "createFile": {
+          const target = joinPath(request.dirPath, request.name);
+          dirEntries.push({ name: request.name, path: target, type: "file" });
+          return { intent: "createFile", result: { ok: true, path: target } };
+        }
+        case "createFolder": {
+          const target = joinPath(request.dirPath, request.name);
+          dirEntries.push({ name: request.name, path: target, type: "dir" });
+          return { intent: "createFolder", result: { ok: true, path: target } };
+        }
         case "readFile":
           return { intent: "readFile", content: fileContent };
         case "writeFile":
           return { intent: "writeFile", result: { ok: true, path: request.path } };
-        case "rename":
-          return { intent: "rename", result: { ok: true, path: `/workspace/demo/${request.name}` } };
+        case "rename": {
+          const entry = dirEntries.find((item) => item.path === request.path);
+          if (!entry) {
+            return { intent: "rename", result: { ok: false, error: "error.operationFailed" } };
+          }
+          entry.name = request.name;
+          entry.path = joinPath(dirname(entry.path), request.name);
+          return { intent: "rename", result: { ok: true, path: entry.path } };
+        }
         case "delete":
+          dirEntries = dirEntries.filter(
+            (entry) => entry.path !== request.path && !entry.path.startsWith(`${request.path}/`),
+          );
           return { intent: "delete", result: { ok: true, path: request.path } };
         case "reveal":
           return { intent: "reveal" };
       }
     },
-    onFilesChanged: () => {},
+    onFilesChanged: (callback) => {
+      filesChangedCallback = callback;
+    },
 
     // Sessions
     listSessions: async () => ({ sessions: sessions.map((session) => ({ ...session })), activePath }),
@@ -182,11 +219,13 @@
 
     getSessionSettings: async () => {
       const session = sessions.find((item) => item.path === activePath);
-      return { name: session?.name, autoCompaction };
+      return { name: session?.name, autoCompaction: activePath ? Boolean(autoCompactionByPath[activePath]) : false };
     },
 
     setAutoCompaction: async (enabled) => {
-      autoCompaction = enabled;
+      if (activePath) {
+        autoCompactionByPath[activePath] = enabled;
+      }
     },
 
     // Model & thinking level
@@ -276,6 +315,11 @@
     emitChatEvent: (event) => emit(event),
     getLastPermissionResponse: () => lastPermissionResponse,
     getLastActiveTools: () => [...lastActiveTools],
+    getActiveModel: () => ({ ...activeModel }),
+    refreshFile: (content) => {
+      fileContent = String(content);
+      if (filesChangedCallback) filesChangedCallback();
+    },
     seedSessions: (nextSessions, nextMessagesByPath) => {
       sessions = nextSessions.map((session) => ({ ...session }));
       for (const [key, messages] of Object.entries(nextMessagesByPath || {})) {

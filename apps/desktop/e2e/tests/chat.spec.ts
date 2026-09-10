@@ -84,6 +84,31 @@ test.describe("chat conversation", () => {
     await expect(page.getByText("const a = 2;")).toBeVisible();
   });
 
+  test("drops a malformed edit diff instead of crashing the chat", async ({ page }) => {
+    await initMockPi(page, { nextReply: "Done" });
+    await connectToChat(page);
+    await openWorkspace(page);
+
+    await page.getByPlaceholder("Type a message…").fill("Make the change");
+    await page.getByRole("button", { name: "Send" }).click();
+    await expect(page.getByText("Done")).toBeVisible();
+
+    await emitChatEvent(page, {
+      type: "tool_start",
+      toolId: "tool-1",
+      toolName: "edit",
+      diff: {
+        path: "src/index.ts",
+        hunks: [{ oldText: 123, newText: null }],
+      },
+    });
+    await emitChatEvent(page, { type: "tool_end", toolId: "tool-1", toolName: "edit", isError: false });
+
+    // The malformed hunks must be dropped (no crash): the diff header still
+    // renders, proving FileDiff survived the invalid hunk payload.
+    await expect(page.getByText("src/index.ts", { exact: true })).toBeVisible();
+  });
+
   test("shows a permission prompt for a disabled tool and honors the decision", async ({ page }) => {
     await initMockPi(page);
     await connectToChat(page);
@@ -91,7 +116,8 @@ test.describe("chat conversation", () => {
     await requestToolPermission(page, { requestId: "req-1", toolName: "bash", summary: "rm -rf build" });
 
     await expect(page.getByText("Tool permission required")).toBeVisible();
-    await expect(page.getByText("The assistant wants to use bash.")).toBeVisible();
+    await expect(page.getByText("The assistant wants to run bash. Review the command:")).toBeVisible();
+    await expect(page.getByText("rm -rf build")).toBeVisible();
 
     await page.getByRole("button", { name: "Allow" }).click();
 
@@ -137,23 +163,33 @@ test.describe("chat conversation", () => {
     await expect(page.getByText("Tool permission required")).toHaveCount(0);
   });
 
-  test("disabling every modifying tool sends only read-only tools to the main process", async ({ page }) => {
+  test("dismisses a permission prompt when the main process times it out", async ({ page }) => {
+    await initMockPi(page);
+    await connectToChat(page);
+
+    await requestToolPermission(page, { requestId: "req-1", toolName: "bash", summary: "rm -rf build" });
+    await expect(page.getByText("Tool permission required")).toBeVisible();
+
+    await emitChatEvent(page, { type: "tool_permission_resolved", requestId: "req-1" });
+
+    await expect(page.getByText("Tool permission required")).toHaveCount(0);
+  });
+
+  test("shell tools start off and disabling the rest leaves only read-only tools", async ({ page }) => {
     await initMockPi(page);
     await connectToChat(page);
 
     await page.getByTitle("Permissions").click();
-    await expect(page.getByRole("switch", { name: "Run shell commands" })).toBeVisible();
 
-    const modifyingTools = [
-      "Run shell commands",
-      "Run PowerShell commands",
-      "Edit files",
-      "Write files",
-    ];
-    for (const label of modifyingTools) {
+    // New default: shell tools start disabled, so the very first command the
+    // agent runs must be approved by the user.
+    await expect(page.getByRole("switch", { name: "Run shell commands" })).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByRole("switch", { name: "Run PowerShell commands" })).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByRole("switch", { name: "Edit files" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByRole("switch", { name: "Write files" })).toHaveAttribute("aria-checked", "true");
+
+    for (const label of ["Edit files", "Write files"]) {
       await page.getByRole("switch", { name: label }).click();
-      // Wait for the store to settle before toggling the next tool, otherwise
-      // the next filter would be computed from the stale tool list.
       await expect(page.getByRole("switch", { name: label })).toHaveAttribute("aria-checked", "false");
     }
 

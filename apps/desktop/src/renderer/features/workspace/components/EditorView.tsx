@@ -43,6 +43,9 @@ export function EditorView() {
   const dirty = openFile.content !== openFile.savedContent;
   const hasDiff =
     openFile.previousContent !== undefined && openFile.previousContent !== openFile.content;
+  // An external (agent) edit makes the buffer differ from the saved baseline,
+  // but it is not the user's own unsaved typing — label it distinctly.
+  const statusKey = hasDiff ? "editor.externalChange" : dirty ? "chat.unsaved" : "chat.saved";
 
   function syncCursor(value: string, selectionStart: number) {
     setCursor(computeCursor(value, selectionStart));
@@ -88,7 +91,7 @@ export function EditorView() {
     <Root>
       <Header>
         <FileName>{file.name}</FileName>
-        <Status $dirty={dirty}>{dirty ? t("chat.unsaved") : t("chat.saved")}</Status>
+        <Status $dirty={dirty || hasDiff}>{t(statusKey)}</Status>
         {hasDiff && (
           <DiffButton $active={showDiff} onClick={() => setShowDiff((value) => !value)}>
             {showDiff ? t("editor.exitDiff") : t("editor.diff")}

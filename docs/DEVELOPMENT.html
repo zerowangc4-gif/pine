@@ -407,7 +407,7 @@ const { session } = await createAgentSession({
   resourceLoader,            // createProjectResourceLoader() 产物
   sessionManager: SessionManager.create(root, sessionsDir),
   settingsManager: SettingsManager.inMemory({ compaction: { enabled: false } }),
-  tools: activeTools,        // ["read","bash","edit","write"] 的子集
+  tools: BUILTIN_TOOLS,      // 内置工具全部保持可用；默认关闭/被禁用的工具由 tool-permission-gate 拦截并逐次弹窗审批
 });
 </code></pre>
 
@@ -451,7 +451,7 @@ runtime.completeSimple(model, context, { signal })   // 单次请求，返回 As
 
       <h3>5.2 新增事件要改三处</h3>
       <ol>
-        <li><code class="inline">pine-service.ts</code> 的 <code class="inline">forwardEvent()</code></li>
+        <li><code class="inline">services/agent-event-adapter.ts</code> 的 <code class="inline">toChatEvents()</code></li>
         <li><code class="inline">shared/types.ts</code> 的 <code class="inline">ChatEvent</code> 联合类型</li>
         <li>chat slice 的对应 reducer（<code class="inline">store/slice.ts</code>）</li>
       </ol>
@@ -460,7 +460,9 @@ runtime.completeSimple(model, context, { signal })   // 单次请求，返回 As
       <ul>
         <li>会话自动保存到 <code class="inline">app.getPath("userData")/sessions</code>（Electron 标准目录，避免安装目录不可写）。</li>
         <li>续接用 <code class="inline">SessionManager.open(path, dir, cwd)</code>；列表按当前工作目录过滤。</li>
-        <li>重命名 = <code class="inline">sessionManager.appendSessionInfo(name)</code>；自动压缩开关 = <code class="inline">session.setAutoCompactionEnabled(bool)</code>。</li>
+        <li>IPC 边界防御：<code class="inline">loadSession</code> / <code class="inline">deleteSession</code> 的路径先经 <code class="inline">resolveSessionPath()</code>（即 <code class="inline">path-utils.ts</code> 的 <code class="inline">resolveExistingWithinDir()</code>）校验必须落在 sessions 目录内，防 <code class="inline">..</code> 越界与符号链接逃逸。</li>
+        <li>工具详情可审计：<code class="inline">toolCall.arguments</code> 已随消息持久化，重载时由 <code class="inline">services/tool-call-description.ts</code> 的 <code class="inline">describeToolCall()</code> 重新生成 summary/diff（bash 命令、edit/write diff 与实时流一致）。</li>
+        <li>重命名 = <code class="inline">sessionManager.appendSessionInfo(name)</code>；自动压缩开关 = <code class="inline">session.setAutoCompactionEnabled(bool)</code>，并持久化到 <code class="inline">sessions/session-settings.json</code>（按会话路径索引，重载会话时读回，不再每次回默认关）。</li>
       </ul>
     </section>
 
@@ -503,9 +505,9 @@ switchModelSuccess(state, action) {
       <h3>7.1 登录 / 连接</h3>
       <pre><code>Login → loadProviders → window.pi.listProviders() → PineService.listProviders()
   → 选 provider / model + API key → connectRequest → PineService.connect()
-     （setRuntimeApiKey 后做一次 ping 校验）→ connected → navigate("/chat")
+     （本地校验凭证/模型，不发网络 ping 校验）→ connected → navigate("/chat")
 </code></pre>
-      <p>聊天页顶部的模型下拉框可换同 provider 的模型；<strong>换 provider</strong> 用下拉框旁的 <code class="inline">＋</code> 按钮（<code class="inline">ConnectProviderModal</code>）就地补 key，不必回登录页。</p>
+      <p>聊天页顶部的模型下拉框可换同 provider 的模型；<strong>换 provider</strong> 用下拉框旁的 <code class="inline">＋</code> 按钮（<code class="inline">ConnectProviderModal</code>）就地补 key，不必回登录页。流式生成期间切换模型被禁用（UI 禁用 + <code class="inline">PineService.switchModel()</code> 返回 <code class="inline">error.streaming</code> 双重防线）。</p>
 
       <h3>7.2 文件夹与文件</h3>
       <pre><code>FileExplorer / workspace saga → window.pi.executeFile({ intent, ... })
@@ -602,7 +604,7 @@ fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refresh
             <tr><td>编辑器 + 行号 + 保存 + diff</td><td>—</td><td><code class="inline">features/workspace/components/</code></td></tr>
             <tr><td>聊天收发、流式事件、图片、每轮花费、工具步骤详情（命令 / diff）</td><td><code class="inline">pine-service.ts</code> · <code class="inline">services/messages.ts</code> · <code class="inline">ipc/chat.ts</code></td><td><code class="inline">features/chat/components/ChatView.tsx</code> · <code class="inline">ComposerBar.tsx</code> · <code class="inline">FileDiff.tsx</code></td></tr>
             <tr><td>会话列表 / 续接 / 删除 / 重命名 / 设置</td><td><code class="inline">ipc/sessions.ts</code></td><td><code class="inline">SessionsPanel.tsx</code> · <code class="inline">ComposerBar.tsx</code></td></tr>
-            <tr><td>工具权限（只读工具始终允许；修改类弹窗带 diff；shell 不展示命令）</td><td><code class="inline">pine-service.ts</code> · <code class="inline">tool-permission-gate.ts</code> · <code class="inline">ipc/chat.ts</code></td><td><code class="inline">PermissionsModal.tsx</code> · <code class="inline">ToolPermissionModal.tsx</code></td></tr>
+            <tr><td>工具权限（只读工具始终允许；修改类弹窗带 diff；shell 默认关闭且弹窗展示命令）</td><td><code class="inline">pine-service.ts</code> · <code class="inline">tool-permission-gate.ts</code> · <code class="inline">ipc/chat.ts</code></td><td><code class="inline">PermissionsModal.tsx</code> · <code class="inline">ToolPermissionModal.tsx</code></td></tr>
             <tr><td>换 provider 就地补 key</td><td><code class="inline">pine-service.ts</code>（connect 复用）</td><td><code class="inline">ConnectProviderModal.tsx</code></td></tr>
             <tr><td>Extensions + 上下文文件</td><td><code class="inline">services/resources.ts</code></td><td>—</td></tr>
             <tr><td>剪贴板（复制文本 / 读图）</td><td><code class="inline">ipc/system.ts</code></td><td><code class="inline">ChatView.tsx</code></td></tr>
@@ -656,7 +658,7 @@ fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refresh
         <li><strong>编辑器</strong>：行号与文本同步、Tab=2 空格、Ctrl/Cmd+S 保存；文件被外部修改后出现「查看改动」diff（<code class="inline">diff</code> 包）。</li>
         <li><strong>模型切换</strong>：在聊天输入框下方（Cursor 风格），同 provider 分组；快速/深度二档对应 <code class="inline">thinkingLevel</code> low/high。</li>
         <li><strong>会话</strong>：自动持久化、按工作目录过滤、可续 / 删 / 重命名 / 自动压缩。</li>
-        <li><strong>工具权限</strong>：八种内置工具（read / bash / powershell / edit / write / grep / find / ls）内存开关；开启的直接运行，关闭的每次使用前弹窗逐次审批。只读工具（read / grep / find / ls）永不弹窗；<code class="inline">edit</code>/<code class="inline">write</code> 弹窗展示 diff 预览；<code class="inline">bash</code>/<code class="inline">powershell</code> 弹窗不展示命令内容。
+        <li><strong>工具权限</strong>：八种内置工具（read / bash / powershell / edit / write / grep / find / ls）内存开关；开启的直接运行，关闭的每次使用前弹窗逐次审批。只读工具（read / grep / find / ls）永不弹窗；<code class="inline">bash</code>/<code class="inline">powershell</code> 默认关闭（首次尝试必弹窗）；<code class="inline">edit</code>/<code class="inline">write</code> 弹窗展示 diff 预览；<code class="inline">bash</code>/<code class="inline">powershell</code> 弹窗展示命令原文（默认折叠 + 复制 + 展开）。
         <li><strong>聊天工具详情</strong>：聊天窗口是主审阅面——bash/powershell 显示命令原文，edit/write 显示行 diff（复用 <code class="inline">FileDiff</code>），read/grep/find/ls 显示目标路径/搜索词。</li>
         <li><strong>主题 / 布局 / 语言</strong>：仅 Redux 内存，不写 localStorage。</li>
       </ul>

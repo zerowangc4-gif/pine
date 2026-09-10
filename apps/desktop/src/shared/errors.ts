@@ -17,7 +17,6 @@ export const AppError = {
   streaming: "error.streaming",
   cannotDeleteRoot: "error.cannotDeleteRoot",
   sessionNotFound: "error.sessionNotFound",
-  sessionLoadFailed: "error.sessionLoadFailed",
   apiKeyRequired: "error.apiKeyRequired",
   noActiveSession: "error.noActiveSession",
   binaryFile: "error.binaryFile",

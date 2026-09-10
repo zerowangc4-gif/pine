@@ -1,10 +1,10 @@
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { FileDiff, Modal, ModalButton, ShieldIcon } from "@renderer/components";
+import { SHELL_TOOLS } from "@shared/types";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { toolPermissionResolved } from "../store";
-
-const SHELL_TOOLS = new Set(["bash", "powershell"]);
+import { ShellCommand } from "./ShellCommand";
 
 /**
  * Blocking permission prompt shown when the agent tries to run a tool the user
@@ -12,7 +12,8 @@ const SHELL_TOOLS = new Set(["bash", "powershell"]);
  * Deny is chosen.
  *
  * File-modifying tools (`edit`/`write`) show a reviewable diff; shell tools
- * (`bash`/`powershell`) never render their command text in this panel.
+ * (`bash`/`powershell`) show the exact command, collapsed by default with a
+ * copy/expand affordance so the user never approves blindly.
  */
 export function ToolPermissionModal() {
   const { t } = useTranslation();
@@ -24,6 +25,7 @@ export function ToolPermissionModal() {
   }
 
   const label = request.toolName;
+  const isShell = SHELL_TOOLS.includes(request.toolName);
 
   function respond(allowed: boolean) {
     void window.pi.respondToolPermission(request!.requestId, allowed);
@@ -56,7 +58,12 @@ export function ToolPermissionModal() {
               </Text>
               <FileDiff hunks={request.diff.hunks} />
             </>
-          ) : request.summary && !SHELL_TOOLS.has(request.toolName) ? (
+          ) : isShell && request.summary ? (
+            <>
+              <Text>{t("permissions.toolRequestShell", { tool: label })}</Text>
+              <ShellCommand command={request.summary} />
+            </>
+          ) : request.summary ? (
             <Text>{t("permissions.toolRequestBody", { tool: label, summary: request.summary })}</Text>
           ) : (
             <Text>{t("permissions.toolRequestBodyGeneric", { tool: label })}</Text>

@@ -1,5 +1,4 @@
-import { existsSync, promises as fs } from "node:fs";
-import path from "node:path";
+import { promises as fs } from "node:fs";
 import {
   createAgentSession,
   InMemoryCredentialStore,
@@ -13,7 +12,7 @@ import {
 } from "../core";
 import { AppError } from "@shared/errors";
 import { toErrorMessage } from "@shared/utils";
-import { BUILTIN_TOOLS, READONLY_TOOLS } from "@shared/types";
+import { BUILTIN_TOOLS, DEFAULT_ACTIVE_TOOLS, READONLY_TOOLS } from "@shared/types";
 import type {
   ActiveModelInfo,
   ChatEvent,
@@ -28,11 +27,12 @@ import type {
   SessionSettingsDTO,
   SessionStatsDTO,
   ThinkingLevel,
-  ToolPermissionDiff,
-  ToolPermissionDiffHunk,
 } from "@shared/types";
+import { toChatEvents } from "./agent-event-adapter";
 import { extractSessionMessages } from "./messages";
 import { createProjectResourceLoader } from "./resources";
+import { resolveExistingWithinDir } from "./path-utils";
+import { SessionSettingsStore } from "./session-settings-store";
 import type { ToolPermissionGate, ToolPermissionRequestPayload } from "./tool-permission-gate";
 
 interface Connection {
@@ -59,16 +59,20 @@ export class PineService {
   private sessionCwd?: string;
   private unsubscribe?: () => void;
   /** Tools that run without asking; anything else triggers a permission prompt. */
-  private activeTools: string[] = [...BUILTIN_TOOLS];
+  private activeTools: string[] = [...DEFAULT_ACTIVE_TOOLS];
   private pendingPermissions = new Map<
     string,
     { resolve: (allowed: boolean) => void; timer: NodeJS.Timeout }
   >();
 
+  private readonly sessionSettingsStore: SessionSettingsStore;
+
   constructor(
     private readonly send: (event: ChatEvent) => void,
     private readonly sessionsDir: string,
-  ) {}
+  ) {
+    this.sessionSettingsStore = new SessionSettingsStore(sessionsDir);
+  }
 
   // ── model runtime & providers ─────────────────────────────────────────
 
@@ -143,6 +147,11 @@ export class PineService {
 
   async switchModel(provider: string, modelId: string): Promise<ConnectResult> {
     try {
+      // The UI disables switching while streaming; this is the IPC-side guard
+      // so a direct call cannot swap the model mid-turn.
+      if (this.session?.isStreaming) {
+        return { ok: false, error: AppError.streaming };
+      }
       const runtime = await this.getModelRuntime();
       const model = runtime.getModel(provider, modelId);
       if (!model) {
@@ -194,6 +203,8 @@ export class PineService {
     };
   }
 
+  // ── tool permissions ──────────────────────────────────────────────────
+
   getActiveTools(): string[] {
     return [...this.activeTools];
   }
@@ -222,6 +233,10 @@ export class PineService {
     return new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => {
         this.resolveToolPermission(requestId, false);
+        // The timeout resolves the main-side promise only; the renderer keeps a
+        // mirrored queue, so tell it to drop this prompt instead of leaving the
+        // modal stuck on screen until the user notices.
+        this.send({ type: "tool_permission_resolved", requestId });
       }, PERMISSION_TIMEOUT_MS);
       this.pendingPermissions.set(requestId, { resolve, timer });
       this.send({ type: "tool_permission_request", request: { requestId, ...payload } });
@@ -329,28 +344,25 @@ export class PineService {
     if (!this.connection) {
       throw new Error(AppError.notConnected);
     }
-    if (!existsSync(sessionPath)) {
-      throw new Error(AppError.sessionNotFound);
-    }
+    const resolved = await this.resolveSessionPath(sessionPath);
+    const autoCompaction = await this.sessionSettingsStore.loadAutoCompaction(resolved);
 
     await this.disposeSession();
     await this.attachSession(
-      SessionManager.open(sessionPath, this.sessionsDir, this.workspaceRoot),
-      SettingsManager.inMemory({ compaction: { enabled: false } }),
+      SessionManager.open(resolved, this.sessionsDir, this.workspaceRoot),
+      SettingsManager.inMemory({ compaction: { enabled: autoCompaction } }),
     );
     return this.extractSessionMessages();
   }
 
   async deleteSession(sessionPath: string): Promise<FileResult> {
     try {
-      if (!existsSync(sessionPath)) {
-        return { ok: false, error: AppError.sessionNotFound };
-      }
-      if (this.activeSessionPath() === path.resolve(sessionPath)) {
+      const resolved = await this.resolveSessionPath(sessionPath);
+      if (this.activeSessionPath() === resolved) {
         await this.disposeSession();
       }
-      await fs.rm(sessionPath, { force: true });
-      return { ok: true, path: sessionPath };
+      await fs.rm(resolved, { force: true });
+      return { ok: true, path: resolved };
     } catch (error) {
       return { ok: false, error: toErrorMessage(error) };
     }
@@ -397,10 +409,22 @@ export class PineService {
 
   async setAutoCompaction(enabled: boolean): Promise<void> {
     this.session?.setAutoCompactionEnabled(enabled);
+    const sessionPath = this.activeSessionPath();
+    if (sessionPath) {
+      await this.sessionSettingsStore.saveAutoCompaction(sessionPath, enabled);
+    }
   }
 
   private activeSessionPath(): string | undefined {
     return this.session?.sessionManager.getSessionFile();
+  }
+
+  /**
+   * Resolve a session file path and reject anything outside the sessions
+   * directory (IPC-boundary defense for `loadSession`/`deleteSession`).
+   */
+  private resolveSessionPath(sessionPath: string): Promise<string> {
+    return resolveExistingWithinDir(this.sessionsDir, sessionPath, AppError.sessionNotFound);
   }
 
   private currentStats(): SessionStatsDTO {
@@ -521,62 +545,14 @@ export class PineService {
   }
 
   private forwardEvent(event: AgentSessionEvent): void {
-    switch (event.type) {
-      case "agent_start":
-        this.send({ type: "agent_start" });
-        break;
-      case "message_start":
-        if (event.message.role === "assistant") {
-          this.send({ type: "assistant_start" });
-        }
-        break;
-      case "message_update":
-        if (event.assistantMessageEvent.type === "text_delta") {
-          this.send({ type: "text_delta", delta: event.assistantMessageEvent.delta });
-        } else if (event.assistantMessageEvent.type === "thinking_delta") {
-          this.send({ type: "thinking_delta", delta: event.assistantMessageEvent.delta });
-        }
-        break;
-      case "message_end":
-        if (event.message.role === "assistant") {
-          this.send({ type: "assistant_end" });
-          const usage = event.message.usage;
-          if (usage) {
-            this.send({
-              type: "message_usage",
-              usage: {
-                inputTokens: usage.input,
-                outputTokens: usage.output,
-                cost: usage.cost?.total ?? 0,
-              },
-            });
-          }
-        }
-        // The SDK appends this message to the session *after* listeners run, so
-        // defer one microtask to read stats that already include it. This keeps
-        // the bottom bar live (per message / tool result) instead of only at
-        // agent_settled.
-        this.scheduleStatsPush();
-        break;
-      case "tool_execution_start": {
-        const { summary, diff } = describeToolCall(event.toolName, event.args);
-        this.send({ type: "tool_start", toolId: event.toolCallId, toolName: event.toolName, summary, diff });
-        break;
-      }
-      case "tool_execution_end":
-        this.send({ type: "tool_end", toolId: event.toolCallId, toolName: event.toolName, isError: event.isError });
-        break;
-      case "agent_settled":
-        this.send({ type: "settled" });
-        this.send({ type: "session_stats", stats: this.currentStats() });
-        break;
-      case "entry_appended":
-        // Custom entries (compaction/branch summaries) carry usage too; refresh
-        // the bar when they land.
-        this.scheduleStatsPush();
-        break;
-      default:
-        break;
+    for (const chatEvent of toChatEvents(event, () => this.currentStats())) {
+      this.send(chatEvent);
+    }
+    // `message_end` / `entry_appended` also refresh the bottom bar, but the SDK
+    // appends the message *after* listeners run, so defer one microtask to read
+    // stats that already include it.
+    if (event.type === "message_end" || event.type === "entry_appended") {
+      this.scheduleStatsPush();
     }
   }
 }
@@ -594,37 +570,4 @@ function toSharedSessionInfo(info: SdkSessionInfo): SessionInfo {
   };
 }
 
-/**
- * Build the chat-visible detail for a tool step. File-modifying tools carry a
- * diff so the user can review exactly what changed. Shell command content is
- * never included: it can contain credentials and must not linger in the UI.
- */
-function describeToolCall(
-  toolName: string,
-  args: unknown,
-): { summary?: string; diff?: ToolPermissionDiff } {
-  const input = (args ?? {}) as Record<string, unknown>;
-  const filePath = typeof input.path === "string" ? input.path : "";
-  const pattern = typeof input.pattern === "string" ? input.pattern : "";
-
-  if (toolName === "bash" || toolName === "powershell") {
-    return {};
-  }
-  if (toolName === "edit") {
-    const edits = Array.isArray(input.edits) ? (input.edits as ToolPermissionDiffHunk[]) : [];
-    return {
-      diff: filePath && edits.length > 0 ? { path: filePath, hunks: edits } : undefined,
-    };
-  }
-  if (toolName === "write") {
-    const content = typeof input.content === "string" ? input.content : "";
-    return {
-      diff: filePath ? { path: filePath, hunks: [{ oldText: "", newText: content }] } : undefined,
-    };
-  }
-  if (toolName === "grep" || toolName === "find") {
-    return { summary: pattern };
-  }
-  return { summary: filePath || toolName };
-}
 

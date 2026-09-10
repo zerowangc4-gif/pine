@@ -36,9 +36,8 @@ export function registerProviderIpc(service: PineService): void {
 
   ipcMain.handle(
     IPC_CHANNELS.modelSetActiveTools,
-    (_event, tools: string[]): Promise<void> => {
+    (_event, tools: string[]): void => {
       service.setActiveTools(tools);
-      return Promise.resolve();
     },
   );
 }

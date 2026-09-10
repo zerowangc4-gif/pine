@@ -58,8 +58,9 @@ features/<name>/
 - 触发异步的 action 叫 `*Request`，结果叫 `*Success` / `*Failure`；reducer 必须纯，id 用 `utils/id.ts` 的 `createId()`。
 - 主进程已知失败返回 i18n key（`AppError`），未知错误返回原始信息（`toErrorMessage`）；渲染层统一用 `errorText()` 展示。新增错误码：`shared/errors.ts` + 两个语言包。
 - 图标只放在 `components/icons.tsx`；可复用 UI 放 `components/`。
-- 工具权限：内置工具（`shared/types.ts` 的 `BUILTIN_TOOLS`）全部保持可用；被关闭的工具由 `tool-permission-gate.ts` 内联扩展拦截，运行时弹窗逐次审批，不允许直接把工具从 Agent 工具集移除。只读工具（`READONLY_TOOLS`：read/grep/find/ls）永不弹窗；`edit`/`write` 弹窗带 diff 预览；`bash`/`powershell` 弹窗不展示命令内容。聊天窗口是主审阅面：`tool_start` 事件携带 `summary`（bash/powershell 为命令原文，其余为路径/搜索词）与 `diff`（edit/write 的行 diff，渲染复用 `components/FileDiff`）。
+- 工具权限：内置工具（`BUILTIN_TOOLS`）全部保持可用，被关闭的工具由 `tool-permission-gate.ts` 内联扩展拦截、运行时逐次弹窗，不允许从 Agent 工具集移除。只读工具（`READONLY_TOOLS`）永不弹窗；`edit`/`write` 弹窗带 diff；`bash`/`powershell`（`SHELL_TOOLS`）默认关闭、首次必弹窗，弹窗与聊天窗口都展示命令原文（折叠 + 复制 + 展开，复用 `ShellCommand`）。`tool_start` 事件：`summary`（shell 为命令原文，其余为路径/搜索词）+ `diff`（edit/write 行 diff，复用 `FileDiff`）。
 - 主进程推送事件（`onChatEvent` / `onFilesChanged` / 窗口 focus）统一在对应 feature 的 saga 里用 `eventChannel`（带 buffer）监听并转成 store action，组件里不要再手写 `window.pi.on*` 订阅。
+- 改能力/修 bug 必须配 Playwright 功能用例（`e2e/tests/*.spec.ts`）验证真实行为（渲染、交互、持久化），不允许只过 typecheck/lint；纯重构也要保证现有 e2e 全绿。
 - 改了能力/约定，同步更新 `AGENTS.md` 与 `docs/DEVELOPMENT.html`。聊天会话能力清单见 `docs/CHAT_SESSIONS.md`。
 
 ## 4. 验证命令
@@ -68,10 +69,10 @@ features/<name>/
 # 从仓库根目录（E:\agents\pine）
 pnpm --filter @pine/desktop typecheck       # 类型检查
 pnpm --filter @pine/desktop typecheck:e2e   # e2e 类型检查
-npx eslint apps/desktop/src                 # lint
+npx eslint apps/desktop/src apps/desktop/e2e  # lint
 cd apps/desktop && npx electron-vite build  # 改了 main/preload 后跑
 pnpm --filter @pine/desktop e2e             # 聊天会话 e2e（渲染层 + mock window.pi）
 pnpm dev
 ```
 
-改完代码至少过 typecheck + lint，全绿才算完成。
+改完代码至少过 typecheck + lint + e2e，全绿才算完成；改功能必须带 Playwright 用例，不许只验类型。

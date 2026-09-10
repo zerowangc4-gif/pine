@@ -174,6 +174,7 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
             <SwitchButton
               type="button"
               role="switch"
+              aria-label={t("chat.autoCompaction")}
               aria-checked={sessionSettings?.autoCompaction ?? false}
               $on={sessionSettings?.autoCompaction ?? false}
               onClick={() => dispatch(setAutoCompactionRequest(!(sessionSettings?.autoCompaction ?? false)))}

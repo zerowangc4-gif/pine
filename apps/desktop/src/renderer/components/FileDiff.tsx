@@ -2,16 +2,22 @@ import { useMemo } from "react";
 import styled from "styled-components";
 import { diffLines } from "diff";
 import type { ToolPermissionDiffHunk } from "@shared/types";
+import { normalizeDiffHunks } from "@shared/utils";
 
 /**
  * Reviewable line diff of file changes, used by the tool-permission modal to
  * show exactly what an `edit`/`write` tool call is about to apply.
+ *
+ * Hunks are re-validated here (defense in depth at the render boundary) so a
+ * malformed payload from the IPC bridge cannot crash the UI.
  */
 export function FileDiff({ path, hunks }: { path?: string; hunks: ToolPermissionDiffHunk[] }) {
+  const validHunks = useMemo(() => normalizeDiffHunks(hunks) ?? [], [hunks]);
+
   return (
     <Container>
       {path && <FilePath>{path}</FilePath>}
-      {hunks.map((hunk, index) => (
+      {validHunks.map((hunk, index) => (
         <Hunk key={index} oldText={hunk.oldText} newText={hunk.newText} />
       ))}
     </Container>

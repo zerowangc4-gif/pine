@@ -7,8 +7,10 @@ import { CheckIcon, CopyIcon, CrossIcon, FileDiff, ImageIcon, Spinner } from "@r
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { formatCost } from "@renderer/utils";
 import type { ChatImage } from "@shared/types";
+import { SHELL_TOOLS } from "@shared/types";
 import { openFolderRequest } from "@renderer/features/workspace";
 import { ComposerBar } from "./ComposerBar";
+import { ShellCommand } from "./ShellCommand";
 import { sendMessage } from "../store";
 import type { ChatMessage, ToolStep } from "../types/state";
 
@@ -331,7 +333,11 @@ function AssistantRow({ message, label }: { message: ChatMessage; label: string 
                         : t("chat.toolError")}
                   </ToolStatus>
                 </ToolChip>
-                {tool.summary && <ToolDetail>{tool.summary}</ToolDetail>}
+                {SHELL_TOOLS.includes(tool.name) && tool.summary ? (
+                  <ShellCommand command={tool.summary} />
+                ) : tool.summary ? (
+                  <ToolDetail>{tool.summary}</ToolDetail>
+                ) : null}
                 {tool.diff && <FileDiff path={tool.diff.path} hunks={tool.diff.hunks} />}
               </ToolItem>
             ))}
