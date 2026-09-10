@@ -7,9 +7,9 @@ export interface LayoutState {
   sidebarVisible: boolean;
 }
 
-export const SIDEBAR_MIN_WIDTH = 200;
-export const SIDEBAR_MAX_WIDTH = 640;
-export const SIDEBAR_DEFAULT_WIDTH = 264;
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 640;
+const SIDEBAR_DEFAULT_WIDTH = 264;
 
 const initialState: LayoutState = {
   sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
@@ -23,9 +23,6 @@ export const layoutSlice = createSlice({
     setSidebarWidth(state, action: PayloadAction<number>) {
       state.sidebarWidth = clampSidebarWidth(action.payload);
     },
-    setSidebarVisible(state, action: PayloadAction<boolean>) {
-      state.sidebarVisible = action.payload;
-    },
     toggleSidebar(state) {
       state.sidebarVisible = !state.sidebarVisible;
     },
@@ -36,4 +33,4 @@ function clampSidebarWidth(width: number): number {
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(width)));
 }
 
-export const { setSidebarWidth, setSidebarVisible, toggleSidebar } = layoutSlice.actions;
+export const { setSidebarWidth, toggleSidebar } = layoutSlice.actions;

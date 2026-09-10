@@ -4,12 +4,13 @@ import styled from "styled-components";
 import { Dropdown, type DropdownOption } from "@renderer/components";
 import { Modal } from "@renderer/components";
 import { ModalButton, SwitchButton, SwitchKnob, TextInput } from "@renderer/components";
-import { GearIcon, PlusIcon, ShieldIcon } from "@renderer/components";
+import { DownloadIcon, GearIcon, PlusIcon, ShieldIcon } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { formatCost, formatTokens } from "@renderer/utils";
 import type { SessionStatsDTO, ThinkingLevel } from "@shared/types";
 import { setThinkingLevelRequest, switchModelRequest } from "@renderer/features/login";
 import {
+  exportSessionRequest,
   getSessionSettingsRequest,
   renameSessionRequest,
   setAutoCompactionRequest,
@@ -117,6 +118,13 @@ export function ComposerBar({ stats }: { stats?: SessionStatsDTO }) {
           onClick={openSettings}
         >
           <GearIcon />
+        </GearButton>
+        <GearButton
+          title={t("chat.exportSession")}
+          disabled={!activeSessionPath}
+          onClick={() => dispatch(exportSessionRequest(t("chat.exportSession")))}
+        >
+          <DownloadIcon />
         </GearButton>
         <GearButton title={t("permissions.title")} onClick={() => setPermissionsOpen(true)}>
           <ShieldIcon />

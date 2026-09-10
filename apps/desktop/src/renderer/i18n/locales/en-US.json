@@ -50,12 +50,19 @@
   },
   "permissions": {
     "title": "Permissions",
-    "hint": "Control which tools the assistant can use. Read is always on.",
+    "hint": "Tools that are on run without asking. Tools that are off ask for your permission each time.",
     "read": "Read files",
-    "alwaysOn": "Always on",
-    "bash": "Run commands",
+    "bash": "Run shell commands",
+    "powershell": "Run PowerShell commands",
     "edit": "Edit files",
-    "write": "Write files"
+    "write": "Write files",
+    "grep": "Search file contents",
+    "find": "Find files",
+    "ls": "List files",
+    "allow": "Allow",
+    "deny": "Deny",
+    "toolRequestTitle": "Tool permission required",
+    "toolRequestBody": "The assistant wants to use {{tool}}: {{summary}}"
   },
   "chat": {
     "tab": "Chat",
@@ -83,6 +90,7 @@
     "unsaved": "Unsaved",
     "saved": "Saved",
     "assistant": "Assistant",
+    "copyMessage": "Copy message",
     "sessions": "Sessions",
     "newSession": "New Session",
     "noSessions": "No saved sessions yet",
@@ -93,6 +101,7 @@
     "sessionSettings": "Session Settings",
     "sessionName": "Session name",
     "sessionNamePlaceholder": "Name this session",
+    "exportSession": "Export session",
     "autoCompaction": "Auto-compact context",
     "autoCompactionHint": "Summarize early turns automatically when the conversation grows too long",
     "model": "Model",
@@ -137,6 +146,7 @@
   },
   "layout": {
     "fullscreen": "Fullscreen (hide sidebar)",
-    "showSidebar": "Show sidebar"
+    "showSidebar": "Show sidebar",
+    "disconnect": "Disconnect"
   }
 }

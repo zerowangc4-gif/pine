@@ -11,6 +11,8 @@ import {
   connectWithKeyFailure,
   connectWithKeyRequest,
   connectWithKeySuccess,
+  disconnectRequest,
+  disconnectSuccess,
   getActiveModelRequest,
   getActiveModelSuccess,
   loadProviders,
@@ -110,6 +112,15 @@ function* getActiveModelSaga(): SagaIterator {
   }
 }
 
+function* disconnectSaga(): SagaIterator {
+  try {
+    yield call(() => window.pi.disconnect());
+  } finally {
+    // Always flip the gate back to login, even if the main process threw.
+    yield put(disconnectSuccess());
+  }
+}
+
 export function* loginSaga(): SagaIterator {
   yield takeLatest(loadProviders.type, loadProvidersSaga);
   yield takeLatest(connectRequest.type, connectSaga);
@@ -117,4 +128,5 @@ export function* loginSaga(): SagaIterator {
   yield takeLatest(switchModelRequest.type, switchModelSaga);
   yield takeLatest(setThinkingLevelRequest.type, setThinkingLevelSaga);
   yield takeLatest(getActiveModelRequest.type, getActiveModelSaga);
+  yield takeLatest(disconnectRequest.type, disconnectSaga);
 }

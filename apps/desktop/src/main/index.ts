@@ -64,7 +64,7 @@ app.whenReady().then(() => {
     getWorkspaceRoot: () => service.getWorkspaceRoot(),
     setWorkspaceRoot: (root) => service.setWorkspaceRoot(root),
   });
-  registerIpc(service, fileService);
+  registerIpc(service, fileService, getWindow);
   createWindow();
 
   app.on("activate", () => {

@@ -1,4 +1,4 @@
-import type { Pi } from "@shared";
+import type { Pi } from "@shared/types";
 declare global {
   interface Window {
     pi: Pi;

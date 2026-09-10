@@ -23,6 +23,8 @@ export function registerProviderIpc(service: PineService): void {
       service.switchModel(provider, model),
   );
 
+  ipcMain.handle(IPC_CHANNELS.modelDisconnect, (): Promise<void> => service.disconnect());
+
   ipcMain.handle(
     IPC_CHANNELS.modelThinkingLevel,
     (_event, level: ThinkingLevel): Promise<void> => service.setThinkingLevel(level),

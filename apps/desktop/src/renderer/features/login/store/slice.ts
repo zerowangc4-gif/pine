@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { ActiveModelInfo, ProviderInfo, ThinkingLevel } from "@shared";
+import type { ActiveModelInfo, ProviderInfo, ThinkingLevel } from "@shared/types";
 import type { State } from "../types/state";
 
 const initialState: State = {
@@ -104,6 +104,13 @@ export const loginSlice = createSlice({
       state.selectedModel = action.payload.model;
       state.thinkingLevel = action.payload.thinkingLevel;
     },
+
+    disconnectRequest(_state) {},
+    disconnectSuccess(state) {
+      state.connected = false;
+      state.connecting = false;
+      state.error = undefined;
+    },
   },
 });
 
@@ -126,4 +133,6 @@ export const {
   setThinkingLevelSuccess,
   getActiveModelRequest,
   getActiveModelSuccess,
+  disconnectRequest,
+  disconnectSuccess,
 } = loginSlice.actions;

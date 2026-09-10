@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter @pine/desktop dev",
     "build": "pnpm --filter @pine/desktop build",
+    "e2e": "pnpm --filter @pine/desktop e2e",
     "lint": "eslint .",
     "typecheck": "pnpm --filter @pine/desktop typecheck",
     "format": "prettier --write .",

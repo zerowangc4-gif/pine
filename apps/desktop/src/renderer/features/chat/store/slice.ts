@@ -1,7 +1,8 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { ChatImage, MessageUsage, SessionInfo, SessionMessage, SessionSettingsDTO, SessionStatsDTO } from "@shared/types";
+import { BUILTIN_TOOLS } from "@shared/types";
+import type { ChatImage, MessageUsage, SessionInfo, SessionMessage, SessionSettingsDTO, SessionStatsDTO, ToolPermissionRequest } from "@shared/types";
 import { createId } from "@renderer/utils";
-import { connectWithKeySuccess } from "../../login/store/slice";
+import { connectWithKeySuccess, disconnectSuccess } from "../../login/store/slice";
 import type { ChatMessage, State } from "../types/state";
 
 const initialState: State = {
@@ -9,7 +10,8 @@ const initialState: State = {
   streaming: false,
   sessions: [],
   sessionsLoading: false,
-  activeTools: ["read", "bash", "edit", "write"],
+  activeTools: [...BUILTIN_TOOLS],
+  pendingPermissions: [],
 };
 
 function toChatMessage(message: SessionMessage): ChatMessage {
@@ -22,6 +24,15 @@ function toChatMessage(message: SessionMessage): ChatMessage {
     images: message.images,
     usage: message.usage,
   };
+}
+
+function resetConversation(state: State): void {
+  state.messages = [];
+  state.activeSessionPath = undefined;
+  state.error = undefined;
+  state.streaming = false;
+  state.sessionStats = undefined;
+  state.sessionSettings = undefined;
 }
 
 function lastAssistant(state: State): ChatMessage | undefined {
@@ -130,6 +141,13 @@ export const chatSlice = createSlice({
       state.error = undefined;
     },
 
+    toolPermissionRequested(state, action: PayloadAction<ToolPermissionRequest>) {
+      state.pendingPermissions.push(action.payload);
+    },
+    toolPermissionResolved(state) {
+      state.pendingPermissions.shift();
+    },
+
     listSessionsRequest(state) {
       state.sessionsLoading = true;
       state.sessionError = undefined;
@@ -203,6 +221,11 @@ export const chatSlice = createSlice({
     },
     setAutoCompactionRequest(_state, _action: PayloadAction<boolean>) {},
 
+    exportSessionRequest(_state, _action: PayloadAction<string>) {},
+    exportSessionFailure(state, action: PayloadAction<string>) {
+      state.sessionError = action.payload;
+    },
+
     getActiveToolsRequest(_state) {},
     getActiveToolsSuccess(state, action: PayloadAction<string[]>) {
       state.activeTools = action.payload;
@@ -215,14 +238,10 @@ export const chatSlice = createSlice({
   extraReducers: (builder) => {
     // Connecting a different provider from the composer disposes the main-side
     // session, so the renderer must drop the now-orphaned conversation too.
-    builder.addCase(connectWithKeySuccess, (state) => {
-      state.messages = [];
-      state.activeSessionPath = undefined;
-      state.error = undefined;
-      state.streaming = false;
-      state.sessionStats = undefined;
-      state.sessionSettings = undefined;
-    });
+    builder.addCase(connectWithKeySuccess, resetConversation);
+    // Disconnecting clears the in-memory conversation; the saved session list
+    // stays behind and is re-fetched on the next login.
+    builder.addCase(disconnectSuccess, resetConversation);
   },
 });
 
@@ -239,6 +258,8 @@ export const {
   settled,
   chatError,
   clearError,
+  toolPermissionRequested,
+  toolPermissionResolved,
   listSessionsRequest,
   listSessionsSuccess,
   listSessionsFailure,
@@ -259,6 +280,8 @@ export const {
   getSessionSettingsRequest,
   getSessionSettingsSuccess,
   setAutoCompactionRequest,
+  exportSessionRequest,
+  exportSessionFailure,
   getActiveToolsRequest,
   getActiveToolsSuccess,
   setActiveToolsRequest,

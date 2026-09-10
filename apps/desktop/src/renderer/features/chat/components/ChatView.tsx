@@ -3,13 +3,14 @@ import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import styled from "styled-components";
-import { CheckIcon, CrossIcon, ImageIcon, Spinner } from "@renderer/components";
+import { CheckIcon, CopyIcon, CrossIcon, ImageIcon, Spinner } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { errorText } from "@renderer/utils";
 import { formatCost } from "@renderer/utils";
 import type { ChatImage } from "@shared/types";
 import { openFolderRequest } from "@renderer/features/workspace";
 import { ComposerBar } from "./ComposerBar";
+import { ToolPermissionModal } from "./ToolPermissionModal";
 import { clearError, sendMessage } from "../store";
 import type { ChatMessage, ToolStep } from "../types/state";
 
@@ -265,7 +266,23 @@ export function ChatView() {
           </PasteMenuItem>
         </PasteMenu>
       )}
+
+      <ToolPermissionModal />
     </Root>
+  );
+}
+
+function CopyMessageButton({ text }: { text: string }) {
+  const { t } = useTranslation();
+  return (
+    <CopyButton
+      type="button"
+      title={t("chat.copyMessage")}
+      aria-label={t("chat.copyMessage")}
+      onClick={() => void window.pi.copyText(text)}
+    >
+      <CopyIcon size={13} />
+    </CopyButton>
   );
 }
 
@@ -274,6 +291,7 @@ function MessageRow({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
       <UserRow>
+        <CopyMessageButton text={message.text} />
         <UserBubble>
           {message.images && message.images.length > 0 && (
             <UserImages>
@@ -297,7 +315,10 @@ function AssistantRow({ message, label }: { message: ChatMessage; label: string 
 
   return (
     <AssistantRowWrap>
-      <AssistantLabel>{label}</AssistantLabel>
+      <LabelRow>
+        <AssistantLabel>{label}</AssistantLabel>
+        <CopyMessageButton text={message.text} />
+      </LabelRow>
       <AssistantBody>
         {message.tools && message.tools.length > 0 && (
           <ToolList>
@@ -664,9 +685,34 @@ const SteerButton = styled(FollowUpButton)`
   background: transparent;
 `;
 
+const CopyButton = styled.button`
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: ${({ theme }) => theme.colors.surface2};
+  color: ${({ theme }) => theme.colors.textDim};
+  cursor: pointer;
+  opacity: 0.55;
+  transition: background ${({ theme }) => theme.transition.fast}, color ${({ theme }) => theme.transition.fast},
+    opacity ${({ theme }) => theme.transition.fast};
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.surfaceHover};
+    color: ${({ theme }) => theme.colors.text};
+    opacity: 1;
+  }
+`;
+
 const UserRow = styled.div`
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: ${({ theme }) => theme.spaces["2"]};
 `;
 
 const UserBubble = styled.div`
@@ -700,6 +746,12 @@ const AssistantRowWrap = styled.div`
   flex-direction: column;
   gap: ${({ theme }) => theme.spaces["1.5"]};
   max-width: 100%;
+`;
+
+const LabelRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spaces["2"]};
 `;
 
 const AssistantLabel = styled.div`

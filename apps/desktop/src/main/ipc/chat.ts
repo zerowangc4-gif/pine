@@ -14,4 +14,11 @@ export function registerChatIpc(service: PineService): void {
   });
 
   ipcMain.handle(IPC_CHANNELS.chatAbort, (): Promise<void> => service.abortChat());
+
+  ipcMain.handle(
+    IPC_CHANNELS.chatPermissionRespond,
+    (_event, requestId: string, allowed: boolean): void => {
+      service.respondToolPermission(requestId, allowed);
+    },
+  );
 }

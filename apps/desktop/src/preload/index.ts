@@ -36,6 +36,8 @@ const pi: Pi = {
   deleteSession: (path: string): Promise<FileResult> => ipcRenderer.invoke(IPC_CHANNELS.sessionsDelete, path),
   newSession: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.sessionsNew),
   renameSession: (name: string): Promise<FileResult> => ipcRenderer.invoke(IPC_CHANNELS.sessionsRename, name),
+  exportSession: (title: string): Promise<FileResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.sessionsExport, title),
   getSessionStats: (): Promise<SessionStatsDTO> => ipcRenderer.invoke(IPC_CHANNELS.sessionsStats),
   getSessionSettings: (): Promise<SessionSettingsDTO> =>
     ipcRenderer.invoke(IPC_CHANNELS.sessionsSettings),
@@ -44,6 +46,7 @@ const pi: Pi = {
 
   switchModel: (provider: string, model: string): Promise<ConnectResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.modelSwitch, provider, model),
+  disconnect: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.modelDisconnect),
   setThinkingLevel: (level: ThinkingLevel): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.modelThinkingLevel, level),
   getActiveModel: (): Promise<ActiveModelInfo> => ipcRenderer.invoke(IPC_CHANNELS.modelActive),
@@ -57,6 +60,8 @@ const pi: Pi = {
 
   sendMessage: (input: ChatSendInput): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.chatSend, input),
   abort: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.chatAbort),
+  respondToolPermission: (requestId: string, allowed: boolean): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.chatPermissionRespond, requestId, allowed),
   onChatEvent: (callback: (event: ChatEvent) => void): void => {
     ipcRenderer.removeAllListeners(IPC_CHANNELS.chatEvent);
     ipcRenderer.on(IPC_CHANNELS.chatEvent, (_event, payload: ChatEvent) => callback(payload));

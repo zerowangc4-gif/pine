@@ -50,12 +50,19 @@
   },
   "permissions": {
     "title": "权限",
-    "hint": "控制助手可以使用哪些工具。读取始终开启。",
+    "hint": "开启的工具直接运行；关闭的工具每次使用前会弹窗向你申请权限。",
     "read": "读取文件",
-    "alwaysOn": "始终开启",
-    "bash": "执行命令",
+    "bash": "执行 shell 命令",
+    "powershell": "执行 PowerShell 命令",
     "edit": "编辑文件",
-    "write": "写入文件"
+    "write": "写入文件",
+    "grep": "搜索文件内容",
+    "find": "查找文件",
+    "ls": "列出文件",
+    "allow": "允许",
+    "deny": "拒绝",
+    "toolRequestTitle": "需要工具权限",
+    "toolRequestBody": "助手想使用工具 {{tool}}：{{summary}}"
   },
   "chat": {
     "tab": "聊天",
@@ -83,6 +90,7 @@
     "unsaved": "未保存",
     "saved": "已保存",
     "assistant": "助手",
+    "copyMessage": "复制消息",
     "sessions": "会话",
     "newSession": "新建会话",
     "noSessions": "还没有保存的会话",
@@ -93,6 +101,7 @@
     "sessionSettings": "会话设置",
     "sessionName": "会话名称",
     "sessionNamePlaceholder": "给这个会话起个名字",
+    "exportSession": "导出会话",
     "autoCompaction": "自动压缩上下文",
     "autoCompactionHint": "对话过长时自动总结早期内容，避免超出上下文窗口",
     "model": "模型",
@@ -137,6 +146,7 @@
   },
   "layout": {
     "fullscreen": "全屏（隐藏侧栏）",
-    "showSidebar": "显示侧栏"
+    "showSidebar": "显示侧栏",
+    "disconnect": "断开连接"
   }
 }

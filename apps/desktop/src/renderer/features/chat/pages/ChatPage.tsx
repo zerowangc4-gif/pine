@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { LanguageSwitcher } from "@renderer/components";
-import { ThemeSwitcher } from "@renderer/components";
-import { ChatIcon, MaximizeIcon, PanelLeftIcon } from "@renderer/components";
+import { ChatIcon, LanguageSwitcher, LogoutIcon, MaximizeIcon, PanelLeftIcon, ThemeSwitcher } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { setSidebarWidth, toggleSidebar } from "@renderer/store/layoutSlice";
 import {
@@ -13,7 +11,7 @@ import {
   refreshTreeRequest,
   setActivePath,
 } from "@renderer/features/workspace";
-import { getActiveModelRequest, loadProviders } from "@renderer/features/login";
+import { disconnectRequest, getActiveModelRequest, loadProviders } from "@renderer/features/login";
 import { ChatView, SessionsPanel } from "../components";
 import {
   agentStarted,
@@ -29,6 +27,7 @@ import {
   textDelta,
   thinkingDelta,
   toolEnded,
+  toolPermissionRequested,
   toolStarted,
 } from "../store";
 
@@ -93,6 +92,9 @@ export function ChatPage() {
           break;
         case "session_stats":
           dispatch(sessionStatsReceived(event.stats));
+          break;
+        case "tool_permission_request":
+          dispatch(toolPermissionRequested(event.request));
           break;
         case "error":
           dispatch(chatError(event.message));
@@ -164,6 +166,9 @@ export function ChatPage() {
           </HeaderIconButton>
           <ThemeSwitcher />
           <LanguageSwitcher />
+          <HeaderIconButton title={t("layout.disconnect")} onClick={() => dispatch(disconnectRequest())}>
+            <LogoutIcon />
+          </HeaderIconButton>
         </TabBar>
         <Content>{activePath ? <EditorView /> : <ChatView />}</Content>
       </Main>

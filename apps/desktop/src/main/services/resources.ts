@@ -8,6 +8,7 @@ import {
   type ResourceLoader,
 } from "../core";
 import { SYSTEM_PROMPT } from "../core";
+import { createToolPermissionGateExtension, type ToolPermissionGate } from "./tool-permission-gate";
 
 export interface ProjectResourceLoader {
   loader: ResourceLoader;
@@ -18,8 +19,12 @@ export interface ProjectResourceLoader {
  * Build the resource loader for a workspace. Keeps the "zero default config"
  * guarantee: `agentDir` is the project root, so nothing under `~/.pi/agent` is
  * discovered. Extensions are loaded asynchronously before session creation.
+ *
+ * The tool-permission gate is appended as an inline extension so the agent can
+ * always attempt any built-in tool; the gate prompts the user before a tool
+ * they have disabled actually runs.
  */
-export function createProjectResourceLoader(root: string): ProjectResourceLoader {
+export function createProjectResourceLoader(root: string, gate: ToolPermissionGate): ProjectResourceLoader {
   let extensionsResult: LoadExtensionsResult = {
     extensions: [],
     errors: [],
@@ -54,6 +59,7 @@ export function createProjectResourceLoader(root: string): ProjectResourceLoader
       } catch {
         // A broken extension must not block the session from starting.
       }
+      extensionsResult.extensions.push(createToolPermissionGateExtension(gate));
     },
   };
 }

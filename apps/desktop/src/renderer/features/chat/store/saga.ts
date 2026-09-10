@@ -7,6 +7,8 @@ import {
   deleteSessionFailure,
   deleteSessionRequest,
   deleteSessionSuccess,
+  exportSessionFailure,
+  exportSessionRequest,
   getActiveToolsRequest,
   getActiveToolsSuccess,
   getSessionSettingsRequest,
@@ -89,6 +91,17 @@ function* getSessionSettingsSaga(): SagaIterator {
   }
 }
 
+function* exportSessionSaga(action: ReturnType<typeof exportSessionRequest>): SagaIterator {
+  try {
+    const result: FileResult = yield call(() => window.pi.exportSession(action.payload));
+    if (!result.ok) {
+      yield put(exportSessionFailure(result.error ?? "error.operationFailed"));
+    }
+  } catch (error) {
+    yield put(exportSessionFailure(toErrorMessage(error)));
+  }
+}
+
 function* setAutoCompactionSaga(action: ReturnType<typeof setAutoCompactionRequest>): SagaIterator {
   try {
     yield call(() => window.pi.setAutoCompaction(action.payload));
@@ -151,6 +164,7 @@ export function* chatSaga(): SagaIterator {
   yield takeLatest(getSessionStatsRequest.type, getSessionStatsSaga);
   yield takeLatest(getSessionSettingsRequest.type, getSessionSettingsSaga);
   yield takeLatest(setAutoCompactionRequest.type, setAutoCompactionSaga);
+  yield takeLatest(exportSessionRequest.type, exportSessionSaga);
   yield takeLatest(getActiveToolsRequest.type, getActiveToolsSaga);
   yield takeLatest(setActiveToolsRequest.type, setActiveToolsSaga);
 }

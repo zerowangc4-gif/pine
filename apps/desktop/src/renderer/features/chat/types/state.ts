@@ -1,4 +1,4 @@
-import type { ChatImage, MessageUsage, SessionInfo, SessionSettingsDTO, SessionStatsDTO } from "@shared/types";
+import type { ChatImage, MessageUsage, SessionInfo, SessionSettingsDTO, SessionStatsDTO, ToolPermissionRequest } from "@shared/types";
 
 export interface ToolStep {
   id: string;
@@ -28,4 +28,5 @@ export interface State {
   sessionStats?: SessionStatsDTO;
   sessionSettings?: SessionSettingsDTO;
   activeTools: string[];
+  pendingPermissions: ToolPermissionRequest[];
 }

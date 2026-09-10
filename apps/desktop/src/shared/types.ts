@@ -17,6 +17,9 @@ export interface ProviderInfo {
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
+/** Every built-in agent tool, in permissions-UI order. */
+export const BUILTIN_TOOLS: string[] = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
+
 export interface ActiveModelInfo {
   provider?: string;
   model?: string;
@@ -96,6 +99,13 @@ export type FileResponse =
   | { intent: "rename"; result: FileResult }
   | { intent: "delete"; result: FileResult };
 
+/** A runtime request for the user to allow or block a disabled tool. */
+export interface ToolPermissionRequest {
+  requestId: string;
+  toolName: string;
+  summary: string;
+}
+
 /** A saved conversation entry returned by the main process. */
 export interface SessionToolStep {
   id: string;
@@ -164,6 +174,7 @@ export type ChatEvent =
   | { type: "settled" }
   | { type: "session_stats"; stats: SessionStatsDTO }
   | { type: "message_usage"; usage: MessageUsage }
+  | { type: "tool_permission_request"; request: ToolPermissionRequest }
   | { type: "error"; message: string };
 
 /**
@@ -184,6 +195,7 @@ export interface Pi {
   deleteSession(path: string): Promise<FileResult>;
   newSession(): Promise<void>;
   renameSession(name: string): Promise<FileResult>;
+  exportSession(title: string): Promise<FileResult>;
   getSessionStats(): Promise<SessionStatsDTO>;
   getSessionSettings(): Promise<SessionSettingsDTO>;
   setAutoCompaction(enabled: boolean): Promise<void>;
@@ -191,6 +203,7 @@ export interface Pi {
   // Model & thinking level
   switchModel(provider: string, model: string): Promise<ConnectResult>;
   setThinkingLevel(level: ThinkingLevel): Promise<void>;
+  disconnect(): Promise<void>;
   getActiveModel(): Promise<ActiveModelInfo>;
   getActiveTools(): Promise<string[]>;
   setActiveTools(tools: string[]): Promise<void>;
@@ -203,5 +216,6 @@ export interface Pi {
   // Chat
   sendMessage(input: ChatSendInput): Promise<void>;
   abort(): Promise<void>;
+  respondToolPermission(requestId: string, allowed: boolean): Promise<void>;
   onChatEvent(callback: (event: ChatEvent) => void): void;
 }

@@ -1,4 +1,4 @@
-import type { ProviderInfo, ThinkingLevel } from "@shared";
+import type { ProviderInfo, ThinkingLevel } from "@shared/types";
 
 export interface State {
   providers: ProviderInfo[];

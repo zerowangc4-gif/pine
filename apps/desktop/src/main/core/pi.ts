@@ -9,7 +9,6 @@
  * AgentSession            the live conversation handle
  * AgentSessionEvent       event stream reduced into the renderer chat
  * SessionInfo             metadata for the session list
- * SessionStats            tokens / cost / message counts
  *
  * ── model & auth ─────────────────────────────────────────────────────
  * ModelRuntime            provider/model catalog + API-key credentials
@@ -21,10 +20,11 @@
  * ── resource loading ─────────────────────────────────────────────────
  * ResourceLoader          what the agent discovers (system prompt, …)
  * createExtensionRuntime  empty extension runtime (stub actions)
- * discoverAndLoadExtensions  load project .pi/extensions + .agents/extensions
+ * discoverAndLoadExtensions  load project .agents/extensions
  * loadProjectContextFiles    read project AGENTS.md / SYSTEM.md
  * createEventBus             event bus for extension loading
- * LoadExtensionsResult  resource-loading result types
+ * LoadExtensionsResult     resource-loading result type
+ * Extension / ToolCallEvent  tool-permission gate (inline extension)
  */
 export {
   createAgentSession,
@@ -40,10 +40,12 @@ export {
 export type {
   AgentSession,
   AgentSessionEvent,
+  Extension,
   LoadExtensionsResult,
   ResourceLoader,
   SessionInfo,
-  SessionStats,
+  ToolCallEvent,
+  ToolCallEventResult,
 } from "@earendil-works/pi-coding-agent";
 
 export { InMemoryCredentialStore } from "@earendil-works/pi-ai";

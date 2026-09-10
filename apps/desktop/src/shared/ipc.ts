@@ -14,11 +14,13 @@ export const IPC_CHANNELS = {
   sessionsDelete: "sessions:delete",
   sessionsNew: "sessions:new",
   sessionsRename: "sessions:rename",
+  sessionsExport: "sessions:export",
   sessionsStats: "sessions:stats",
   sessionsSettings: "sessions:settings",
   sessionsSetAutoCompaction: "sessions:set-auto-compaction",
 
   modelSwitch: "model:switch",
+  modelDisconnect: "model:disconnect",
   modelThinkingLevel: "model:thinking-level",
   modelActive: "model:active",
   modelActiveTools: "model:active-tools",
@@ -29,5 +31,6 @@ export const IPC_CHANNELS = {
 
   chatSend: "chat:send",
   chatAbort: "chat:abort",
+  chatPermissionRespond: "chat:permission-respond",
   chatEvent: "chat:event",
 } as const;

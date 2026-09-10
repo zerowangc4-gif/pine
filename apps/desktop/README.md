@@ -22,6 +22,9 @@ pnpm dev            # 本地运行
 pnpm typecheck      # 类型检查
 pnpm lint           # eslint + prettier
 pnpm build          # 生产构建（main / preload / renderer）
+
+# 渲染层 e2e（无需 Electron / API key）
+pnpm --filter @pine/desktop e2e
 ```
 
 改完代码至少跑 `typecheck` + `lint`；改动 main / preload 后再跑 `build` 确认 bundling。
@@ -48,5 +51,7 @@ main (Node)               src/main/  → PineService → @earendil-works/pi-codi
 | --- | --- |
 | [`docs/DEVELOPMENT.html`](../../docs/DEVELOPMENT.html) | 唯一开发入口（架构 / 规范 / 流程 / 功能地图） |
 | [`docs/sdk-api-reference.html`](../../docs/sdk-api-reference.html) | Pi SDK 接口详解 |
+| [`docs/CHAT_SESSIONS.md`](../../docs/CHAT_SESSIONS.md) | 聊天会话能力清单（代办） |
+| [`e2e/README.md`](./e2e/README.md) | 聊天会话 e2e 测试说明 |
 | [`AGENTS.md`](../../AGENTS.md) | AI 助手与协作者的约定（宪法） |
 | SDK 官方文档 | `node_modules/@earendil-works/pi-coding-agent/docs/` |

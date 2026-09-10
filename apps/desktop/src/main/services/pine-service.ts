@@ -13,6 +13,7 @@ import {
 } from "../core";
 import { AppError } from "@shared/errors";
 import { toErrorMessage } from "@shared/utils";
+import { BUILTIN_TOOLS } from "@shared/types";
 import type {
   ActiveModelInfo,
   ChatEvent,
@@ -30,6 +31,7 @@ import type {
 } from "@shared/types";
 import { extractSessionMessages } from "./messages";
 import { createProjectResourceLoader } from "./resources";
+import type { ToolPermissionGate } from "./tool-permission-gate";
 
 interface Connection {
   provider: string;
@@ -40,7 +42,8 @@ interface Connection {
 
 const DEFAULT_THINKING_LEVEL: ThinkingLevel = "high";
 
-const DEFAULT_TOOLS = ["read", "bash", "edit", "write"];
+/** How long a tool-permission prompt waits before auto-denying. */
+const PERMISSION_TIMEOUT_MS = 5 * 60_000;
 
 /**
  * Owns the model runtime, the active connection, the workspace folder, and the
@@ -53,7 +56,12 @@ export class PineService {
   private session?: AgentSession;
   private sessionCwd?: string;
   private unsubscribe?: () => void;
-  private activeTools: string[] = DEFAULT_TOOLS;
+  /** Tools that run without asking; anything else triggers a permission prompt. */
+  private activeTools: string[] = [...BUILTIN_TOOLS];
+  private pendingPermissions = new Map<
+    string,
+    { resolve: (allowed: boolean) => void; timer: NodeJS.Timeout }
+  >();
 
   constructor(
     private readonly send: (event: ChatEvent) => void,
@@ -168,6 +176,16 @@ export class PineService {
     }
   }
 
+  /**
+   * Drop the in-memory connection and the live session. The API key is never
+   * persisted, so disconnecting returns the app to the login gate. The saved
+   * session files on disk are left untouched for the next connection.
+   */
+  async disconnect(): Promise<void> {
+    await this.disposeSession();
+    this.connection = undefined;
+  }
+
   async setThinkingLevel(level: ThinkingLevel): Promise<void> {
     if (this.connection) {
       this.connection.thinkingLevel = level;
@@ -187,9 +205,51 @@ export class PineService {
     return [...this.activeTools];
   }
 
+  /**
+   * Record which tools may run without asking. Tools stay available to the
+   * agent; the permission gate prompts before a disabled tool actually runs.
+   */
   setActiveTools(tools: string[]): void {
-    this.activeTools = tools.length > 0 ? [...tools] : DEFAULT_TOOLS;
-    this.session?.setActiveToolsByName(this.activeTools);
+    this.activeTools = tools.length > 0 ? [...tools] : [...BUILTIN_TOOLS];
+  }
+
+  isToolAllowed(toolName: string): boolean {
+    return this.activeTools.includes(toolName);
+  }
+
+  /**
+   * Ask the renderer whether a tool may run. Resolves when the user answers,
+   * when the prompt times out, or when the session is disposed/aborted.
+   */
+  requestToolPermission(toolName: string, summary: string): Promise<boolean> {
+    const requestId = crypto.randomUUID();
+    return new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => {
+        this.resolveToolPermission(requestId, false);
+      }, PERMISSION_TIMEOUT_MS);
+      this.pendingPermissions.set(requestId, { resolve, timer });
+      this.send({ type: "tool_permission_request", request: { requestId, toolName, summary } });
+    });
+  }
+
+  respondToolPermission(requestId: string, allowed: boolean): void {
+    this.resolveToolPermission(requestId, allowed);
+  }
+
+  private resolveToolPermission(requestId: string, allowed: boolean): void {
+    const pending = this.pendingPermissions.get(requestId);
+    if (!pending) {
+      return;
+    }
+    this.pendingPermissions.delete(requestId);
+    clearTimeout(pending.timer);
+    pending.resolve(allowed);
+  }
+
+  private clearPendingPermissions(): void {
+    for (const requestId of this.pendingPermissions.keys()) {
+      this.resolveToolPermission(requestId, false);
+    }
   }
 
   // ── workspace ──────────────────────────────────────────────────────────
@@ -238,6 +298,8 @@ export class PineService {
   }
 
   async abortChat(): Promise<void> {
+    // A pending permission prompt would otherwise strand its `tool_call` handler.
+    this.clearPendingPermissions();
     await this.session?.abort();
   }
 
@@ -269,31 +331,10 @@ export class PineService {
     }
 
     await this.disposeSession();
-
-    const runtime = await this.getModelRuntime();
-    const model = runtime.getModel(this.connection.provider, this.connection.model);
-    if (!model) {
-      throw new Error(AppError.modelNotFound);
-    }
-
-    const sessionManager = SessionManager.open(sessionPath, this.sessionsDir, this.workspaceRoot);
-    const resourceLoader = await this.createResources();
-    const { session } = await createAgentSession({
-      cwd: this.workspaceRoot,
-      agentDir: this.workspaceRoot,
-      model,
-      thinkingLevel: this.connection.thinkingLevel,
-      modelRuntime: runtime,
-      resourceLoader,
-      sessionManager,
-      settingsManager: SettingsManager.inMemory({ compaction: { enabled: false } }),
-      tools: this.activeTools,
-    });
-
-    this.session = session;
-    this.sessionCwd = this.workspaceRoot;
-    this.unsubscribe = session.subscribe((event) => this.forwardEvent(event));
-
+    await this.attachSession(
+      SessionManager.open(sessionPath, this.sessionsDir, this.workspaceRoot),
+      SettingsManager.inMemory({ compaction: { enabled: false } }),
+    );
     return this.extractSessionMessages();
   }
 
@@ -346,6 +387,11 @@ export class PineService {
     };
   }
 
+  /** The on-disk `.jsonl` path of the live session, if one is active. */
+  getActiveSessionPath(): string | undefined {
+    return this.activeSessionPath();
+  }
+
   async setAutoCompaction(enabled: boolean): Promise<void> {
     this.session?.setAutoCompactionEnabled(enabled);
   }
@@ -388,7 +434,11 @@ export class PineService {
   // ── session lifecycle ──────────────────────────────────────────────────
 
   private async createResources(): Promise<ResourceLoader> {
-    const resources = createProjectResourceLoader(this.workspaceRoot!);
+    const gate: ToolPermissionGate = {
+      isAllowed: (toolName) => this.isToolAllowed(toolName),
+      request: (toolName, summary) => this.requestToolPermission(toolName, summary),
+    };
+    const resources = createProjectResourceLoader(this.workspaceRoot!, gate);
     await resources.loadExtensions();
     return resources.loader;
   }
@@ -408,37 +458,52 @@ export class PineService {
       return this.session;
     }
 
+    return this.attachSession(
+      SessionManager.create(this.workspaceRoot, this.sessionsDir),
+      SettingsManager.inMemory({
+        compaction: { enabled: false },
+        retry: { enabled: true, maxRetries: 2 },
+      }),
+    );
+  }
+
+  /**
+   * Build a live AgentSession from an existing session manager and attach it.
+   * Callers must already have a workspace root and a connection.
+   */
+  private async attachSession(
+    sessionManager: SessionManager,
+    settingsManager: SettingsManager,
+  ): Promise<AgentSession> {
+    const connection = this.connection!;
+    const root = this.workspaceRoot!;
     const runtime = await this.getModelRuntime();
-    const model = runtime.getModel(this.connection.provider, this.connection.model);
+    const model = runtime.getModel(connection.provider, connection.model);
     if (!model) {
       throw new Error(AppError.modelNotFound);
     }
 
-    const settingsManager = SettingsManager.inMemory({
-      compaction: { enabled: false },
-      retry: { enabled: true, maxRetries: 2 },
-    });
-
     const resourceLoader = await this.createResources();
     const { session } = await createAgentSession({
-      cwd: this.workspaceRoot,
-      agentDir: this.workspaceRoot,
+      cwd: root,
+      agentDir: root,
       model,
-      thinkingLevel: this.connection.thinkingLevel,
+      thinkingLevel: connection.thinkingLevel,
       modelRuntime: runtime,
       resourceLoader,
-      sessionManager: SessionManager.create(this.workspaceRoot, this.sessionsDir),
+      sessionManager,
       settingsManager,
-      tools: this.activeTools,
+      tools: BUILTIN_TOOLS,
     });
 
     this.session = session;
-    this.sessionCwd = this.workspaceRoot;
+    this.sessionCwd = root;
     this.unsubscribe = session.subscribe((event) => this.forwardEvent(event));
     return session;
   }
 
   private async disposeSession(): Promise<void> {
+    this.clearPendingPermissions();
     this.unsubscribe?.();
     this.unsubscribe = undefined;
     if (this.session) {

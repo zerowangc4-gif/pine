@@ -4,13 +4,27 @@ import { Modal } from "@renderer/components";
 import { ModalButton, SwitchButton, SwitchKnob } from "@renderer/components";
 import { ShieldIcon } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
+import { BUILTIN_TOOLS } from "@shared/types";
 import { setActiveToolsRequest } from "../store";
 
-const TOOL_KEYS = [
-  { name: "bash", label: "permissions.bash" },
-  { name: "edit", label: "permissions.edit" },
-  { name: "write", label: "permissions.write" },
-] as const;
+/** i18n label key for every built-in tool, keyed by tool name. */
+const TOOL_LABELS: Record<string, string> = {
+  read: "permissions.read",
+  bash: "permissions.bash",
+  powershell: "permissions.powershell",
+  edit: "permissions.edit",
+  write: "permissions.write",
+  grep: "permissions.grep",
+  find: "permissions.find",
+  ls: "permissions.ls",
+};
+
+/**
+ * One toggle per built-in tool. When a tool is on it runs without asking;
+ * when off, the agent can still attempt it but a permission modal appears
+ * before execution (see `ToolPermissionModal`).
+ */
+const TOOL_KEYS = BUILTIN_TOOLS.map((name) => ({ name, label: TOOL_LABELS[name] }));
 
 export function PermissionsModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
@@ -32,14 +46,6 @@ export function PermissionsModal({ onClose }: { onClose: () => void }) {
     >
       <Hint>{t("permissions.hint")}</Hint>
 
-      <ToolRow>
-        <ShieldIcon size={13} />
-        <ToolInfo>
-          <ToolName>{t("permissions.read")}</ToolName>
-        </ToolInfo>
-        <ReadBadge>{t("permissions.alwaysOn")}</ReadBadge>
-      </ToolRow>
-
       {TOOL_KEYS.map((tool) => {
         const enabled = activeTools.includes(tool.name);
         return (
@@ -52,6 +58,7 @@ export function PermissionsModal({ onClose }: { onClose: () => void }) {
               type="button"
               role="switch"
               aria-checked={enabled}
+              aria-label={t(tool.label)}
               $on={enabled}
               onClick={() => toggle(tool.name, !enabled)}
             >
@@ -90,15 +97,3 @@ const ToolName = styled.div`
   font-size: 13.5px;
   font-weight: 600;
 `;
-
-const ReadBadge = styled.span`
-  flex: none;
-  padding: ${({ theme }) => `${theme.spaces["1"]} ${theme.spaces["2"]}`};
-  border-radius: ${({ theme }) => theme.radius.full};
-  background: ${({ theme }) => theme.colors.successSoft};
-  color: ${({ theme }) => theme.colors.success};
-  font-size: 11.5px;
-  font-weight: 600;
-`;
-
-

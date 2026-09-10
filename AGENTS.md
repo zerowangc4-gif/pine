@@ -4,7 +4,7 @@
 
 ## 1. 项目架构
 
-Pine 是一个 Electron 桌面端，把 `@earendil-works/pi-coding-agent`（Pi 编码助手 SDK）嵌进自定义 UI：登录选模型 → 打开文件夹 → 与助手对话，助手用 read/bash/edit/write 工具在那个文件夹里工作。
+Pine 是一个 Electron 桌面端，把 `@earendil-works/pi-coding-agent`（Pi 编码助手 SDK）嵌进自定义 UI：登录选模型 → 打开文件夹 → 与助手对话，助手用 read/bash/edit/write 等工具在那个文件夹里工作。
 
 技术栈：Electron + electron-vite；React 19 + TypeScript；Redux Toolkit + redux-saga；styled-components；i18next（zh-CN / en-US）；react-router-dom（HashRouter）；`@earendil-works/pi-coding-agent` v0.85.1（只在**主进程**运行）。
 
@@ -14,8 +14,8 @@ apps/desktop/src/
   main/                   主进程（Node）
     index.ts              入口：建窗口 + 组装
     core/                 pi.ts（唯一 SDK 导出入口）+ prompt.ts + index.ts
-    ipc/                  薄壳 ipcMain handler（providers / files / chat / sessions / skills / system）
-    services/             FileService、PineService、messages、resources + index.ts
+    ipc/                  薄壳 ipcMain handler（providers / files / chat / sessions / system）
+    services/             FileService、PineService、messages、resources、tool-permission-gate + index.ts
   preload/index.ts        暴露 window.pi
   renderer/
     main.tsx / ThemedRoot.tsx / App.tsx    入口 + 主题注入 + 路由守卫
@@ -27,7 +27,7 @@ apps/desktop/src/
     features/
       login/              登录 / 模型切换
       workspace/          文件树 + 编辑器
-      chat/               聊天 / 会话 / 会话设置
+      chat/               聊天 / 会话 / 会话设置 / 工具权限
 ```
 
 每个 feature 固定形状：
@@ -58,14 +58,18 @@ features/<name>/
 - 触发异步的 action 叫 `*Request`，结果叫 `*Success` / `*Failure`；reducer 必须纯，id 用 `utils/id.ts` 的 `createId()`。
 - 主进程已知失败返回 i18n key（`AppError`），未知错误返回原始信息（`toErrorMessage`）；渲染层统一用 `errorText()` 展示。新增错误码：`shared/errors.ts` + 两个语言包。
 - 图标只放在 `components/icons.tsx`；可复用 UI 放 `components/`。
-- 改了能力/约定，同步更新 `AGENTS.md` 与 `docs/DEVELOPMENT.html`。
+- 工具权限：内置工具（`shared/types.ts` 的 `BUILTIN_TOOLS`）全部保持可用；被关闭的工具由 `tool-permission-gate.ts` 内联扩展拦截，运行时弹窗逐次审批，不允许直接把工具从 Agent 工具集移除。
+- 改了能力/约定，同步更新 `AGENTS.md` 与 `docs/DEVELOPMENT.html`。聊天会话能力清单见 `docs/CHAT_SESSIONS.md`。
 
 ## 4. 验证命令
 
 ```bash
-pnpm --filter @pine/desktop typecheck
-npx eslint apps/desktop/src
-cd apps/desktop && npx electron-vite build   # 改了 main/preload（SDK 外部化、新依赖）后跑
+# 从仓库根目录（E:\agents\pine）
+pnpm --filter @pine/desktop typecheck       # 类型检查
+pnpm --filter @pine/desktop typecheck:e2e   # e2e 类型检查
+npx eslint apps/desktop/src                 # lint
+cd apps/desktop && npx electron-vite build  # 改了 main/preload 后跑
+pnpm --filter @pine/desktop e2e             # 聊天会话 e2e（渲染层 + mock window.pi）
 pnpm dev
 ```
 

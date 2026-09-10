@@ -1,4 +1,6 @@
-import { ipcMain } from "electron";
+import { promises as fs } from "node:fs";
+import { dialog, ipcMain, type BrowserWindow } from "electron";
+import { AppError } from "@shared/errors";
 import { IPC_CHANNELS } from "@shared/ipc";
 import type {
   FileResult,
@@ -7,9 +9,13 @@ import type {
   SessionSettingsDTO,
   SessionStatsDTO,
 } from "@shared/types";
+import { toErrorMessage } from "@shared/utils";
 import type { PineService } from "../services";
 
-export function registerSessionsIpc(service: PineService): void {
+export function registerSessionsIpc(
+  service: PineService,
+  getWindow: () => BrowserWindow | undefined,
+): void {
   ipcMain.handle(IPC_CHANNELS.sessionsList, (): Promise<SessionListResult> => service.listSessions());
 
   ipcMain.handle(
@@ -27,6 +33,34 @@ export function registerSessionsIpc(service: PineService): void {
   ipcMain.handle(
     IPC_CHANNELS.sessionsRename,
     (_event, name: string): Promise<FileResult> => service.renameSession(name),
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.sessionsExport,
+    async (_event, title: string): Promise<FileResult> => {
+      try {
+        const sourcePath = service.getActiveSessionPath();
+        if (!sourcePath) {
+          return { ok: false, error: AppError.noActiveSession };
+        }
+        const window = getWindow();
+        if (!window) {
+          return { ok: false, error: AppError.operationFailed };
+        }
+        const result = await dialog.showSaveDialog(window, {
+          title,
+          defaultPath: `pine-session-${Date.now()}.jsonl`,
+          filters: [{ name: "JSON Lines", extensions: ["jsonl"] }],
+        });
+        if (result.canceled || !result.filePath) {
+          return { ok: false, error: AppError.operationFailed };
+        }
+        await fs.copyFile(sourcePath, result.filePath);
+        return { ok: true, path: result.filePath };
+      } catch (error) {
+        return { ok: false, error: toErrorMessage(error) };
+      }
+    },
   );
 
   ipcMain.handle(IPC_CHANNELS.sessionsStats, (): SessionStatsDTO => service.getSessionStats());
