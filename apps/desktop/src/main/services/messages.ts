@@ -1,5 +1,5 @@
 import type { ChatImage, MessageUsage, SessionMessage, SessionToolStep } from "@shared/types";
-import type { AgentSession } from "../core/pi";
+import type { AgentSession } from "../core";
 
 interface TextBlock {
   type: "text";

@@ -10,7 +10,7 @@ import {
   type AgentSessionEvent,
   type ResourceLoader,
   type SessionInfo as SdkSessionInfo,
-} from "../core/pi";
+} from "../core";
 import { AppError } from "@shared/errors";
 import { toErrorMessage } from "@shared/utils";
 import type {
@@ -26,11 +26,10 @@ import type {
   SessionMessage,
   SessionSettingsDTO,
   SessionStatsDTO,
-  SkillInfo,
   ThinkingLevel,
 } from "@shared/types";
 import { extractSessionMessages } from "./messages";
-import { createProjectResourceLoader, loadProjectSkills, writeSkillsIndex } from "./resources";
+import { createProjectResourceLoader } from "./resources";
 
 interface Connection {
   provider: string;
@@ -42,20 +41,6 @@ interface Connection {
 const DEFAULT_THINKING_LEVEL: ThinkingLevel = "high";
 
 const DEFAULT_TOOLS = ["read", "bash", "edit", "write"];
-
-function skillTemplate(name: string, description: string): string {
-  return [
-    "---",
-    `name: ${name}`,
-    `description: ${description}`,
-    "---",
-    "",
-    `# ${name}`,
-    "",
-    "Describe the workflow and any scripts/references below.",
-    "",
-  ].join("\n");
-}
 
 /**
  * Owns the model runtime, the active connection, the workspace folder, and the
@@ -215,42 +200,6 @@ export class PineService {
 
   getWorkspaceRoot(): string | undefined {
     return this.workspaceRoot;
-  }
-
-  // ── skills ────────────────────────────────────────────────────────────
-
-  listSkills(): SkillInfo[] {
-    if (!this.workspaceRoot) {
-      return [];
-    }
-    return loadProjectSkills(this.workspaceRoot).map((skill) => ({
-      name: skill.name,
-      description: skill.description,
-      filePath: skill.filePath,
-    }));
-  }
-
-  async createSkill(name: string, description: string): Promise<FileResult> {
-    try {
-      const root = this.workspaceRoot;
-      if (!root) {
-        return { ok: false, error: AppError.noFolder };
-      }
-      const trimmed = name.trim();
-      if (!trimmed) {
-        return { ok: false, error: AppError.nameRequired };
-      }
-      const filePath = path.join(root, ".pi", "skills", trimmed, "SKILL.md");
-      if (existsSync(filePath)) {
-        return { ok: false, error: AppError.nameExists };
-      }
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(filePath, skillTemplate(trimmed, description.trim()), "utf8");
-      await writeSkillsIndex(root);
-      return { ok: true, path: filePath };
-    } catch (error) {
-      return { ok: false, error: toErrorMessage(error) };
-    }
   }
 
   // ── chat ───────────────────────────────────────────────────────────────

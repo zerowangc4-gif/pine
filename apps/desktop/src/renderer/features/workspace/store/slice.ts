@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { DirEntry } from "@shared/types";
-import { basename, isPathUnder, remapPath } from "@renderer/utils/path";
+import { basename, isPathUnder, remapPath } from "@renderer/utils";
 import type { FileNode, State } from "../types/state";
 
 const initialState: State = {

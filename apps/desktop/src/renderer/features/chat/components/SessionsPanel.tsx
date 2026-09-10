@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { Modal } from "@renderer/components/Modal";
-import { ModalButton } from "@renderer/components/ui";
-import { ChatIcon, PlusIcon, Spinner, TrashIcon } from "@renderer/components/icons";
+import { Modal } from "@renderer/components";
+import { ModalButton } from "@renderer/components";
+import { ChatIcon, PlusIcon, Spinner, TrashIcon } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { errorText } from "@renderer/utils/error";
+import { errorText } from "@renderer/utils";
 import type { SessionInfo } from "@shared/types";
 import {
   clearSessionError,

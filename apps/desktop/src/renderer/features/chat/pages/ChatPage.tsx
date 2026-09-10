@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { LanguageSwitcher } from "@renderer/components/LanguageSwitcher";
-import { ThemeSwitcher } from "@renderer/components/ThemeSwitcher";
-import { ChatIcon, MaximizeIcon, PanelLeftIcon } from "@renderer/components/icons";
+import { LanguageSwitcher } from "@renderer/components";
+import { ThemeSwitcher } from "@renderer/components";
+import { ChatIcon, MaximizeIcon, PanelLeftIcon } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
 import { setSidebarWidth, toggleSidebar } from "@renderer/store/layoutSlice";
 import {
@@ -14,8 +14,7 @@ import {
   setActivePath,
 } from "@renderer/features/workspace";
 import { getActiveModelRequest, loadProviders } from "@renderer/features/login";
-import { ChatView } from "../components/ChatView";
-import { SessionsPanel } from "../components/SessionsPanel";
+import { ChatView, SessionsPanel } from "../components";
 import {
   agentStarted,
   assistantEnded,

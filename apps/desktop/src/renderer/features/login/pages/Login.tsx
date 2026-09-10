@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { Dropdown, type DropdownOption } from "@renderer/components/Dropdown";
-import { LanguageSwitcher } from "@renderer/components/LanguageSwitcher";
-import { ThemeSwitcher } from "@renderer/components/ThemeSwitcher";
-import { LogoMark, Spinner } from "@renderer/components/icons";
+import { Dropdown, type DropdownOption } from "@renderer/components";
+import { LanguageSwitcher } from "@renderer/components";
+import { ThemeSwitcher } from "@renderer/components";
+import { LogoMark, Spinner } from "@renderer/components";
 import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { errorText } from "@renderer/utils/error";
+import { errorText } from "@renderer/utils";
 import {
   connectRequest,
   loadProviders,

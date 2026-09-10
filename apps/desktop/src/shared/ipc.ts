@@ -6,19 +6,8 @@ export const IPC_CHANNELS = {
   providersList: "pi:list-providers",
   connect: "pi:connect",
 
-  filesOpenFolder: "files:open-folder",
-  filesReadDir: "files:read-dir",
-  filesCreateFile: "files:create-file",
-  filesCreateFolder: "files:create-folder",
-  filesRename: "files:rename",
-  filesDelete: "files:delete",
-  filesReveal: "files:reveal",
-  filesReadFile: "files:read-file",
-  filesWriteFile: "files:write-file",
+  filesExecute: "files:execute",
   filesChanged: "files:changed",
-
-  skillsList: "skills:list",
-  skillsCreate: "skills:create",
 
   sessionsList: "sessions:list",
   sessionsLoad: "sessions:load",

@@ -1,7 +1,7 @@
 import { ipcMain } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc";
 import type { ChatSendInput } from "@shared/types";
-import type { PineService } from "../services/pine-service";
+import type { PineService } from "../services";
 
 export function registerChatIpc(service: PineService): void {
   ipcMain.handle(IPC_CHANNELS.chatSend, (_event, input: ChatSendInput): void => {

@@ -331,12 +331,15 @@ main/                      主进程（Node）
   core/
     pi.ts                 **唯一** SDK 导出入口（按分类再导出）
     prompt.ts             最小基础 system prompt
+    index.ts              桶导出（barrel）
   ipc/                    薄壳 ipcMain handler，按域拆分
     providers.ts / files.ts / chat.ts / sessions.ts / skills.ts / system.ts
   services/
+    file.service.ts       FileService：文件树所有操作（intent 分发 + 异步 IO + 监听）
     pine-service.ts       PineService：runtime + 连接 + 工作目录 + 会话
     resources.ts          项目资源加载（skills / extensions / context files）
     messages.ts           会话消息提取
+    index.ts              桶导出（barrel）
 preload/
   index.ts                暴露 window.pi（contextBridge）
 renderer/                 渲染进程（React）
@@ -348,7 +351,9 @@ renderer/                 渲染进程（React）
     Dropdown.tsx / Modal.tsx / ui.tsx / icons.tsx
     ui.tsx                共享 UI 原语（ModalButton / Switch / TextInput）
     LanguageSwitcher.tsx / ThemeSwitcher.tsx
+    index.ts              桶导出（barrel）
   utils/                  id / path / error / format
+    index.ts              桶导出（barrel）
   store/                  store + rootSaga + themeSlice + layoutSlice
   features/
     login/                登录 / 模型切换
@@ -363,10 +368,11 @@ renderer/                 渲染进程（React）
 store/slice.ts          createSlice（reducers + actions）
 store/saga.ts           window.pi 副作用
 store/index.ts          再导出 slice + saga
-components/ 或 pages/   纯 UI 组件
+components/ 或 pages/   纯 UI 组件（多个导出时加 index.ts 桶导出）
 index.ts                feature 对外导出
 </code></pre>
       <p>新增 feature 时，在 <code class="inline">store/index.ts</code> 挂 reducer、在 <code class="inline">store/rootSaga.ts</code> 挂 saga。</p>
+      <p><strong>桶导出规则</strong>：一个文件夹有多个对外导出（尤其 services）时必须建 <code class="inline">index.ts</code> 桶导出，外部只 import 该文件夹，不 import 内部文件。</p>
     </section>
 
     <!-- 4 -->
@@ -502,9 +508,9 @@ switchModelSuccess(state, action) {
       <p>聊天页顶部的模型下拉框可换同 provider 的模型；<strong>换 provider</strong> 用下拉框旁的 <code class="inline">＋</code> 按钮（<code class="inline">ConnectProviderModal</code>）就地补 key，不必回登录页。</p>
 
       <h3>7.2 文件夹与文件</h3>
-      <pre><code>FileExplorer → openFolderRequest → 原生对话框（main）→ setWorkspaceRoot()
-  → loadDirRequest(root) 读第一层，目录懒加载
-所有文件 IPC 用 resolveWithinRoot 校验路径不越出工作目录。
+      <pre><code>FileExplorer / workspace saga → window.pi.executeFile({ intent, ... })
+  → files:execute → FileService.execute() 按 intent 分发（全异步 IO，不阻塞主进程）
+FileService 用 resolveWithinRoot 校验路径不越出工作目录。
 fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refreshTreeRequest
 </code></pre>
 
@@ -591,7 +597,7 @@ fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refresh
           <thead><tr><th>能力</th><th>主进程 / 共享 / preload</th><th>渲染层</th></tr></thead>
           <tbody>
             <tr><td>Provider / 模型列表、连接、切换、思考层级</td><td><code class="inline">services/pine-service.ts</code> · <code class="inline">ipc/providers.ts</code></td><td><code class="inline">features/login/</code></td></tr>
-            <tr><td>文件树、增删改、自动刷新</td><td><code class="inline">ipc/files.ts</code></td><td><code class="inline">features/workspace/</code></td></tr>
+            <tr><td>文件树、增删改、自动刷新</td><td><code class="inline">services/file.service.ts</code> · <code class="inline">ipc/files.ts</code></td><td><code class="inline">features/workspace/</code></td></tr>
             <tr><td>编辑器 + 行号 + 保存 + diff</td><td>—</td><td><code class="inline">features/workspace/components/</code></td></tr>
             <tr><td>聊天收发、流式事件、图片、每轮花费</td><td><code class="inline">pine-service.ts</code> · <code class="inline">services/messages.ts</code> · <code class="inline">ipc/chat.ts</code></td><td><code class="inline">features/chat/components/ChatView.tsx</code> · <code class="inline">ComposerBar.tsx</code></td></tr>
             <tr><td>会话列表 / 续接 / 删除 / 重命名 / 设置</td><td><code class="inline">ipc/sessions.ts</code></td><td><code class="inline">SessionsPanel.tsx</code> · <code class="inline">ComposerBar.tsx</code></td></tr>
@@ -614,7 +620,7 @@ fs.watch(root, { recursive: true }) + 300ms 防抖 → files:changed → refresh
           <thead><tr><th>要做什么</th><th>改哪里</th></tr></thead>
           <tbody>
             <tr><td>加一个会话事件到聊天 UI</td><td><code class="inline">forwardEvent</code> → <code class="inline">ChatEvent</code> → chat slice reducer →（展示）<code class="inline">ChatView.tsx</code></td></tr>
-            <tr><td>加一个文件操作</td><td><code class="inline">files.ts</code> handler（记得 <code class="inline">resolveWithinRoot</code>）→ <code class="inline">ipc.ts</code> / <code class="inline">preload</code> / <code class="inline">types.ts</code> → workspace saga</td></tr>
+            <tr><td>加一个文件操作</td><td><code class="inline">file.service.ts</code> 加 intent 分支 + <code class="inline">types.ts</code> 的 <code class="inline">FileRequest/FileResponse</code>（记得 <code class="inline">resolveWithinRoot</code>）→ workspace saga</td></tr>
             <tr><td>加一个 feature</td><td>按第 3 节结构建目录，注册 reducer + saga</td></tr>
             <tr><td>加一个 UI 字符串</td><td>两个语言包都加，组件里 <code class="inline">t(...)</code></td></tr>
             <tr><td>加一个可复用 UI 组件</td><td><code class="inline">renderer/components/</code>，样式走 theme</td></tr>

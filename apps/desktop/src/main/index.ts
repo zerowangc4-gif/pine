@@ -3,7 +3,7 @@ import { app, BrowserWindow } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc";
 import type { ChatEvent } from "@shared/types";
 import { registerIpc } from "./ipc";
-import { PineService } from "./services/pine-service";
+import { FileService, PineService } from "./services";
 
 let mainWindow: BrowserWindow | undefined;
 
@@ -59,7 +59,12 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   const service = new PineService(sendToWindow, getSessionsDir());
-  registerIpc(service, getWindow);
+  const fileService = new FileService({
+    getWindow,
+    getWorkspaceRoot: () => service.getWorkspaceRoot(),
+    setWorkspaceRoot: (root) => service.setWorkspaceRoot(root),
+  });
+  registerIpc(service, fileService);
   createWindow();
 
   app.on("activate", () => {
